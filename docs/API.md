@@ -12,7 +12,30 @@
 ## Autenticación
 
 ### POST /auth/register
-Registrar nuevo propietario de negocio.
+Registrar un **cliente** (sin negocio; `type=customer`).
+
+**Request:**
+```json
+{
+  "email": "ana@example.com",
+  "password": "SecurePass123!",
+  "name": "Ana"
+}
+```
+
+**Response:** 201 — `businessId` es `null` (el cliente no tiene negocio).
+```json
+{ "userId": "uuid", "businessId": null, "accessToken": "jwt", "refreshToken": "opaque_token" }
+```
+
+> **Contraseña:** mín. 8 caracteres con mayúscula, minúscula, dígito y símbolo.
+> Si no cumple → `400` (`weak_password`, con `details`). Email duplicado → `409`.
+> Reservar NO exige registrarse (existe el flujo *guest*).
+
+---
+
+### POST /auth/register-owner
+Registrar un **propietario** + su negocio (plan Free) + owner-as-staff, de forma atómica.
 
 **Request:**
 ```json
@@ -24,28 +47,11 @@ Registrar nuevo propietario de negocio.
 }
 ```
 
-> Registro de **propietario**: crea el `user` (type=owner) + su negocio en plan Free
-> + el owner-as-staff, de forma atómica. El registro de *customer* (flujo invitado,
-> sin negocio) es un endpoint futuro distinto. `name` es el nombre del propietario.
->
-> **Contraseña:** mín. 8 caracteres con mayúscula, minúscula, dígito y símbolo.
-> Si no cumple → `400` (`weak_password`, con `details`). Email duplicado → `409`.
-
-**Response:** 201
+**Response:** 201 (incluye `businessId` del negocio creado).
 ```json
-{
-  "userId": "uuid",
-  "businessId": "uuid",
-  "accessToken": "jwt",
-  "refreshToken": "opaque_token"
-}
+{ "userId": "uuid", "businessId": "uuid", "accessToken": "jwt", "refreshToken": "opaque_token" }
 ```
-
-**Tests (TDD):**
-- ✓ Email inválido rechazado
-- ✓ Contraseña corta rechazada
-- ✓ Email duplicado rechazado
-- ✓ Negocio creado automáticamente en Free plan
+Mismas reglas de contraseña (`400`) y email duplicado (`409`) que el registro de cliente.
 
 ---
 
