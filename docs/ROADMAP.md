@@ -10,9 +10,9 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 13/13 en verde (xUnit + Moq + Testcontainers PostgreSQL 17).
-- **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, validación de límite Freemium de staff.
-- **Lo que aún NO se puede "ver" en navegador:** falta el host `Slotify.API` (Swagger/endpoints). Siguiente hito.
+- **Tests:** 32/32 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, validación de límite Freemium de staff, y **autenticación completa** (registro de owner, login, refresh con rotación, `/me` protegido por JWT).
+- **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
 ---
 
@@ -24,7 +24,7 @@
   - ✅ Estructura monorepo (`backend/`, `frontend/`, `infra/`, `docs/`)
   - ✅ `docker-compose.yml` (postgres + backend + frontend) y `infra/Dockerfile.*`
   - ✅ Scaffold backend (`Slotify.slnx`: Domain, Infrastructure, Tests) + aislamiento NuGet
-  - ⬜ Proyecto `Slotify.API` (host ASP.NET) — *parte del walking skeleton*
+  - ✅ Proyecto `Slotify.API` (host ASP.NET + OpenAPI/Scalar + JWT + migrate-on-startup)
   - ⬜ CI/CD GitHub Actions (build + test en cada push)
   - ⬜ Scaffold frontend (Vite + React 19 + TS)
 - 🚧 **Fase 3 — Desarrollo TDD** (ver detalle abajo)
@@ -46,7 +46,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ⬜ `guests` (AES-256-GCM + HMAC blind index)
 - ⬜ `reservations` (+ unique index anti-doble-booking por staff, optimistic locking)
 - ⬜ `business_hours` · ⬜ `business_holidays`
-- ⬜ `refresh_tokens` · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
+- ✅ `refresh_tokens` — *PR #5* · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
 - ⬜ `notification_logs` · ⬜ `waitlists` · ⬜ `audit_logs` · ⬜ `reviews`
 - 🔮 `payments` (esqueleto documentado, no MVP)
 
@@ -59,7 +59,9 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `FreemiumLimitService.CanAddStaffAsync` (data-driven, ADR #9) — *PR #3*
   - ✅ `ITierRepository` / `IStaffRepository` (+ impl. EF)
   - ⬜ `CanAddServiceAsync`, `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
-- ⬜ Auth: registro (bcrypt), login (JWT HS256), refresh, reset password
+- ✅ Auth: registro (bcrypt), login (JWT HS256), refresh con rotación — *PR #5*
+  - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
+  - ⬜ reset password (password_reset_tokens)
 - ⬜ Servicios (CRUD) con límite Freemium
 - ⬜ Disponibilidad (slots) respetando horario, festivos, ocupación, timezone
 - ⬜ Reservas: crear (guest/user), anti-doble-booking, modificar, cancelar (hard delete + audit)
@@ -70,12 +72,12 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## API (host + endpoints)
 
-- ⬜ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), Swagger, migraciones al arranque, `docker-compose up`
-- ⬜ `POST /auth/register` · ⬜ `POST /auth/login` · ⬜ `POST /auth/refresh`
+- ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
+- ✅ `POST /auth/register` · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ⬜ `GET/POST /businesses/{id}/services`
 - ⬜ `GET /businesses/{id}/availability`
 - ⬜ `POST/GET/PATCH/DELETE /reservations`
-- ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar
+- ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
 
 ---
 
@@ -103,9 +105,11 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #1 | `feature/data-layer-pricing-tiers-businesses` | Entidades + migración `InitialCreate` (users, pricing_tiers, businesses) + seed |
 | #2 | `feature/staff-owner-as-staff` | `staff` + `BusinessService`/`BusinessRepository` (owner-as-staff) |
 | #3 | `feature/freemium-limits` | `FreemiumLimitService` + repos EF (límite de staff) |
+| #4 | `docs/project-roadmap` | Roadmap + READMEs |
+| #5 | `feature/api-auth-jwt` | `Slotify.API` + auth completa (register/login/refresh/me) con JWT + bcrypt |
 
 ---
 
 ## Siguiente paso
 
-🎯 **`feature/api-walking-skeleton`** — levantar `Slotify.API` (Swagger + DI + migraciones al arranque) con `POST /auth/register` (user + negocio + owner-staff, password con bcrypt). Objetivo: **verlo funcionando en el navegador** con `docker-compose up`.
+🎯 **Servicios (CRUD) con límite Freemium**: `services` (tabla + entidad), `CanAddServiceAsync`, y endpoints `GET/POST /businesses/{id}/services` protegidos (owner). Alternativas: `guests` + `reservations` (núcleo de reservas), o scaffold del frontend para empezar a consumir la API.

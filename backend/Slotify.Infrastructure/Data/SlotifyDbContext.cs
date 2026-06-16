@@ -9,6 +9,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<PricingTier> PricingTiers => Set<PricingTier>();
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Staff> Staff => Set<Staff>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +19,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigurePricingTiers(modelBuilder);
         ConfigureBusinesses(modelBuilder);
         ConfigureStaff(modelBuilder);
+        ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
 
@@ -127,6 +129,28 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.HasIndex(s => new { s.BusinessId, s.Status });
             e.HasIndex(s => s.UserId);
             e.HasIndex(s => new { s.BusinessId, s.Role }); // localizar al owner-staff
+        });
+    }
+
+    private static void ConfigureRefreshTokens(ModelBuilder mb)
+    {
+        mb.Entity<RefreshToken>(e =>
+        {
+            e.ToTable("refresh_tokens");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(r => r.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(r => r.TokenHash).HasColumnName("token_hash").HasMaxLength(255).IsRequired();
+            e.Property(r => r.ExpiresAt).HasColumnName("expires_at").IsRequired();
+            e.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(r => r.TokenHash).IsUnique();
+            e.HasIndex(r => new { r.UserId, r.ExpiresAt });
         });
     }
 

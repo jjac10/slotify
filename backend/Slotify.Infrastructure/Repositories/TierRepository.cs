@@ -16,4 +16,7 @@ public class TierRepository(SlotifyDbContext db) : ITierRepository
             .AsNoTracking()
             .SingleAsync(ct);
     }
+
+    public Task<PricingTier> GetByCodeAsync(string code, CancellationToken ct = default)
+        => db.PricingTiers.AsNoTracking().SingleAsync(t => t.Code == code, ct);
 }

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Slotify.Domain\Slotify.Domain.csproj" />
     <ProjectReference Include="..\Slotify.Infrastructure\Slotify.Infrastructure.csproj" />
+    <ProjectReference Include="..\Slotify.API\Slotify.API.csproj" />
   </ItemGroup>
 
 </Project>

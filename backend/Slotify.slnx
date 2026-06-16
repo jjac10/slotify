@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="Slotify.API/Slotify.API.csproj" />
   <Project Path="Slotify.Domain/Slotify.Domain.csproj" />
   <Project Path="Slotify.Infrastructure/Slotify.Infrastructure.csproj" />
   <Project Path="Slotify.Tests/Slotify.Tests.csproj" />

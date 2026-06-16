@@ -11,11 +11,12 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **13/13 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **32/32 tests en verde**.
 
-Implementado y probado: capa de datos (`pricing_tiers`, `users`, `businesses`, `staff`),
-creación de negocio con *owner-as-staff* atómico y validación de límites Freemium.
-Siguiente hito: host `Slotify.API` con Swagger para verlo en el navegador.
+Implementado y probado: capa de datos (`pricing_tiers`, `users`, `businesses`, `staff`,
+`refresh_tokens`), creación de negocio con *owner-as-staff* atómico, límites Freemium y
+**autenticación completa** (registro de owner, login, refresh con rotación, `/me` protegido
+por JWT). La API ya se levanta con `docker-compose up` (UI Scalar en `/scalar`).
 
 👉 Planificación completa y checklist: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 
