@@ -6,6 +6,7 @@
 - **Auth:** Bearer token en header `Authorization: Bearer {JWT}`
 - **Formato:** JSON
 - **Errores:** HTTP status codes estándar + error detail
+- **CORS:** habilitado para el frontend; orígenes permitidos en `Cors:AllowedOrigins` (dev: `http://localhost:5173`, `http://localhost:3000`)
 
 ---
 
@@ -280,6 +281,23 @@ Obtener detalles de reserva (guest o owner).
 
 ---
 
+### GET /reservations/mine
+"Mis reservas": las del usuario autenticado (no canceladas), ordenadas por inicio.
+
+**Auth:** Required (JWT)
+**Response:** 200 — array de `ReservationResponse`.
+```json
+[ { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+    "userId": "uuid", "guestId": null,
+    "startTime": "2026-09-05T12:00:00Z", "endTime": "2026-09-05T12:30:00Z", "status": "pending" } ]
+```
+
+**Tests:**
+- ✓ Solo devuelve las reservas del propio usuario (no las de invitados)
+- ✓ 401 sin token
+
+---
+
 ### PATCH /reservations/{id}
 Reprogramar reserva: cambia el inicio y **conserva la duración** (el fin se recalcula).
 
@@ -358,22 +376,26 @@ Resumen para propietario.
 ---
 
 ### GET /businesses/{businessId}/reservations
-Listar reservas del negocio.
+Agenda del negocio: reservas (no canceladas) ordenadas por inicio.
 
-**Auth:** Required (owner)
-**Query params:**
+**Auth:** Required (owner del negocio o staff del negocio; otro usuario → 403)
+**Query params (opcionales):**
 ```
-?status=pending&from=2026-06-01&to=2026-06-30&page=1&limit=20
+?date=2026-09-01     // solo ese día (UTC)
+&staffId=<uuid>      // solo ese trabajador
 ```
 
-**Response:** 200
+**Response:** 200 — array de `ReservationResponse`.
 ```json
-{
-  "total": 120,
-  "page": 1,
-  "data": [...]
-}
+[ { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+    "userId": null, "guestId": "uuid",
+    "startTime": "2026-09-01T10:00:00Z", "endTime": "2026-09-01T10:30:00Z", "status": "pending" } ]
 ```
+
+**Tests:**
+- ✓ Owner ve las reservas del negocio; filtro por fecha
+- ✓ 401 sin token · 403 si no es owner/staff del negocio
+- 🔮 paginación + filtro por estado (pendiente)
 
 ---
 

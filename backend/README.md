@@ -27,7 +27,8 @@ backend/
 - Servicios: `BusinessService`, `FreemiumLimitService`, `ServiceService`, `AuthService`, `BookingService`, `ReservationManagementService` (cancelar/reprogramar), `BusinessScheduleService`, `AvailabilityService`, `PasswordPolicy`.
 - Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256), `AesGcmCryptoService` + `HmacBlindIndex` (ADR #5).
 - Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Guest`, `Reservation`, `BusinessHour`, `BusinessHoliday`, `Auth`, `RefreshToken`, `AuditLog`.
-- Endpoints: auth, `GET /businesses`, servicios, reservas (`POST`/`GET`/`PATCH`/`DELETE /reservations/{id}`: crear, consultar, reprogramar, cancelar), horario (`hours`/`holidays`), disponibilidad (`GET /businesses/{id}/availability`).
+- Endpoints: auth, `GET /businesses`, servicios, reservas (`POST`/`GET`/`PATCH`/`DELETE /reservations/{id}`: crear, consultar, reprogramar, cancelar; `GET /reservations/mine` y `GET /businesses/{id}/reservations` para listar), horario (`hours`/`holidays`), disponibilidad (`GET /businesses/{id}/availability`).
+- CORS habilitado para el frontend (orígenes en `Cors:AllowedOrigins`).
 
 ## Ejecutar la API
 
@@ -42,7 +43,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 139/139 verde
+dotnet test          # 155/155 verde
 ```
 
 ## Migraciones (EF Core)

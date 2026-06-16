@@ -91,6 +91,25 @@ public class ReservationManagementService(
         return ReservationResponse.From(reservation);
     }
 
+    /// <summary>
+    /// Agenda del negocio: reservas (no canceladas) ordenadas por inicio, con filtros
+    /// opcionales por día y trabajador. Solo el owner del negocio o su staff.
+    /// </summary>
+    public async Task<IReadOnlyList<ReservationResponse>> ListForBusinessAsync(
+        Guid businessId, Guid currentUserId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
+    {
+        await EnsureBusinessAccessOrThrowAsync(businessId, currentUserId, ct);
+        var list = await reservations.ListByBusinessAsync(businessId, date, staffId, ct);
+        return list.Select(ReservationResponse.From).ToList();
+    }
+
+    /// <summary>"Mis reservas": las del usuario autenticado, ordenadas por inicio.</summary>
+    public async Task<IReadOnlyList<ReservationResponse>> ListMineAsync(Guid currentUserId, CancellationToken ct = default)
+    {
+        var list = await reservations.ListByUserAsync(currentUserId, ct);
+        return list.Select(ReservationResponse.From).ToList();
+    }
+
     /// <summary>Devuelve el actor_type si está autorizado; si no, lanza 403.</summary>
     private async Task<string> ResolveActorTypeOrThrowAsync(Reservation reservation, Guid userId, CancellationToken ct)
     {
@@ -103,6 +122,19 @@ public class ReservationManagementService(
 
         if (await staff.ExistsForUserAsync(userId, reservation.BusinessId, ct))
             return "employee";
+
+        throw new ReservationForbiddenException();
+    }
+
+    /// <summary>Permite el acceso a la agenda solo al owner del negocio o a su staff; si no, lanza 403.</summary>
+    private async Task EnsureBusinessAccessOrThrowAsync(Guid businessId, Guid userId, CancellationToken ct)
+    {
+        var business = await businesses.GetByIdAsync(businessId, ct);
+        if (business is not null && business.OwnerId == userId)
+            return;
+
+        if (await staff.ExistsForUserAsync(userId, businessId, ct))
+            return;
 
         throw new ReservationForbiddenException();
     }

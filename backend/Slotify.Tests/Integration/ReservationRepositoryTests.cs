@@ -160,6 +160,46 @@ public class ReservationRepositoryTests : IClassFixture<PostgresFixture>, IAsync
             () => new ReservationRepository(ctxB).UpdateAsync(copyB));
     }
 
+    [Fact]
+    public async Task ListByBusinessAsync_FiltersByDateAndStaff()
+    {
+        var ctx = await SeedAsync();
+        var repo = new ReservationRepository(_db);
+        await repo.AddAsync(NewReservation(ctx, At10, At10.AddMinutes(30)));                       // 20-jun 10:00
+        await repo.AddAsync(NewReservation(ctx, At10.AddDays(1), At10.AddDays(1).AddMinutes(30))); // 21-jun 10:00
+
+        var all = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: null);
+        Assert.Equal(2, all.Count);
+
+        var onlyDay = await repo.ListByBusinessAsync(ctx.businessId, date: DateOnly.FromDateTime(At10), staffId: null);
+        Assert.Single(onlyDay);
+
+        var byStaff = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: ctx.staffId);
+        Assert.Equal(2, byStaff.Count);
+        var otherStaff = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: Guid.NewGuid());
+        Assert.Empty(otherStaff);
+    }
+
+    [Fact]
+    public async Task ListByUserAsync_ReturnsOnlyThatUsersReservations()
+    {
+        var ctx = await SeedAsync();
+        var repo = new ReservationRepository(_db);
+        // Una reserva de usuario y otra de invitado en el mismo negocio/staff.
+        var user = new User { Id = Guid.NewGuid(), Email = $"u-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "U", Type = "customer" };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+        var mine = NewReservation(ctx, At10, At10.AddMinutes(30));
+        mine.GuestId = null; mine.UserId = user.Id;
+        await repo.AddAsync(mine);
+        await repo.AddAsync(NewReservation(ctx, At10.AddHours(1), At10.AddHours(1).AddMinutes(30))); // invitado
+
+        var result = await repo.ListByUserAsync(user.Id);
+
+        Assert.Single(result);
+        Assert.Equal(mine.Id, result[0].Id);
+    }
+
     private static Reservation NewReservation((Guid businessId, Guid serviceId, Guid staffId, Guid guestId) ctx,
         DateTime start, DateTime end) => new()
     {

@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 139/139 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Tests:** 155/155 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
 - **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos) y **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -67,7 +67,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
 - ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
 - ⬜ `CanAddReservationThisMonthAsync` (límite Freemium de reservas)
-- ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14*
+- ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
 - ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12*
 - ⬜ Notificaciones (async fire & forget), reviews, waitlist
 
@@ -76,12 +76,14 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 ## API (host + endpoints)
 
 - ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
+- ✅ **CORS** habilitado para el frontend (orígenes en `Cors:AllowedOrigins`) — *PR #15*
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14*
-- ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
+- ✅ `GET /reservations/mine` ("mis reservas") · ✅ `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) — *PR #15*
+- ⬜ Dashboard owner (resumen/stats) · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
 
 ---
 
@@ -120,9 +122,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #12 | `feature/guest-user-sync` | Sync invitado→usuario: vincular guests por blind index al registrar customer |
 | #13 | `feature/cancel-reservation` | `audit_logs` + `ReservationManagementService.CancelAsync` + `DELETE /reservations/{id}` (autz rol + audit + hard-delete) |
 | #14 | `feature/modify-reservation` | `ReservationManagementService.RescheduleAsync` + `PATCH /reservations/{id}` (reprogramar: conserva duración, solape excluyéndose, optimistic locking `version`, audit `updated`); `IReservationRepository.UpdateAsync` |
+| #15 | `feature/list-reservations` | Listar reservas: `GET /reservations/mine` + `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) + `ListBy{Business,User}Async`; **CORS** para el frontend; e2e de `GET /businesses` (hueco de cobertura) |
 
 ---
 
 ## Siguiente paso
 
-🎯 A elegir: **scaffold del frontend** (React 19 + Vite), **CI/CD** (GitHub Actions: build + test), o **límite Freemium de reservas** (`CanAddReservationThisMonthAsync`).
+🎯 **Frontend** (scaffold React 19 + Vite + TS, cliente API, flujo de reserva, auth, agenda owner). Alternativas: **CI/CD** (GitHub Actions build+test) o **límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync`).

@@ -30,4 +30,14 @@ public interface IReservationRepository
 
     /// <summary>Reservas no canceladas de un staff en una fecha (para calcular disponibilidad).</summary>
     Task<IReadOnlyList<Reservation>> ListByStaffOnDateAsync(Guid staffId, DateOnly date, CancellationToken ct = default);
+
+    /// <summary>
+    /// Reservas de un negocio (agenda), ordenadas por inicio. Filtros opcionales por
+    /// día (UTC) y por trabajador.
+    /// </summary>
+    Task<IReadOnlyList<Reservation>> ListByBusinessAsync(
+        Guid businessId, DateOnly? date, Guid? staffId, CancellationToken ct = default);
+
+    /// <summary>Reservas de un usuario registrado ("mis reservas"), ordenadas por inicio.</summary>
+    Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default);
 }

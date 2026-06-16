@@ -185,4 +185,72 @@ public class ReservationManagementServiceTests
         await Assert.ThrowsAsync<ReservationNotFoundException>(
             () => CreateService().RescheduleAsync(_reservationId, _ownerId, At10.AddHours(1)));
     }
+
+    // --- Listados ------------------------------------------------------------
+
+    private void SetupBusiness() =>
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = _ownerId, TierId = Guid.NewGuid(), Name = "Biz" });
+
+    private static Reservation SampleReservation(Guid businessId, Guid? userId = null) => new()
+    {
+        Id = Guid.NewGuid(), BusinessId = businessId, ServiceId = Guid.NewGuid(), StaffId = Guid.NewGuid(),
+        UserId = userId, GuestId = userId is null ? Guid.NewGuid() : null,
+        StartTime = At10, EndTime = At10.AddMinutes(30), Status = "pending",
+    };
+
+    [Fact]
+    public async Task ListMineAsync_ReturnsCurrentUsersReservations()
+    {
+        var userId = Guid.NewGuid();
+        _reservations.Setup(r => r.ListByUserAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([SampleReservation(_businessId, userId)]);
+
+        var result = await CreateService().ListMineAsync(userId);
+
+        Assert.Single(result);
+        Assert.Equal(userId, result[0].UserId);
+    }
+
+    [Fact]
+    public async Task ListForBusinessAsync_AsOwner_ReturnsList()
+    {
+        SetupBusiness();
+        _reservations.Setup(r => r.ListByBusinessAsync(_businessId, null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([SampleReservation(_businessId)]);
+
+        var result = await CreateService().ListForBusinessAsync(_businessId, _ownerId, null, null);
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task ListForBusinessAsync_AsStaff_PassesFiltersThrough()
+    {
+        var employeeId = Guid.NewGuid();
+        var date = new DateOnly(2026, 7, 1);
+        var staffFilter = Guid.NewGuid();
+        SetupBusiness();
+        _staff.Setup(s => s.ExistsForUserAsync(employeeId, _businessId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _reservations.Setup(r => r.ListByBusinessAsync(_businessId, date, staffFilter, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var result = await CreateService().ListForBusinessAsync(_businessId, employeeId, date, staffFilter);
+
+        Assert.Empty(result);
+        _reservations.Verify(r => r.ListByBusinessAsync(_businessId, date, staffFilter, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ListForBusinessAsync_Unauthorized_Throws_AndDoesNotQuery()
+    {
+        SetupBusiness();
+        _staff.Setup(s => s.ExistsForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().ListForBusinessAsync(_businessId, Guid.NewGuid(), null, null));
+
+        _reservations.Verify(r => r.ListByBusinessAsync(
+            It.IsAny<Guid>(), It.IsAny<DateOnly?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
