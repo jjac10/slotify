@@ -10,8 +10,8 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 85/85 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
-- **Lo que ya funciona (probado):** auth completa (customer/owner, login, refresh, `/me`), negocios + servicios (CRUD con límite Freemium), y **núcleo de reservas**: alta de invitado (cifrado AES-GCM + blind index) o usuario, con **anti-doble-booking robusto** (exclusion constraint gist) → `POST /reservations`, `GET /reservations/{id}`.
+- **Tests:** 105/105 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), y **horario del negocio** (`business_hours` + `business_holidays` gestionados por el owner).
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
 ---
@@ -45,7 +45,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ⬜ `staff_services`
 - ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
 - ✅ `reservations` (+ exclusion constraint gist anti-doble-booking, optimistic locking) — *PR #9*
-- ⬜ `business_hours` · ⬜ `business_holidays`
+- ✅ `business_hours` · ✅ `business_holidays` — *PR #10*
 - ✅ `refresh_tokens` — *PR #5* · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
 - ⬜ `notification_logs` · ⬜ `waitlists` · ⬜ `audit_logs` · ⬜ `reviews`
 - 🔮 `payments` (esqueleto documentado, no MVP)
@@ -64,6 +64,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
   - ⬜ reset password (password_reset_tokens)
 - ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9*
+- ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
 - ⬜ Disponibilidad (slots) respetando horario, festivos, ocupación, timezone
 - ✅ Reservas: crear (guest/user) con anti-doble-booking — *PR #9* · ⬜ modificar, cancelar (hard delete + audit)
 - ✅ Guests: cifrado + blind index — *PR #9* · ⬜ sync invitado→usuario automática
@@ -76,6 +77,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
+- ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ⬜ `GET /businesses/{id}/availability`
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ⬜ `PATCH/DELETE /reservations/{id}`
 - ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
@@ -112,9 +114,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #7 | `feature/password-policy` | Política de contraseña segura en el registro (`PasswordPolicy`, 400 si débil) |
 | #8 | `feature/customer-registration` | Split de registro: customer (`/auth/register`) vs owner (`/auth/register-owner`) |
 | #9 | `feature/reservations-core` | `guests` + `reservations` (exclusion constraint), `CryptoService`/`BlindIndex`, `BookingService`, endpoints `POST/GET /reservations` |
+| #10 | `feature/business-hours` | `business_hours` + `business_holidays` + `BusinessScheduleService` + endpoints (owner) |
 
 ---
 
 ## Siguiente paso
 
-🎯 A elegir: **horarios + disponibilidad** (`business_hours`, `business_holidays`, `GET /availability` con slots configurables — ver [design/reservations-core.md](design/reservations-core.md) Anexo A); **modificar/cancelar reservas** (permisos por rol — Anexo B); **sync invitado→usuario** al registrarse; o **scaffold del frontend** (React 19 + Vite).
+🎯 **`feature/availability`**: `GET /businesses/{id}/availability` — calcular slots libres = horario − festivos − reservas, con paso configurable y regla anti-huecos ([design/reservations-core.md](design/reservations-core.md) Anexo A). Alternativas: **modificar/cancelar reservas** (permisos por rol — Anexo B), **sync invitado→usuario**, o **scaffold del frontend**.
