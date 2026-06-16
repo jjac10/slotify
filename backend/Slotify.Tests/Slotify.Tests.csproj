@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Slotify.Domain\Slotify.Domain.csproj" />
     <ProjectReference Include="..\Slotify.Infrastructure\Slotify.Infrastructure.csproj" />
+    <ProjectReference Include="..\Slotify.API\Slotify.API.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Slotify.Domain.Interfaces;
 using Slotify.Domain.Services;
+using Scalar.AspNetCore;
 using Slotify.Infrastructure.Data;
 using Slotify.Infrastructure.Repositories;
+using Slotify.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,37 +15,45 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<SlotifyDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// --- Configuración JWT ---
+var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Falta la sección de configuración 'Jwt'.");
+builder.Services.AddSingleton(jwtOptions);
+
 // --- Repositorios y servicios (Repository Pattern + DI, ADR #2) ---
 builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
 builder.Services.AddScoped<ITierRepository, TierRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<BusinessService>();
 builder.Services.AddScoped<FreemiumLimitService>();
+builder.Services.AddScoped<AuthService>();
 
 // --- Autenticación JWT (ADR #3) ---
-var jwt = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwt["Key"] ?? throw new InvalidOperationException("Falta configuración Jwt:Key.");
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false; // conserva los nombres de claim del JWT (sub, email)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
         };
     });
 builder.Services.AddAuthorization();
 
-// --- API / Swagger ---
+// --- API / OpenAPI ---
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -56,8 +66,8 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();                                  // /openapi/v1.json
+    app.MapScalarApiReference();                       // UI interactiva en /scalar
 }
 
 app.UseAuthentication();
