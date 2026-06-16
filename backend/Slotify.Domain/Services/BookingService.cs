@@ -36,7 +36,7 @@ public class BookingService(
         if (userId is null)
             guestId = (await ResolveGuestAsync(request, ct)).Id;
 
-        if (await reservations.HasOverlapAsync(request.StaffId, startTime, endTime, ct))
+        if (await reservations.HasOverlapAsync(request.StaffId, startTime, endTime, ct: ct))
             throw new SlotUnavailableException();
 
         var reservation = new Reservation
