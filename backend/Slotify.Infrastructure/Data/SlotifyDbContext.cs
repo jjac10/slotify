@@ -10,6 +10,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Staff> Staff => Set<Staff>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -21,6 +22,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureBusinesses(modelBuilder);
         ConfigureStaff(modelBuilder);
         ConfigureServices(modelBuilder);
+        ConfigureGuests(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -157,6 +159,46 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(s => new { s.BusinessId, s.Status });
+        });
+    }
+
+    private static void ConfigureGuests(ModelBuilder mb)
+    {
+        mb.Entity<Guest>(e =>
+        {
+            e.ToTable("guests", t => t.HasCheckConstraint(
+                "ck_guests_phone_or_email", "phone_hash IS NOT NULL OR email_hash IS NOT NULL"));
+            e.HasKey(g => g.Id);
+            e.Property(g => g.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(g => g.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(g => g.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+            e.Property(g => g.PhoneEncrypted).HasColumnName("phone_encrypted").HasMaxLength(255);
+            e.Property(g => g.EmailEncrypted).HasColumnName("email_encrypted").HasMaxLength(255);
+            e.Property(g => g.PhoneHash).HasColumnName("phone_hash").HasMaxLength(64);
+            e.Property(g => g.EmailHash).HasColumnName("email_hash").HasMaxLength(64);
+            e.Property(g => g.UserId).HasColumnName("user_id");
+            e.Property(g => g.TotalReservations).HasColumnName("total_reservations").HasDefaultValue(0);
+            e.Property(g => g.LastReservationAt).HasColumnName("last_reservation_at");
+            e.Property(g => g.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
+            e.Property(g => g.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(g => g.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(g => g.Business)
+                .WithMany()
+                .HasForeignKey(g => g.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(g => g.User)
+                .WithMany()
+                .HasForeignKey(g => g.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Dedupe/lookup por negocio: UNIQUE parciales (solo cuando el hash existe).
+            e.HasIndex(g => new { g.BusinessId, g.PhoneHash })
+                .IsUnique().HasFilter("phone_hash IS NOT NULL");
+            e.HasIndex(g => new { g.BusinessId, g.EmailHash })
+                .IsUnique().HasFilter("email_hash IS NOT NULL");
+            e.HasIndex(g => g.UserId);
         });
     }
 
