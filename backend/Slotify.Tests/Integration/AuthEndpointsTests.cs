@@ -32,6 +32,16 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     }
 
     [Fact]
+    public async Task Register_WeakPassword_ReturnsBadRequest()
+    {
+        var weak = new RegisterRequest($"owner-{Guid.NewGuid():N}@test.local", "weak", "Pepe", "Barbería Pepe");
+
+        var response = await _client.PostAsJsonAsync("/auth/register", weak);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Register_DuplicateEmail_ReturnsConflict()
     {
         var request = NewRegister();

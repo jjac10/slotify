@@ -23,6 +23,8 @@ public class AuthService(
 
     public async Task<AuthResult> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
+        PasswordPolicy.Validate(request.Password); // rechaza contraseñas débiles antes de tocar BD
+
         if (await auth.EmailExistsAsync(request.Email, ct))
             throw new EmailAlreadyExistsException(request.Email);
 
