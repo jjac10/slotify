@@ -11,14 +11,34 @@ namespace Slotify.API.Controllers;
 [Route("auth")]
 public class AuthController(AuthService auth) : ControllerBase
 {
-    /// <summary>Registra un propietario y crea su negocio (plan Free) + owner-staff.</summary>
+    /// <summary>Registra un cliente (sin negocio).</summary>
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<AuthResult>> Register(RegisterRequest request, CancellationToken ct)
+    public async Task<ActionResult<AuthResult>> Register(RegisterCustomerRequest request, CancellationToken ct)
     {
         try
         {
-            var result = await auth.RegisterAsync(request, ct);
+            var result = await auth.RegisterCustomerAsync(request, ct);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
+        }
+        catch (EmailAlreadyExistsException ex)
+        {
+            return Conflict(new { error = "email_exists", message = ex.Message });
+        }
+    }
+
+    /// <summary>Registra un propietario y crea su negocio (plan Free) + owner-staff.</summary>
+    [HttpPost("register-owner")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResult>> RegisterOwner(RegisterOwnerRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await auth.RegisterOwnerAsync(request, ct);
             return StatusCode(StatusCodes.Status201Created, result);
         }
         catch (WeakPasswordException ex)

@@ -30,7 +30,7 @@ public class AuthServiceRegisterTests
     };
 
     [Fact]
-    public async Task RegisterAsync_CreatesOwnerWithBusinessAndStaff_AndReturnsTokens()
+    public async Task RegisterOwnerAsync_CreatesOwnerWithBusinessAndStaff_AndReturnsTokens()
     {
         _auth.Setup(a => a.EmailExistsAsync("owner@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -51,8 +51,8 @@ public class AuthServiceRegisterTests
                 { savedUser = u; savedBusiness = b; savedStaff = s; })
             .Returns(Task.CompletedTask);
 
-        var request = new RegisterRequest("owner@example.com", "SecurePass123!", "Pepe", "Barbería Pepe");
-        var result = await CreateService().RegisterAsync(request);
+        var request = new RegisterOwnerRequest("owner@example.com", "SecurePass123!", "Pepe", "Barbería Pepe");
+        var result = await CreateService().RegisterOwnerAsync(request);
 
         _auth.Verify(a => a.RegisterOwnerAsync(
             It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -83,26 +83,26 @@ public class AuthServiceRegisterTests
     }
 
     [Fact]
-    public async Task RegisterAsync_WeakPassword_Throws_AndDoesNotPersist()
+    public async Task RegisterOwnerAsync_WeakPassword_Throws_AndDoesNotPersist()
     {
         // Contraseña débil: debe rechazarse antes de tocar la BD.
-        var request = new RegisterRequest("owner@example.com", "weak", "Pepe", "Barbería Pepe");
+        var request = new RegisterOwnerRequest("owner@example.com", "weak", "Pepe", "Barbería Pepe");
 
-        await Assert.ThrowsAsync<WeakPasswordException>(() => CreateService().RegisterAsync(request));
+        await Assert.ThrowsAsync<WeakPasswordException>(() => CreateService().RegisterOwnerAsync(request));
 
         _auth.Verify(a => a.RegisterOwnerAsync(
             It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task RegisterAsync_WhenEmailExists_Throws_AndDoesNotPersist()
+    public async Task RegisterOwnerAsync_WhenEmailExists_Throws_AndDoesNotPersist()
     {
         _auth.Setup(a => a.EmailExistsAsync("taken@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var request = new RegisterRequest("taken@example.com", "SecurePass123!", "Pepe", "Barbería Pepe");
+        var request = new RegisterOwnerRequest("taken@example.com", "SecurePass123!", "Pepe", "Barbería Pepe");
 
-        await Assert.ThrowsAsync<EmailAlreadyExistsException>(() => CreateService().RegisterAsync(request));
+        await Assert.ThrowsAsync<EmailAlreadyExistsException>(() => CreateService().RegisterOwnerAsync(request));
 
         _auth.Verify(a => a.RegisterOwnerAsync(
             It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);

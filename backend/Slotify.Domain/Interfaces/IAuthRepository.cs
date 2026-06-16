@@ -11,6 +11,9 @@ public interface IAuthRepository
 
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Da de alta un usuario (p. ej. customer, sin negocio).</summary>
+    Task AddUserAsync(User user, CancellationToken ct = default);
+
     /// <summary>
     /// Persiste atómicamente el alta de un propietario: user + negocio + owner-staff.
     /// </summary>

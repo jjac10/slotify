@@ -17,6 +17,12 @@ public class AuthRepository(SlotifyDbContext db) : IAuthRepository
     public Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
+    public async Task AddUserAsync(User user, CancellationToken ct = default)
+    {
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task RegisterOwnerAsync(User user, Business business, Staff ownerStaff, CancellationToken ct = default)
     {
         db.Users.Add(user);

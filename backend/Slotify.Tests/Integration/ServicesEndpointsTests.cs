@@ -13,13 +13,13 @@ public class ServicesEndpointsTests(SlotifyApiFactory factory) : IClassFixture<S
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private static RegisterRequest NewRegister() =>
+    private static RegisterOwnerRequest NewRegister() =>
         new($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería Pepe");
 
     /// <summary>Registra un owner y devuelve (businessId, accessToken).</summary>
     private async Task<(Guid businessId, string token)> RegisterOwnerAsync()
     {
-        var auth = await (await _client.PostAsJsonAsync("/auth/register", NewRegister()))
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", NewRegister()))
             .Content.ReadFromJsonAsync<AuthResult>();
         return (auth!.BusinessId!.Value, auth.AccessToken);
     }
