@@ -20,11 +20,20 @@ var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
     ?? throw new InvalidOperationException("Falta la sección de configuración 'Jwt'.");
 builder.Services.AddSingleton(jwtOptions);
 
+// --- Configuración de cifrado (ADR #5) ---
+var cryptoOptions = builder.Configuration.GetSection("Crypto").Get<CryptoOptions>()
+    ?? throw new InvalidOperationException("Falta la sección de configuración 'Crypto'.");
+builder.Services.AddSingleton(cryptoOptions);
+builder.Services.AddScoped<ICryptoService, AesGcmCryptoService>();
+builder.Services.AddScoped<IBlindIndex, HmacBlindIndex>();
+
 // --- Repositorios y servicios (Repository Pattern + DI, ADR #2) ---
 builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
 builder.Services.AddScoped<ITierRepository, TierRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+builder.Services.AddScoped<IGuestRepository, GuestRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -32,6 +41,7 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IFreemiumLimitService, FreemiumLimitService>();
 builder.Services.AddScoped<BusinessService>();
 builder.Services.AddScoped<ServiceService>();
+builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<AuthService>();
 
 // --- Autenticación JWT (ADR #3) ---

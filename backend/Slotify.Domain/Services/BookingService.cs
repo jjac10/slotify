@@ -56,6 +56,13 @@ public class BookingService(
         return ReservationResponse.From(reservation);
     }
 
+    /// <summary>Devuelve una reserva por id (null si no existe).</summary>
+    public async Task<ReservationResponse?> GetAsync(Guid id, CancellationToken ct = default)
+    {
+        var reservation = await reservations.GetByIdAsync(id, ct);
+        return reservation is null ? null : ReservationResponse.From(reservation);
+    }
+
     /// <summary>Busca el guest por blind index (dedupe) o lo crea cifrado.</summary>
     private async Task<Guest> ResolveGuestAsync(CreateReservationRequest request, CancellationToken ct)
     {
