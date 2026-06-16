@@ -570,7 +570,10 @@ CREATE TABLE waitlists (
 ```sql
 CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  reservation_id UUID NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+  -- reservation_id es NULLABLE + ON DELETE SET NULL (NO cascade): así la auditoría
+  -- SOBREVIVE al hard-delete de la reserva (ADR #13/#14). El detalle de la reserva
+  -- borrada queda en old_values.
+  reservation_id UUID REFERENCES reservations(id) ON DELETE SET NULL,
   action VARCHAR(50) NOT NULL, -- created, updated, deleted, cancelled
   actor_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL si guest
   guest_id UUID REFERENCES guests(id) ON DELETE SET NULL, -- NULL si user
@@ -587,6 +590,11 @@ CREATE TABLE audit_logs (
   CONSTRAINT fk_audit_logs_guest FOREIGN KEY (guest_id) REFERENCES guests(id)
 );
 ```
+
+> **Cambio vs versión inicial (PR #13):** `reservation_id` pasó de `NOT NULL ON DELETE CASCADE`
+> a `NULL ON DELETE SET NULL`. Con cascade, el hard-delete de la reserva (ADR #13) borraba
+> también su auditoría, lo que contradice ADR #14 (la auditoría debe persistir). Con SET NULL
+> el registro sobrevive y conserva el snapshot en `old_values`.
 
 **Índices:**
 - `reservation_id, created_at`

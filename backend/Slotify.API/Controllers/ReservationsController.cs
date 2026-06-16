@@ -9,7 +9,7 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("reservations")]
-public class ReservationsController(BookingService booking) : ControllerBase
+public class ReservationsController(BookingService booking, ReservationManagementService management) : ApiControllerBase
 {
     /// <summary>Crea una reserva (invitado o usuario logueado).</summary>
     [HttpPost]
@@ -49,5 +49,25 @@ public class ReservationsController(BookingService booking) : ControllerBase
     {
         var reservation = await booking.GetAsync(id, ct);
         return reservation is null ? NotFound() : Ok(reservation);
+    }
+
+    /// <summary>Cancela una reserva (owner del negocio, staff o el propio usuario). Hard-delete + auditoría.</summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> Cancel(Guid id, [FromQuery] string? reason, CancellationToken ct)
+    {
+        try
+        {
+            await management.CancelAsync(id, CurrentUserId, reason, ct);
+            return NoContent();
+        }
+        catch (ReservationNotFoundException ex)
+        {
+            return NotFound(new { error = "reservation_not_found", message = ex.Message });
+        }
+        catch (ReservationForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
     }
 }

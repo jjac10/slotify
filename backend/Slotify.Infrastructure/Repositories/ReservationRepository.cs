@@ -35,6 +35,9 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
     public Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Reservations.FirstOrDefaultAsync(r => r.Id == id, ct);
 
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+        => await db.Reservations.Where(r => r.Id == id).ExecuteDeleteAsync(ct);
+
     public async Task<IReadOnlyList<Reservation>> ListByStaffOnDateAsync(Guid staffId, DateOnly date, CancellationToken ct = default)
     {
         var dayStart = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);

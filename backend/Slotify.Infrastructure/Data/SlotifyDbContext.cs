@@ -14,6 +14,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<BusinessHour> BusinessHours => Set<BusinessHour>();
     public DbSet<BusinessHoliday> BusinessHolidays => Set<BusinessHoliday>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,6 +30,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureReservations(modelBuilder);
         ConfigureBusinessHours(modelBuilder);
         ConfigureBusinessHolidays(modelBuilder);
+        ConfigureAuditLogs(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -290,6 +292,36 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(h => new { h.BusinessId, h.HolidayDate }).IsUnique();
+        });
+    }
+
+    private static void ConfigureAuditLogs(ModelBuilder mb)
+    {
+        mb.Entity<AuditLog>(e =>
+        {
+            e.ToTable("audit_logs");
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(a => a.ReservationId).HasColumnName("reservation_id");
+            e.Property(a => a.Action).HasColumnName("action").HasMaxLength(50).IsRequired();
+            e.Property(a => a.ActorId).HasColumnName("actor_id");
+            e.Property(a => a.GuestId).HasColumnName("guest_id");
+            e.Property(a => a.ActorType).HasColumnName("actor_type").HasMaxLength(50);
+            e.Property(a => a.OldValues).HasColumnName("old_values").HasColumnType("jsonb");
+            e.Property(a => a.NewValues).HasColumnName("new_values").HasColumnType("jsonb");
+            e.Property(a => a.IpAddress).HasColumnName("ip_address").HasMaxLength(45);
+            e.Property(a => a.UserAgent).HasColumnName("user_agent");
+            e.Property(a => a.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            // La auditoría sobrevive al hard-delete de la reserva (ADR #13/#14):
+            // reservation_id es nullable y ON DELETE SET NULL.
+            e.HasOne<Reservation>().WithMany().HasForeignKey(a => a.ReservationId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<User>().WithMany().HasForeignKey(a => a.ActorId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Guest>().WithMany().HasForeignKey(a => a.GuestId).OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(a => new { a.ReservationId, a.CreatedAt });
+            e.HasIndex(a => new { a.ActorId, a.CreatedAt });
+            e.HasIndex(a => new { a.Action, a.CreatedAt });
         });
     }
 
