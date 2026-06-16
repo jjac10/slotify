@@ -104,7 +104,23 @@ Sin token válido → 401.
 
 ---
 
+## Negocios (Businesses)
+
+### GET /businesses
+Lista los negocios del owner autenticado.
+
+**Auth:** Required (Bearer token)
+**Response:** 200
+```json
+[ { "id": "uuid", "name": "Mi Salón", "status": "active" } ]
+```
+
+---
+
 ## Servicios (Services)
+
+> Crear servicio es **solo owner** del negocio y respeta el límite del plan
+> (Free=5): si se supera → `409` (`limit_reached`). Listar es público.
 
 ### GET /businesses/{businessId}/services
 Listar servicios del negocio.
