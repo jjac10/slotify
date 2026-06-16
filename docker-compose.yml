@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: slotify_db
+    environment:
+      POSTGRES_DB: slotify
+      POSTGRES_USER: slotify_user
+      POSTGRES_PASSWORD: slotify_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - slotify_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotify_user -d slotify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./infra/Dockerfile.backend
+    container_name: slotify_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=slotify;Username=slotify_user;Password=slotify_password;"
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - slotify_network
+    volumes:
+      - ./backend:/app/backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./infra/Dockerfile.frontend
+    container_name: slotify_web
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - slotify_network
+    environment:
+      VITE_API_URL: http://localhost:5000
+
+volumes:
+  postgres_data:
+
+networks:
+  slotify_network:
+    driver: bridge

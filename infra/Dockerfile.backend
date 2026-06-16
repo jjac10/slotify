@@ -1,0 +1,24 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["backend/Slotify.API/Slotify.API.csproj", "Slotify.API/"]
+COPY ["backend/Slotify.Domain/Slotify.Domain.csproj", "Slotify.Domain/"]
+COPY ["backend/Slotify.Infrastructure/Slotify.Infrastructure.csproj", "Slotify.Infrastructure/"]
+
+RUN dotnet restore "Slotify.API/Slotify.API.csproj"
+
+COPY backend/ .
+RUN dotnet build "Slotify.API/Slotify.API.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "Slotify.API/Slotify.API.csproj" -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Slotify.API.dll"]
