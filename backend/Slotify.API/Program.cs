@@ -69,7 +69,8 @@ builder.Services.AddAuthorization();
 
 // --- API / OpenAPI ---
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+    options.AddDocumentTransformer<Slotify.API.OpenApi.BearerSecuritySchemeTransformer>());
 
 var app = builder.Build();
 
