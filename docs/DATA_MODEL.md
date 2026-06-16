@@ -28,7 +28,14 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
+  phone VARCHAR(20),
+  
+  -- Type
+  type VARCHAR(50) DEFAULT 'customer', -- customer (solo reservas), owner (tiene negocio)
+  
+  -- Plan (solo relevante si owner)
   plan VARCHAR(50) DEFAULT 'free', -- free, premium
+  
   status VARCHAR(50) DEFAULT 'active', -- active, inactive, deleted
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -38,7 +45,12 @@ CREATE TABLE users (
 
 **Índices:**
 - `email` UNIQUE
-- `status, created_at`
+- `type, status` (para queries)
+- `created_at`
+
+**Diferenciación:**
+- `type = 'owner'` → Tiene ≥1 negocio (check en tabla businesses)
+- `type = 'customer'` → Solo hace reservas, sin negocio propio
 
 ---
 
@@ -48,23 +60,53 @@ CREATE TABLE users (
 CREATE TABLE businesses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Info Básica
   name VARCHAR(255) NOT NULL,
   description TEXT,
+  category VARCHAR(100), -- barbershop, salon, gym, clinic, etc.
+  
+  -- Contacto
   phone VARCHAR(20),
   email VARCHAR(255),
+  website VARCHAR(255),
+  
+  -- Ubicación
   address TEXT,
+  city VARCHAR(100),
+  postal_code VARCHAR(10),
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
   timezone VARCHAR(50) DEFAULT 'UTC',
   
-  -- Customization
+  -- Customización Visual
   logo_url TEXT,
+  banner_url TEXT,
   primary_color VARCHAR(7), -- #RRGGBB
   secondary_color VARCHAR(7),
+  accent_color VARCHAR(7),
   
-  -- Config
+  -- Información Adicional
+  about TEXT, -- Descripción larga del negocio
+  business_hours_description TEXT, -- Ej: "Lunes-Viernes 9-18h, Sábado 10-14h"
+  terms_and_conditions TEXT,
+  cancellation_policy TEXT,
+  
+  -- Config Operacional
   max_slots_per_service INT DEFAULT 10,
   cancellation_hours INT DEFAULT 24, -- min horas antes de cancelar
+  allow_guests BOOLEAN DEFAULT true, -- permitir reservas sin registro
+  require_phone BOOLEAN DEFAULT true, -- teléfono obligatorio para guests
   
-  status VARCHAR(50) DEFAULT 'active',
+  -- Social
+  instagram VARCHAR(255),
+  facebook VARCHAR(255),
+  
+  -- Stats
+  total_reservations INT DEFAULT 0,
+  average_rating DECIMAL(3,2),
+  
+  status VARCHAR(50) DEFAULT 'active', -- active, inactive, deleted
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
@@ -75,6 +117,8 @@ CREATE TABLE businesses (
 **Índices:**
 - `owner_id`
 - `name`
+- `category`
+- `city, status` (para búsqueda geolocalizada)
 - `status, created_at`
 
 ---
@@ -105,6 +149,40 @@ CREATE TABLE services (
 
 ---
 
+## Tabla: `guests` (Clientes sin registrar)
+
+```sql
+CREATE TABLE guests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  
+  name VARCHAR(255) NOT NULL,
+  phone_encrypted VARCHAR(255), -- XOR phone_encrypted OR email_encrypted
+  email_encrypted VARCHAR(255),
+  
+  -- Unificación con user registrado
+  user_id UUID UNIQUE REFERENCES users(id) ON DELETE SET NULL, -- NULL mientras sea guest
+  
+  -- Stats
+  total_reservations INT DEFAULT 0,
+  last_reservation_at TIMESTAMP,
+  
+  status VARCHAR(50) DEFAULT 'active', -- active, blocked
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_guests_business FOREIGN KEY (business_id) REFERENCES businesses(id),
+  CONSTRAINT phone_or_email CHECK (phone_encrypted IS NOT NULL OR email_encrypted IS NOT NULL)
+);
+```
+
+**Índices:**
+- `business_id, phone_encrypted` UNIQUE (cuando phone es identificador)
+- `business_id, email_encrypted` UNIQUE (cuando email es identificador)
+- `user_id` UNIQUE (linking a user registrado)
+
+---
+
 ## Tabla: `reservations`
 
 ```sql
@@ -113,11 +191,9 @@ CREATE TABLE reservations (
   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
   
-  -- Guest info (can be logged in user or anonymous)
-  guest_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = invitado
-  guest_name VARCHAR(255) NOT NULL,
-  guest_phone_encrypted VARCHAR(255), -- encrypted si invitado
-  guest_email_encrypted VARCHAR(255), -- encrypted si invitado
+  -- Guest info (puede ser registered user O guest sin registrar)
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL si es guest sin registrar
+  guest_id UUID REFERENCES guests(id) ON DELETE SET NULL, -- NULL si es user registrado
   
   -- Slot info
   start_time TIMESTAMP NOT NULL, -- Always UTC in DB
@@ -136,7 +212,9 @@ CREATE TABLE reservations (
   
   CONSTRAINT fk_reservations_business FOREIGN KEY (business_id) REFERENCES businesses(id),
   CONSTRAINT fk_reservations_service FOREIGN KEY (service_id) REFERENCES services(id),
-  CONSTRAINT fk_reservations_guest FOREIGN KEY (guest_id) REFERENCES users(id),
+  CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_reservations_guest FOREIGN KEY (guest_id) REFERENCES guests(id),
+  CONSTRAINT user_or_guest CHECK ((user_id IS NOT NULL AND guest_id IS NULL) OR (user_id IS NULL AND guest_id IS NOT NULL)),
   CONSTRAINT check_times CHECK (start_time < end_time)
 );
 ```
@@ -281,6 +359,50 @@ CREATE TABLE notification_logs (
 
 ---
 
+## Tabla: `waitlists` (Por día, solo si no hay slots libres)
+
+```sql
+CREATE TABLE waitlists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  waitlist_date DATE NOT NULL, -- Día para el que se espera
+  
+  -- Guest info
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- NULL si es guest
+  guest_id UUID REFERENCES guests(id) ON DELETE CASCADE, -- NULL si es user
+  
+  -- Posición en cola
+  position INT NOT NULL, -- 1, 2, 3... para ese día
+  
+  -- Status
+  status VARCHAR(50) DEFAULT 'waiting', -- waiting, notified, expired, joined
+  notified_at TIMESTAMP, -- Cuándo se notificó (si se abrió un slot)
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_waitlist_service FOREIGN KEY (service_id) REFERENCES services(id),
+  CONSTRAINT fk_waitlist_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_waitlist_guest FOREIGN KEY (guest_id) REFERENCES guests(id),
+  CONSTRAINT user_or_guest CHECK ((user_id IS NOT NULL AND guest_id IS NULL) OR (user_id IS NULL AND guest_id IS NOT NULL))
+);
+```
+
+**Índices:**
+- `service_id, waitlist_date, position` (para obtener siguiente en cola)
+- `service_id, waitlist_date, status` (para queries)
+- `user_id, waitlist_date` (para ver si user ya está en espera)
+- `guest_id, waitlist_date` (para ver si guest ya está en espera)
+
+**Lógica:**
+1. Guest intenta reservar slot pero NO hay disponible
+2. Sistema chequea: ¿hay slots libres ese día para ese servicio?
+3. Si NO hay → se agrega a waitlist con `position = MAX(position) + 1`
+4. Si SÍ hay → rechaza (no puede entrar en waitlist)
+5. Cuando se cancela una reserva → notificar al primero en waitlist (status='notified')
+6. Guest tiene 24h para confirmar o se mueve al siguiente
+
+---
+
 ## Tabla: `audit_logs`
 
 ```sql
@@ -288,8 +410,9 @@ CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reservation_id UUID NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
   action VARCHAR(50) NOT NULL, -- created, updated, deleted, cancelled
-  actor_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL si invitado
-  actor_type VARCHAR(50), -- owner, guest, system
+  actor_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL si guest
+  guest_id UUID REFERENCES guests(id) ON DELETE SET NULL, -- NULL si user
+  actor_type VARCHAR(50), -- owner, registered_user, guest, system
   old_values JSONB, -- snapshot antes del cambio
   new_values JSONB, -- snapshot después del cambio
   ip_address VARCHAR(45), -- IPv4 o IPv6
@@ -298,7 +421,8 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   CONSTRAINT fk_audit_logs_reservation FOREIGN KEY (reservation_id) REFERENCES reservations(id),
-  CONSTRAINT fk_audit_logs_actor FOREIGN KEY (actor_id) REFERENCES users(id)
+  CONSTRAINT fk_audit_logs_actor FOREIGN KEY (actor_id) REFERENCES users(id),
+  CONSTRAINT fk_audit_logs_guest FOREIGN KEY (guest_id) REFERENCES guests(id)
 );
 ```
 
@@ -324,81 +448,90 @@ CREATE TABLE audit_logs (
 
 ## Flujo: Invitado → Usuario Registrado
 
-**Caso:** Invitado reserva → Luego se registra y quiere ver su historial
+**Caso:** Invitado reserva con teléfono → Luego se registra y sincroniza historial
 
 ### Paso 1: Invitado reserva
 ```
-POST /reservations
+POST /reservations (guest)
 {
   "guestName": "Juan Pérez",
-  "guestPhone": "+34912345678",  // encrypted en BD
+  "guestPhone": "+34912345678",
   "serviceId": "uuid"
 }
+```
 
-Response:
-{
-  "reservationId": "uuid-1",
-  "confirmationToken": "token-abc-123"
-}
+Backend:
+1. Crear/recuperar `guest` con phone_encrypted = "+34912345678"
+2. Crear `reservation` con guest_id = "guest-uuid-1", user_id = NULL
+
+Tabla `guests`:
+```sql
+-- id: guest-uuid-1
+-- name: "Juan Pérez"
+-- phone_encrypted: "AES(+34912345678)"
+-- user_id: NULL (aún no registrado)
 ```
 
 Tabla `reservations`:
 ```sql
--- reservation-id: uuid-1
--- guest_id: NULL (invitado)
--- guest_phone_encrypted: "AES(+34912345678)"
+-- id: uuid-1
+-- guest_id: "guest-uuid-1"
+-- user_id: NULL
 -- status: pending
 ```
 
-### Paso 2: Invitado se registra
+### Paso 2: Invitado se registra (AUTO-SYNC)
 ```
 POST /auth/register
 {
   "email": "juan@example.com",
   "password": "...",
-  "phone": "+34912345678"  // mismo teléfono
-}
-
-Response:
-{
-  "userId": "user-uuid-2",
-  "accessToken": "jwt-token"
+  "phone": "+34912345678",
+  "name": "Juan Pérez"
 }
 ```
 
-### Paso 3: Sincronización (Manual o API)
+Backend (flujo automático):
+```csharp
+1. Validar email único
+2. Crear user con:
+   - type = 'customer' (por defecto, puede cambiar a 'owner' después)
+   - email, password_hash, phone, name
+   
+3. Buscar guest con phone_encrypted = ENCRYPT("+34912345678")
+   FOR EACH negocio donde guest tiene reservas:
+     UPDATE guests SET user_id = "user-uuid-2" 
+     WHERE phone_encrypted = AES("+34912345678")
+     
+4. Retornar user con lista de negocio donde ya tiene reservas
 ```
-POST /auth/link-reservations
-{
-  "phone": "+34912345678"  // o email
-}
+
+Tabla `guests` después:
+```sql
+-- id: guest-uuid-1
+-- user_id: "user-uuid-2"  ← Linkado automáticamente
+-- all reservations already visible via user_id
+```
+
+**Nota:** Si el guest usó email en un negocio y teléfono en otro, hacer búsqueda en ambos campos y linkear todos.
+
+### Paso 3: Automático - Ver Historial
+```
+GET /my-reservations
 
 Backend:
-1. User logueado = "user-uuid-2"
-2. Buscar reservations donde guest_phone_encrypted = ENCRYPT("+34912345678")
-3. UPDATE reservations SET guest_id = "user-uuid-2" WHERE ...
-4. Retornar lista de reservas sincronizadas
-
-Response:
-{
-  "syncedReservations": [
-    {"id": "uuid-1", "service": "Corte", "date": "2026-06-20"}
-  ]
-}
-```
-
-Tabla `reservations` después:
-```sql
--- reservation-id: uuid-1
--- guest_id: "user-uuid-2"  ← Ahora linkado
--- guest_phone_encrypted: "AES(+34912345678)"  ← Aún encriptado
--- status: confirmed
+SELECT * FROM reservations 
+WHERE user_id = "user-uuid-2" OR guest_id IN (
+  SELECT id FROM guests WHERE user_id = "user-uuid-2"
+)
 ```
 
 **Beneficio:**
-- Invitado no pierde historial al registrarse
-- Guest_phone sigue encriptado (privacy)
-- User puede ver todas sus reservas (logged in + guest)
+- Invitado no pierde historial
+- Sincronización automática (sin endpoint extra)
+- Guest como entidad propia permite tracking de cliente
+- Phone/email encriptados
+- Unificación transparente
 
 ---
 
