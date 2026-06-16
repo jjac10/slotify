@@ -19,4 +19,11 @@ public class GuestRepository(SlotifyDbContext db) : IGuestRepository
             g.BusinessId == businessId &&
             ((phoneHash != null && g.PhoneHash == phoneHash) ||
              (emailHash != null && g.EmailHash == emailHash)), ct);
+
+    public Task<int> LinkToUserByHashAsync(Guid userId, string? phoneHash, string? emailHash, CancellationToken ct = default)
+        => db.Guests
+            .Where(g => g.UserId == null &&
+                ((phoneHash != null && g.PhoneHash == phoneHash) ||
+                 (emailHash != null && g.EmailHash == emailHash)))
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.UserId, userId), ct);
 }
