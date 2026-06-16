@@ -7,6 +7,7 @@ namespace Slotify.Domain.Services;
 /// del tier del negocio (ADR #9). NULL en un límite = ilimitado.
 /// </summary>
 public class FreemiumLimitService(ITierRepository tiers, IStaffRepository staff, IServiceRepository services)
+    : IFreemiumLimitService
 {
     /// <summary>¿Puede el negocio añadir un trabajador más según su plan?</summary>
     public async Task<bool> CanAddStaffAsync(Guid businessId, CancellationToken ct = default)

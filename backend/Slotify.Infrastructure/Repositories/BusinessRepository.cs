@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Slotify.Domain.Entities;
 using Slotify.Domain.Interfaces;
 using Slotify.Infrastructure.Data;
@@ -14,4 +15,13 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
         // Un único SaveChanges => EF lo envuelve en una transacción: atómico.
         await db.SaveChangesAsync(ct);
     }
+
+    public Task<Business?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Businesses.FirstOrDefaultAsync(b => b.Id == id, ct);
+
+    public async Task<IReadOnlyList<Business>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default)
+        => await db.Businesses.AsNoTracking()
+            .Where(b => b.OwnerId == ownerId && b.Status == "active")
+            .OrderBy(b => b.Name)
+            .ToListAsync(ct);
 }

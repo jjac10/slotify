@@ -13,4 +13,9 @@ public interface IBusinessRepository
     /// transacción): todo negocio nace con su owner-as-staff.
     /// </summary>
     Task AddWithOwnerStaffAsync(Business business, Staff ownerStaff, CancellationToken ct = default);
+
+    Task<Business?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Lista los negocios de un owner.</summary>
+    Task<IReadOnlyList<Business>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default);
 }
