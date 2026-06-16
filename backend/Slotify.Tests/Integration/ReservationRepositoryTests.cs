@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Slotify.Domain.Entities;
+using Slotify.Domain.Exceptions;
 using Slotify.Infrastructure.Data;
 using Slotify.Infrastructure.Repositories;
 
@@ -46,8 +47,9 @@ public class ReservationRepositoryTests : IClassFixture<PostgresFixture>, IAsync
         var repo = new ReservationRepository(_db);
         await repo.AddAsync(NewReservation(ctx, At10, At10.AddMinutes(30)));        // 10:00–10:30
 
-        // 10:15–10:45 solapa con la anterior para el mismo staff.
-        await Assert.ThrowsAsync<DbUpdateException>(() =>
+        // 10:15–10:45 solapa con la anterior para el mismo staff → el constraint la rechaza,
+        // y el repo la traduce a SlotUnavailableException (409).
+        await Assert.ThrowsAsync<SlotUnavailableException>(() =>
             repo.AddAsync(NewReservation(ctx, At10.AddMinutes(15), At10.AddMinutes(45))));
     }
 
