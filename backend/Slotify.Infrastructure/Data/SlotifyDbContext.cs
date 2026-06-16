@@ -11,6 +11,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Staff> Staff => Set<Staff>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<Guest> Guests => Set<Guest>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -23,6 +24,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureStaff(modelBuilder);
         ConfigureServices(modelBuilder);
         ConfigureGuests(modelBuilder);
+        ConfigureReservations(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -199,6 +201,46 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.HasIndex(g => new { g.BusinessId, g.EmailHash })
                 .IsUnique().HasFilter("email_hash IS NOT NULL");
             e.HasIndex(g => g.UserId);
+        });
+    }
+
+    private static void ConfigureReservations(ModelBuilder mb)
+    {
+        mb.Entity<Reservation>(e =>
+        {
+            e.ToTable("reservations", t =>
+            {
+                t.HasCheckConstraint("ck_reservations_user_or_guest",
+                    "(user_id IS NOT NULL AND guest_id IS NULL) OR (user_id IS NULL AND guest_id IS NOT NULL)");
+                t.HasCheckConstraint("ck_reservations_times", "start_time < end_time");
+            });
+
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(r => r.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(r => r.ServiceId).HasColumnName("service_id").IsRequired();
+            e.Property(r => r.StaffId).HasColumnName("staff_id").IsRequired();
+            e.Property(r => r.UserId).HasColumnName("user_id");
+            e.Property(r => r.GuestId).HasColumnName("guest_id");
+            e.Property(r => r.StartTime).HasColumnName("start_time").IsRequired();
+            e.Property(r => r.EndTime).HasColumnName("end_time").IsRequired();
+            e.Property(r => r.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("pending");
+            e.Property(r => r.PaymentStatus).HasColumnName("payment_status").HasMaxLength(50).HasDefaultValue("not_required");
+            e.Property(r => r.Version).HasColumnName("version").HasDefaultValue(0).IsConcurrencyToken();
+            e.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(r => r.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(r => r.CancelledAt).HasColumnName("cancelled_at");
+
+            e.HasOne<Business>().WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Service>().WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Staff>().WithMany().HasForeignKey(r => r.StaffId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Guest>().WithMany().HasForeignKey(r => r.GuestId).OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(r => new { r.BusinessId, r.StartTime });
+            e.HasIndex(r => new { r.StaffId, r.StartTime });
+            e.HasIndex(r => new { r.GuestId, r.StartTime });
+            e.HasIndex(r => new { r.Status, r.CreatedAt });
         });
     }
 
