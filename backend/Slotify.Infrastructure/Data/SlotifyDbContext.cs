@@ -13,6 +13,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<BusinessHour> BusinessHours => Set<BusinessHour>();
+    public DbSet<BusinessHoliday> BusinessHolidays => Set<BusinessHoliday>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -27,6 +28,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureGuests(modelBuilder);
         ConfigureReservations(modelBuilder);
         ConfigureBusinessHours(modelBuilder);
+        ConfigureBusinessHolidays(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -266,6 +268,27 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(h => new { h.BusinessId, h.DayOfWeek }).IsUnique();
+        });
+    }
+
+    private static void ConfigureBusinessHolidays(ModelBuilder mb)
+    {
+        mb.Entity<BusinessHoliday>(e =>
+        {
+            e.ToTable("business_holidays");
+            e.HasKey(h => h.Id);
+            e.Property(h => h.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(h => h.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(h => h.HolidayDate).HasColumnName("holiday_date").IsRequired();
+            e.Property(h => h.Reason).HasColumnName("reason").HasMaxLength(255);
+            e.Property(h => h.IsClosed).HasColumnName("is_closed").HasDefaultValue(true);
+
+            e.HasOne(h => h.Business)
+                .WithMany()
+                .HasForeignKey(h => h.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(h => new { h.BusinessId, h.HolidayDate }).IsUnique();
         });
     }
 
