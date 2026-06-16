@@ -19,9 +19,14 @@ Registrar nuevo propietario de negocio.
 {
   "email": "owner@example.com",
   "password": "SecurePass123!",
+  "name": "Pepe",
   "businessName": "Mi Salón"
 }
 ```
+
+> Registro de **propietario**: crea el `user` (type=owner) + su negocio en plan Free
+> + el owner-as-staff, de forma atómica. El registro de *customer* (flujo invitado,
+> sin negocio) es un endpoint futuro distinto. `name` es el nombre del propietario.
 
 **Response:** 201
 ```json
@@ -29,8 +34,7 @@ Registrar nuevo propietario de negocio.
   "userId": "uuid",
   "businessId": "uuid",
   "accessToken": "jwt",
-  "refreshToken": "refresh_uuid",
-  "expiresIn": 86400
+  "refreshToken": "opaque_token"
 }
 ```
 
@@ -82,6 +86,21 @@ Renovar access token.
   "expiresIn": 86400
 }
 ```
+
+---
+
+### GET /auth/me
+Datos del usuario autenticado.
+
+**Auth:** Required (Bearer token)
+**Response:** 200
+```json
+{
+  "userId": "uuid",
+  "email": "owner@example.com"
+}
+```
+Sin token válido → 401.
 
 ---
 

@@ -13,21 +13,28 @@ ASP.NET Core 10 + EF Core 10 sobre PostgreSQL 17, con Repository Pattern + DI (A
 ```
 backend/
 ├── Slotify.slnx              # Solución (formato .slnx, .NET 10)
-├── Slotify.Domain/           # Entities, Interfaces, Services, DTOs (sin dependencia de EF)
-├── Slotify.Infrastructure/   # DbContext, Migrations, Repositories
-└── Slotify.Tests/            # Unit (Moq) + Integration (Testcontainers)
+├── Slotify.API/              # Host ASP.NET: Program.cs, Controllers, OpenAPI/Scalar, JWT
+├── Slotify.Domain/           # Entities, Interfaces, Services, DTOs, Exceptions (sin EF)
+├── Slotify.Infrastructure/   # DbContext, Migrations, Repositories, Security
+└── Slotify.Tests/            # Unit (Moq) + Integration (Testcontainers + WebApplicationFactory)
 ```
-
-> El proyecto `Slotify.API` (host + controllers + Program.cs) aún no existe; se
-> añade en el hito *api-walking-skeleton*. Ver [ROADMAP](../docs/ROADMAP.md).
 
 ## Implementado
 
-- Entidades: `PricingTier`, `User`, `Business`, `Staff`.
+- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `RefreshToken`.
 - `SlotifyDbContext` (mapeo snake_case, FKs, índices, seed free/premium).
-- Migraciones: `InitialCreate`, `AddStaff`.
-- Servicios: `BusinessService` (owner-as-staff), `FreemiumLimitService` (límite de staff).
-- Repositorios EF: `BusinessRepository`, `TierRepository`, `StaffRepository`.
+- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`.
+- Servicios: `BusinessService` (owner-as-staff), `FreemiumLimitService`, `AuthService` (register/login/refresh).
+- Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256).
+- Repositorios EF: `BusinessRepository`, `TierRepository`, `StaffRepository`, `AuthRepository`, `RefreshTokenRepository`.
+- Endpoints: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` (protegido).
+
+## Ejecutar la API
+
+Con `docker-compose up` desde la raíz (postgres + API). La API migra al arrancar.
+- API: `http://localhost:5000`
+- UI Scalar (dev): `http://localhost:5000/scalar`
+- OpenAPI JSON: `http://localhost:5000/openapi/v1.json`
 
 ## Testing
 
@@ -35,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 13/13 verde
+dotnet test          # 32/32 verde
 ```
 
 ## Migraciones (EF Core)
