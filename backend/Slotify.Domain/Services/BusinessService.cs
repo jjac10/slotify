@@ -33,4 +33,11 @@ public class BusinessService(IBusinessRepository repository)
         await repository.AddWithOwnerStaffAsync(business, ownerStaff, ct);
         return business;
     }
+
+    /// <summary>Lista los negocios de un owner.</summary>
+    public async Task<IReadOnlyList<BusinessResponse>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default)
+    {
+        var list = await repository.ListByOwnerAsync(ownerId, ct);
+        return list.Select(BusinessResponse.From).ToList();
+    }
 }
