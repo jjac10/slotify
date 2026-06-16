@@ -11,7 +11,7 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **114/114 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **117/117 tests en verde**.
 
 Implementado y probado: auth completa (customer/owner, login, refresh, `/me` con JWT),
 negocios y servicios (CRUD con límites Freemium), **núcleo de reservas** (invitado cifrado

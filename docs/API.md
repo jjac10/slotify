@@ -19,9 +19,12 @@ Registrar un **cliente** (sin negocio; `type=customer`).
 {
   "email": "ana@example.com",
   "password": "SecurePass123!",
-  "name": "Ana"
+  "name": "Ana",
+  "phone": "+34912345678"
 }
 ```
+> `phone` es **opcional**: si se indica, al registrarse se **vinculan automáticamente**
+> las reservas previas hechas como invitado con ese teléfono/email (sync invitado→usuario).
 
 **Response:** 201 — `businessId` es `null` (el cliente no tiene negocio).
 ```json

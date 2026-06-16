@@ -15,14 +15,20 @@ public class AuthService(
     ITierRepository tiers,
     IPasswordHasher hasher,
     ITokenService tokens,
-    IRefreshTokenRepository refreshTokens)
+    IRefreshTokenRepository refreshTokens,
+    IGuestRepository guests,
+    IBlindIndex blindIndex)
 {
     public const string FreeTierCode = "free";
     public const string OwnerType = "owner";
     public const string CustomerType = "customer";
     public const string OwnerRole = "owner";
 
-    /// <summary>Alta de cliente (sin negocio): user con type='customer'.</summary>
+    /// <summary>
+    /// Alta de cliente (sin negocio): user con type='customer'. Además vincula
+    /// automáticamente las reservas previas hechas como invitado que coincidan por
+    /// email (y teléfono, si se indica) — sync invitado→usuario (DATA_MODEL).
+    /// </summary>
     public async Task<AuthResult> RegisterCustomerAsync(RegisterCustomerRequest request, CancellationToken ct = default)
     {
         PasswordPolicy.Validate(request.Password);
@@ -36,9 +42,17 @@ public class AuthService(
             Email = request.Email,
             PasswordHash = hasher.Hash(request.Password),
             Name = request.Name,
+            Phone = request.Phone,
             Type = CustomerType,
         };
         await auth.AddUserAsync(user, ct);
+
+        // Sync invitado→usuario: enlaza guests por blind index (email + teléfono).
+        var emailHash = blindIndex.Compute(ContactNormalizer.NormalizeEmail(request.Email));
+        var phoneHash = string.IsNullOrWhiteSpace(request.Phone)
+            ? null
+            : blindIndex.Compute(ContactNormalizer.NormalizePhone(request.Phone));
+        await guests.LinkToUserByHashAsync(user.Id, phoneHash, emailHash, ct);
 
         return await IssueResultAsync(user, businessId: null, ct);
     }

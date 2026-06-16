@@ -67,6 +67,27 @@ public class GuestRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLifeti
             repo.AddAsync(new Guest { Id = Guid.NewGuid(), BusinessId = business.Id, Name = "Sin contacto" }));
     }
 
+    [Fact]
+    public async Task LinkToUserByHash_SetsUserId_OnMatchingGuestsOnly()
+    {
+        var business = await SeedBusinessAsync();
+        var repo = new GuestRepository(_db);
+        await repo.AddAsync(new Guest { Id = Guid.NewGuid(), BusinessId = business.Id, Name = "Match phone", PhoneHash = "ph-1" });
+        await repo.AddAsync(new Guest { Id = Guid.NewGuid(), BusinessId = business.Id, Name = "Match email", EmailHash = "em-1" });
+        await repo.AddAsync(new Guest { Id = Guid.NewGuid(), BusinessId = business.Id, Name = "No match", PhoneHash = "other" });
+
+        var user = new User { Id = Guid.NewGuid(), Email = $"u-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "U", Type = "customer" };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var linked = await repo.LinkToUserByHashAsync(user.Id, "ph-1", "em-1");
+
+        Assert.Equal(2, linked);
+        await using var verify = _fixture.CreateContext();
+        Assert.Equal(2, await verify.Guests.CountAsync(g => g.UserId == user.Id));
+        Assert.True(await verify.Guests.AnyAsync(g => g.PhoneHash == "other" && g.UserId == null));
+    }
+
     private async Task<Business> SeedBusinessAsync()
     {
         var owner = new User

@@ -12,4 +12,10 @@ public interface IGuestRepository
     /// Devuelve null si no existe.
     /// </summary>
     Task<Guest?> FindByHashAsync(Guid businessId, string? phoneHash, string? emailHash, CancellationToken ct = default);
+
+    /// <summary>
+    /// Vincula al usuario los guests (aún sin user) cuyo phone_hash o email_hash
+    /// coincida — en todos los negocios. Devuelve cuántos se enlazaron (sync invitado→usuario).
+    /// </summary>
+    Task<int> LinkToUserByHashAsync(Guid userId, string? phoneHash, string? emailHash, CancellationToken ct = default);
 }
