@@ -3,20 +3,35 @@
 ## Entity Diagram
 
 ```
-User (Owner)
+PricingTier (free, premium, ...)
+  └── Business (1:*)   ← business.tier_id
+
+User (Owner / Customer)
   ├── Business (1:*)
   │   ├── Service (1:*)
   │   │   └── Reservation (1:*)
   │   ├── BusinessHour (1:*)
-  │   ├── Staff (1:*)
-  │   └── Notification (1:*)
-  └── RefreshToken (1:*)
+  │   ├── BusinessHoliday (1:*)
+  │   ├── Staff (1:*)          ← incluye al propio owner (role='owner')
+  │   │   └── StaffServices (many-to-many)
+  │   ├── Review (1:*)
+  │   └── Guest (1:*)
+  ├── RefreshToken (1:*)
+  └── PasswordResetToken (1:*)
 
 Reservation
   ├── Service
+  ├── Staff (quién atiende; el owner es un staff)
   ├── Guest (optional, si no logged)
-  └── NotificationLog
+  ├── Payment (0:* — futuro, esqueleto)
+  ├── NotificationLog (1:*)
+  ├── ConfirmationToken (1:1)
+  ├── AuditLog (1:*)
+  └── Waitlist (optional, si no hay slots)
 ```
+
+> **Nota de suscripción:** el plan/tier vive en `businesses.tier_id`, NO en `users`.
+> Los límites son por negocio y un owner puede tener varios negocios.
 
 ---
 
@@ -32,9 +47,7 @@ CREATE TABLE users (
   
   -- Type
   type VARCHAR(50) DEFAULT 'customer', -- customer (solo reservas), owner (tiene negocio)
-  
-  -- Plan (solo relevante si owner)
-  plan VARCHAR(50) DEFAULT 'free', -- free, premium
+  -- NOTA: el plan/suscripción NO va aquí. Vive en businesses.tier_id.
   
   status VARCHAR(50) DEFAULT 'active', -- active, inactive, deleted
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,12 +67,60 @@ CREATE TABLE users (
 
 ---
 
+## Tabla: `pricing_tiers` (Planes — data-driven)
+
+```sql
+CREATE TABLE pricing_tiers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL, -- 'free', 'premium' (estable, usado en código)
+  name VARCHAR(100) NOT NULL,       -- nombre visible
+  
+  -- Límites (NULL = ilimitado)
+  max_reservations_per_month INT,   -- free: 100, premium: NULL
+  max_clients INT,                  -- free: 50
+  max_services INT,                 -- free: 5
+  max_staff INT,                    -- free: 1
+  
+  -- Feature flags (extensible: añadir columnas o usar JSONB features)
+  channel_email BOOLEAN DEFAULT true,
+  channel_sms BOOLEAN DEFAULT false,
+  channel_whatsapp BOOLEAN DEFAULT false,
+  has_analytics BOOLEAN DEFAULT false,
+  has_api BOOLEAN DEFAULT false,
+  
+  -- Precio (informativo; cobro real es futuro)
+  price_monthly DECIMAL(10,2) DEFAULT 0,
+  
+  features JSONB,  -- flags extra sin migración (extensibilidad)
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Seed inicial (primera migration):**
+```sql
+INSERT INTO pricing_tiers (code, name, max_reservations_per_month, max_clients, max_services, max_staff, channel_sms, channel_whatsapp, has_analytics, has_api, price_monthly) VALUES
+('free',    'Free',    100,  50, 5, 1, false, false, false, false, 0),
+('premium', 'Premium', NULL, NULL, NULL, NULL, true, true, true, true, 9.99);
+```
+
+**Propósito:**
+- Añadir un nuevo plan = INSERT, sin tocar código (ADR #9).
+- La validación de límites lee `pricing_tiers` vía `businesses.tier_id`.
+- `NULL` en un límite = ilimitado.
+
+**Índices:**
+- `code` UNIQUE
+
+---
+
 ## Tabla: `businesses`
 
 ```sql
 CREATE TABLE businesses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tier_id UUID NOT NULL REFERENCES pricing_tiers(id) ON DELETE RESTRICT, -- plan del negocio
   
   -- Info Básica
   name VARCHAR(255) NOT NULL,
@@ -116,6 +177,7 @@ CREATE TABLE businesses (
 
 **Índices:**
 - `owner_id`
+- `tier_id`
 - `name`
 - `category`
 - `city, status` (para búsqueda geolocalizada)
@@ -134,6 +196,10 @@ CREATE TABLE services (
   duration_minutes INT NOT NULL, -- 30, 60, 90, etc.
   price DECIMAL(10, 2), -- NULL = free service
   color VARCHAR(7), -- para calendario
+  
+  -- Fianza / depósito (esqueleto — cobro real es FUTURO, no se implementa ahora)
+  deposit_type VARCHAR(20) DEFAULT 'none', -- 'none', 'fixed', 'percentage'
+  deposit_value DECIMAL(10, 2) DEFAULT 0,  -- importe fijo o % según deposit_type
   
   status VARCHAR(50) DEFAULT 'active', -- active, archived
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -157,11 +223,18 @@ CREATE TABLE guests (
   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   
   name VARCHAR(255) NOT NULL,
-  phone_encrypted VARCHAR(255), -- XOR phone_encrypted OR email_encrypted
+
+  -- Valor recuperable (para enviar confirmaciones): AES-256-GCM, IV aleatorio
+  phone_encrypted VARCHAR(255), -- XOR phone OR email (ver CHECK)
   email_encrypted VARCHAR(255),
+
+  -- Blind index (para lookup y UNIQUE): HMAC-SHA256(valor_normalizado, server_key)
+  -- IMPRESCINDIBLE: no se puede indexar/buscar por AES-GCM (ciphertext distinto cada vez).
+  phone_hash CHAR(64),  -- hex HMAC del teléfono normalizado E.164
+  email_hash CHAR(64),  -- hex HMAC del email en minúsculas/trim
   
   -- Unificación con user registrado
-  user_id UUID UNIQUE REFERENCES users(id) ON DELETE SET NULL, -- NULL mientras sea guest
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL mientras sea guest
   
   -- Stats
   total_reservations INT DEFAULT 0,
@@ -172,14 +245,21 @@ CREATE TABLE guests (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   CONSTRAINT fk_guests_business FOREIGN KEY (business_id) REFERENCES businesses(id),
-  CONSTRAINT phone_or_email CHECK (phone_encrypted IS NOT NULL OR email_encrypted IS NOT NULL)
+  CONSTRAINT phone_or_email CHECK (phone_hash IS NOT NULL OR email_hash IS NOT NULL)
 );
 ```
 
 **Índices:**
-- `business_id, phone_encrypted` UNIQUE (cuando phone es identificador)
-- `business_id, email_encrypted` UNIQUE (cuando email es identificador)
-- `user_id` UNIQUE (linking a user registrado)
+- `business_id, phone_hash` UNIQUE (dedupe/lookup por teléfono; parcial WHERE phone_hash IS NOT NULL)
+- `business_id, email_hash` UNIQUE (dedupe/lookup por email; parcial WHERE email_hash IS NOT NULL)
+- `user_id` (linking a user registrado)
+
+> **Por qué hash + cifrado:** AES-GCM con IV aleatorio produce un ciphertext
+> distinto en cada inserción, así que NO sirve para `UNIQUE` ni para buscar
+> ("dame el guest con este teléfono"). El `*_hash` (HMAC determinista con clave
+> de servidor) permite búsqueda/unicidad sin exponer el dato; el `*_encrypted`
+> permite recuperar el valor para enviar la confirmación. La unificación
+> invitado→usuario compara por `phone_hash`/`email_hash`, no por el cifrado.
 
 ---
 
@@ -190,6 +270,7 @@ CREATE TABLE reservations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+  staff_id UUID NOT NULL REFERENCES staff(id) ON DELETE RESTRICT, -- quién atiende (el owner es un staff)
   
   -- Guest info (puede ser registered user O guest sin registrar)
   user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL si es guest sin registrar
@@ -203,6 +284,9 @@ CREATE TABLE reservations (
   status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, cancelled, no-show
   notes TEXT,
   
+  -- Pagos (esqueleto — FUTURO). Hoy siempre 'not_required'.
+  payment_status VARCHAR(50) DEFAULT 'not_required', -- not_required, pending, paid, refunded
+  
   -- Concurrency control
   version INT DEFAULT 0, -- optimistic locking
   
@@ -212,6 +296,7 @@ CREATE TABLE reservations (
   
   CONSTRAINT fk_reservations_business FOREIGN KEY (business_id) REFERENCES businesses(id),
   CONSTRAINT fk_reservations_service FOREIGN KEY (service_id) REFERENCES services(id),
+  CONSTRAINT fk_reservations_staff FOREIGN KEY (staff_id) REFERENCES staff(id),
   CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES users(id),
   CONSTRAINT fk_reservations_guest FOREIGN KEY (guest_id) REFERENCES guests(id),
   CONSTRAINT user_or_guest CHECK ((user_id IS NOT NULL AND guest_id IS NULL) OR (user_id IS NULL AND guest_id IS NOT NULL)),
@@ -221,16 +306,23 @@ CREATE TABLE reservations (
 
 **Índices:**
 - `business_id, start_time` (crítico para availability check)
+- `staff_id, start_time` (disponibilidad por trabajador)
 - `guest_id, start_time` (para historial)
 - `status, created_at` (para reportes)
 - `start_time` (para queries de "slots disponibles")
 
-**Unique Constraint:**
+**Unique Constraint (anti-doble-booking POR TRABAJADOR):**
 ```sql
+-- La unicidad es por staff, no por service: dos trabajadores pueden dar
+-- el mismo servicio a la vez. Si fuera por service bloquearía reservas legítimas.
 CREATE UNIQUE INDEX idx_no_double_booking 
-ON reservations(service_id, start_time, status) 
+ON reservations(staff_id, start_time) 
 WHERE status != 'cancelled';
 ```
+
+> Esto evita solapamientos exactos de inicio. Para solapamientos parciales
+> (una cita de 60 min que pisa otra) la validación va en la capa de servicio
+> comprobando rangos `[start_time, end_time)` del mismo `staff_id`.
 
 ---
 
@@ -281,8 +373,14 @@ CREATE TABLE business_holidays (
 CREATE TABLE staff (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  
+  -- El owner ES un staff (role='owner'), creado automáticamente con el negocio.
+  -- Así toda reserva tiene staff_id no-nulo y no hay lógica polimórfica owner/empleado.
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- enlaza al user (owner o empleado con cuenta); NULL si empleado sin login
+  role VARCHAR(50) DEFAULT 'employee', -- 'owner', 'employee'
+  
   name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE,
+  email VARCHAR(255),
   phone VARCHAR(20),
   
   -- Services this staff can handle (many-to-many)
@@ -294,6 +392,16 @@ CREATE TABLE staff (
   CONSTRAINT fk_staff_business FOREIGN KEY (business_id) REFERENCES businesses(id)
 );
 ```
+
+**Índices:**
+- `business_id, status`
+- `user_id`
+- `business_id, role` (para localizar al owner-staff)
+
+> **Owner-as-staff:** al crear un negocio, el sistema inserta un `staff` con
+> `role='owner'` y `user_id` = el owner. El límite Free de "1 trabajador" se
+> cuenta sobre `staff` (el owner ocupa ese 1). `email` deja de ser UNIQUE global
+> porque un mismo owner puede ser staff en varios de sus negocios.
 
 ---
 
@@ -331,6 +439,60 @@ CREATE TABLE refresh_tokens (
 
 **Índices:**
 - `user_id, expires_at`
+
+---
+
+## Tabla: `password_reset_tokens`
+
+```sql
+CREATE TABLE password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  used_at TIMESTAMP NULL, -- Cuando se usó para resetear
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+**Índices:**
+- `user_id`
+- `token_hash` UNIQUE
+- `expires_at` (para limpiar tokens vencidos)
+
+**Propósito:**
+- RF-AUTH-003: Flujo de reset de contraseña
+- Link por email válido 1 hora (expires_at)
+- Se marca como used_at una vez consumido (para auditoría)
+
+---
+
+## Tabla: `confirmation_tokens`
+
+```sql
+CREATE TABLE confirmation_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reservation_id UUID NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_confirmation_tokens_reservation FOREIGN KEY (reservation_id) REFERENCES reservations(id)
+);
+```
+
+**Índices:**
+- `reservation_id` UNIQUE (un token activo por reserva)
+- `token` UNIQUE (lookup rápido por token)
+- `expires_at` (para limpiar vencidos)
+
+**Propósito:**
+- UC-3: Guest accede a su reserva por email sin login
+- Guest puede ver/modificar/cancelar por confirmationToken
+- Permite múltiples tokens por reserva si uno vence
+- `GET /reservations/{id}?confirmationToken=abc123` → sin auth requerida
 
 ---
 
@@ -446,6 +608,69 @@ CREATE TABLE audit_logs (
 
 ---
 
+## Tabla: `reviews`
+
+```sql
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  reservation_id UUID UNIQUE REFERENCES reservations(id) ON DELETE SET NULL, -- 1 review por reserva
+  
+  -- Autor (user registrado o guest)
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  guest_id UUID REFERENCES guests(id) ON DELETE SET NULL,
+  
+  rating INT NOT NULL, -- 1..5
+  comment TEXT,
+  
+  status VARCHAR(50) DEFAULT 'published', -- published, hidden
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_reviews_business FOREIGN KEY (business_id) REFERENCES businesses(id),
+  CONSTRAINT check_rating CHECK (rating BETWEEN 1 AND 5)
+);
+```
+
+**Índices:**
+- `business_id, status` (para listar y recalcular media)
+- `reservation_id` UNIQUE
+
+**Nota:** `businesses.average_rating` es una **caché** que se recalcula al
+insertar/ocultar reviews (`AVG(rating) WHERE status='published'`).
+
+---
+
+## Tabla: `payments` (FUTURO — esqueleto, no se implementa en el MVP)
+
+```sql
+-- Documentada para dejar la arquitectura preparada (requisito del proyecto).
+-- NO se crea en las primeras migrations; se añade cuando se integre pasarela.
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reservation_id UUID NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+  
+  amount DECIMAL(10, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'EUR',
+  kind VARCHAR(20) DEFAULT 'deposit', -- 'deposit' (fianza), 'full' (total)
+  
+  -- Abstracción de proveedor (Stripe, Redsys, ...) — sin acoplarse a uno
+  provider VARCHAR(50),            -- 'stripe', 'redsys', 'mock'
+  provider_payment_id VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending', -- pending, succeeded, failed, refunded
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_payments_reservation FOREIGN KEY (reservation_id) REFERENCES reservations(id)
+);
+```
+
+**Propósito:** soportar cobro de fianzas/totales para mitigar cancelaciones de
+última hora. El campo `provider` mantiene el módulo de pagos desacoplado, igual
+que el de notificaciones. Hoy `reservations.payment_status = 'not_required'`.
+
+---
+
 ## Flujo: Invitado → Usuario Registrado
 
 **Caso:** Invitado reserva con teléfono → Luego se registra y sincroniza historial
@@ -498,10 +723,10 @@ Backend (flujo automático):
    - type = 'customer' (por defecto, puede cambiar a 'owner' después)
    - email, password_hash, phone, name
    
-3. Buscar guest con phone_encrypted = ENCRYPT("+34912345678")
-   FOR EACH negocio donde guest tiene reservas:
+3. Calcular phone_hash = HMAC("+34912345678", server_key)
+   Buscar guests con ese phone_hash (en TODOS los negocios):
      UPDATE guests SET user_id = "user-uuid-2" 
-     WHERE phone_encrypted = AES("+34912345678")
+     WHERE phone_hash = HMAC("+34912345678")
      
 4. Retornar user con lista de negocio donde ya tiene reservas
 ```
@@ -537,9 +762,12 @@ WHERE user_id = "user-uuid-2" OR guest_id IN (
 
 ## Encryption Strategy
 
-- **guest_phone_encrypted, guest_email_encrypted:** AES-256-GCM
-- **Key rotation:** Anual (futuro)
-- **Per-column IV/Salt:** Almacenado en el valor encriptado
+- **guest phone/email (recuperable):** AES-256-GCM (`*_encrypted`)
+- **guest phone/email (búsqueda/unicidad):** HMAC-SHA256 determinista (`*_hash`, blind index)
+- **Dos claves distintas:** una para AES (cifrado) y otra para HMAC (blind index). Nunca la misma.
+- **Normalización antes del HMAC:** teléfono a E.164, email a lowercase+trim (si no, el hash no coincide).
+- **Key rotation:** Anual (futuro). Rotar HMAC implica recalcular hashes.
+- **Per-column IV/Tag:** Almacenado dentro del valor AES (base64 IV+Tag+Ciphertext)
 
 ```csharp
 // Ejemplo en C#
