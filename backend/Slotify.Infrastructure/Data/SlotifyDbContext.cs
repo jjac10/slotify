@@ -8,6 +8,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<User> Users => Set<User>();
     public DbSet<PricingTier> PricingTiers => Set<PricingTier>();
     public DbSet<Business> Businesses => Set<Business>();
+    public DbSet<Staff> Staff => Set<Staff>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -16,6 +17,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureUsers(modelBuilder);
         ConfigurePricingTiers(modelBuilder);
         ConfigureBusinesses(modelBuilder);
+        ConfigureStaff(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
 
@@ -93,6 +95,38 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
 
             e.HasIndex(b => b.OwnerId);
             e.HasIndex(b => b.TierId);
+        });
+    }
+
+    private static void ConfigureStaff(ModelBuilder mb)
+    {
+        mb.Entity<Staff>(e =>
+        {
+            e.ToTable("staff");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(s => s.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(s => s.UserId).HasColumnName("user_id");
+            e.Property(s => s.Role).HasColumnName("role").HasMaxLength(50).HasDefaultValue("employee");
+            e.Property(s => s.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+            e.Property(s => s.Email).HasColumnName("email").HasMaxLength(255);
+            e.Property(s => s.Phone).HasColumnName("phone").HasMaxLength(20);
+            e.Property(s => s.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
+            e.Property(s => s.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(s => s.Business)
+                .WithMany()
+                .HasForeignKey(s => s.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(s => new { s.BusinessId, s.Status });
+            e.HasIndex(s => s.UserId);
+            e.HasIndex(s => new { s.BusinessId, s.Role }); // localizar al owner-staff
         });
     }
 
