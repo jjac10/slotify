@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify - Explore Services</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "on-surface": "#111c2d",
+                    "surface-tint": "#732ee4",
+                    "surface": "#f9f9ff",
+                    "inverse-surface": "#263143",
+                    "surface-variant": "#d8e3fb",
+                    "on-secondary-container": "#006172",
+                    "primary-fixed-dim": "#d2bbff",
+                    "on-primary-container": "#ede0ff",
+                    "surface-container-high": "#dee8ff",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#646769",
+                    "surface-container-highest": "#d8e3fb",
+                    "outline-variant": "#ccc3d8",
+                    "outline": "#7b7487",
+                    "background": "#f9f9ff",
+                    "on-primary-fixed": "#25005a",
+                    "on-background": "#111c2d",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "on-secondary-fixed": "#001f26",
+                    "secondary": "#00687a",
+                    "on-surface-variant": "#4a4455",
+                    "on-tertiary-fixed": "#191c1e",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "inverse-primary": "#d2bbff",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-container": "#e7eeff",
+                    "surface-dim": "#cfdaf2",
+                    "primary-container": "#7c3aed",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-bright": "#f9f9ff",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#eaddff",
+                    "tertiary": "#4c4f51",
+                    "primary": "#630ed4",
+                    "on-tertiary-container": "#e4e6e8",
+                    "inverse-on-surface": "#ecf1ff",
+                    "secondary-fixed": "#acedff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#57dffe",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter": "16px",
+                    "container-padding-desktop": "32px",
+                    "stack-xl": "32px",
+                    "container-padding-mobile": "16px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "button": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #ffffff;
+            color: #111c2d;
+            -webkit-font-smoothing: antialiased;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background flex items-center justify-between px-container-mobile h-16 w-full">
+<div class="flex items-center gap-stack-sm">
+<button class="p-2 hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors rounded-full active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Slotify</h1>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="material-symbols-outlined text-on-surface-variant p-2">notifications</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCM67pHB_9ZyaF2V1LRlv6rmSiWjxSn-utvTjQ54zfJmqfGDUXYczM0PJ8Ksq6QhtM3eHy12k65r6xPKFeqOLfe4FL2pss-0uylJODh21zShTlMS1Umfpllo0dxzEg7GaoB8OoHCMnvmmDh_zNYxur5mmG9C83vL4TJahArdWDTlpNBURg8TqlOQw2yB7qqY7UouTPwT-trdlVNgjSF1NWU-HMdnDFJiXnC3PAvG7uZEAwBAr8_sVfBWGIZv4kLqHQVp1G7cN2WK-JN"/>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-24 px-container-mobile max-w-5xl mx-auto">
+<!-- Search & Filter Section -->
+<section class="mb-stack-xl">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-outline">search</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary-container focus:border-primary outline-none transition-all font-body-md text-on-surface" placeholder="Search barbers, spas, or aesthetics..." type="text"/>
+</div>
+<!-- Categories Horizontal Scroll -->
+<div class="flex gap-stack-md overflow-x-auto hide-scrollbar py-stack-md mt-stack-sm">
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-on-primary shadow-lg transition-transform group-active:scale-90">
+<span class="material-symbols-outlined">content_cut</span>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold">Barbería</span>
+</button>
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors group-active:scale-90">
+<span class="material-symbols-outlined">face_4</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Estética</span>
+</button>
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors group-active:scale-90">
+<span class="material-symbols-outlined">spa</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Spa</span>
+</button>
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors group-active:scale-90">
+<span class="material-symbols-outlined">potted_plant</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Masajes</span>
+</button>
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors group-active:scale-90">
+<span class="material-symbols-outlined">brush</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Uñas</span>
+</button>
+<button class="flex flex-col items-center gap-2 group shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors group-active:scale-90">
+<span class="material-symbols-outlined">more_horiz</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Otros</span>
+</button>
+</div>
+</section>
+<!-- Recommended Section (Bento Inspired) -->
+<section class="mb-stack-xl">
+<div class="flex justify-between items-end mb-stack-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Recommended for you</h2>
+<p class="font-label-md text-label-md text-on-surface-variant">Handpicked premium services</p>
+</div>
+<button class="text-primary font-button text-button hover:underline">View all</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- Main Featured Card -->
+<div class="relative group cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-surface card-shadow">
+<div class="h-48 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A premium, modern barber shop interior with leather chairs and warm amber lighting. The atmosphere is sophisticated and clean, featuring minimalist wooden shelves with high-end grooming products. The style is professional and inviting, utilizing a refined palette of deep wood tones and soft, focused spotlights on the workspace." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCNNHc6OFdeyesflYCDxrJ9agBiUXamoAz6h4sSmQ7AyqOcPF9XxGcgxNwC7gslCDt7W2OXSicaXy5wwvJuYR20mC6ZXpYdRnhb6a4c1385ymH_yT45HDxpOimJ_JIkeozBpewwey5iswLdjXmoxJMV_iimIiUjIWV7MiOP6in6D12zcy4uJBqg-CV7zv70ZfwexDoM2me_Z7gz3MJ164lbUW699fmPy4m3bDWmKUBykmAYF7znixG01tUjgzuwmzbrQNquhfqeenL"/>
+</div>
+<div class="p-stack-md">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-headline-md text-on-surface">The Gentleman's Lounge</h3>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-sm text-[#FFB800]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-on-surface font-bold">4.9</span>
+<span class="font-label-md text-on-surface-variant ml-1">(1.2k reviews)</span>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container font-label-md px-3 py-1 rounded-full">0.8 km</span>
+</div>
+<p class="font-body-md text-on-surface-variant mb-4">Specialists in traditional hot towel shaves and contemporary fades.</p>
+<button class="w-full py-3 bg-primary-container text-on-primary font-button rounded-lg active:scale-[0.98] transition-transform">Check Availability</button>
+</div>
+</div>
+<!-- Secondary Grid -->
+<div class="grid grid-rows-2 gap-stack-md">
+<div class="flex gap-stack-md p-stack-md bg-surface border border-outline-variant rounded-xl card-shadow group cursor-pointer">
+<div class="w-24 h-24 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A serene spa treatment room with soft teal accents and natural stone elements. The space is illuminated by soft, diffused daylight and scented candles. The visual style is tranquil and airy, focusing on wellness and relaxation with a clean, high-end aesthetic that emphasizes comfort and luxury." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmoxll5jZ-_2MqOpWyGo2Gz-0gWoAdzFIoHQIxxrWBPjgy40jVf4DR3ICZKzlqiyRT7a_KUH3Q1QQXpX9fbhK86IPJ9MAXZLoP1qh_TZ23vN3QT0k0pgm6R-7WQNdPxzLAot0KrzgU8E7y_zECIgxODnn5mbt-b9dVQmVEXkydd2ccAS8lSAKHQe_nKUBCL3dVM1XA7iAOoimYcCMZRh49k5D975-iH6Zp6xrElnbTFgMIRs_nUwW0dHZ6o7d2LLEOmtIqb1x7V4vZ"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-[16px] text-on-surface">Cyan Zen Spa</h3>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-[#FFB800]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-on-surface font-bold">4.7</span>
+</div>
+</div>
+<p class="font-label-md text-on-surface-variant mt-1">Relaxation &amp; Therapies</p>
+<div class="flex items-center gap-1 mt-2 text-primary">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-[12px] font-medium">Next: Today 4:00 PM</span>
+</div>
+</div>
+</div>
+<div class="flex gap-stack-md p-stack-md bg-surface border border-outline-variant rounded-xl card-shadow group cursor-pointer">
+<div class="w-24 h-24 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A sleek nail salon station with a minimalist white desk and vibrant purple chair. The lighting is bright and even, highlighting the clean and modern tools arranged neatly. The atmosphere is energetic yet professional, reflecting a high-utility beauty space with Morado purple accents and a pristine, airy layout." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDB0vwrAcMKttdJQJM5Wcs1FjvWXYDiNoHump7Y3XjwFfOZ3yn4ff1EzwTwGH7u4Wyhzi2gIfW-Luc13OhQliw43KTprLBO25cX-bM5Rq9y4WyB7LAsHWEAmH8_kbWtRPNI1V3fgXM757Pdnp2UA_Jj2HGChnCmJD_pILjHDTPazf4QgeNc5h9zxuRlnDdRRu9AlfTGTgbMJxNmc_rRUNPKSv4kWbh47a7qXqTyy-SnT9tZnQ5laiHra8Hgg_KvQAbsLRbLvM73odUu"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-[16px] text-on-surface">Estética Morado</h3>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-[#FFB800]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-on-surface font-bold">4.8</span>
+</div>
+</div>
+<p class="font-label-md text-on-surface-variant mt-1">Luxury Nail Care</p>
+<div class="flex items-center gap-1 mt-2 text-primary">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-[12px] font-medium">Next: Tomorrow 10:00 AM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Trending Near You -->
+<section class="mb-stack-xl">
+<div class="flex justify-between items-end mb-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">Trending near you</h2>
+<button class="text-primary font-button text-button">Filter by distance</button>
+</div>
+<div class="flex gap-stack-md overflow-x-auto hide-scrollbar -mx-container-mobile px-container-mobile py-2">
+<!-- Trending Card 1 -->
+<div class="w-72 shrink-0 bg-surface border border-outline-variant rounded-xl overflow-hidden group cursor-pointer transition-all hover:-translate-y-1">
+<div class="h-32 relative">
+<img class="w-full h-full object-cover" data-alt="A trendy, vibrant hair salon featuring neon accents and industrial decor. The scene is full of energy and modern style, with stylists working on clients in a well-lit, open-concept space. The overall look is youthful and edgy, with a focus on bold colors and a professional, urban-chic vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPYTT0n4FckboKg8Dw_YMTrB5Zalmn3-lsAU7ObwsJYHe-1rosVeELjFsOBk3Z5LaiSKJ4niReFBu9xn8vOXhaMx2aqqFT9PjiUT5Q8oqxopGax28z4Qz_njhirwauFJ6vQA_eMzdnXMcMAW0r0YTFQSMfwG8lVrcA3I1WoqAfSWxOnSzLBkgkwtS079zc_4SJXPpgS_Zn-S59zjxG-Tj_C0R_B8j0O1P4cWPK6zn5sDAcaTa0uowZi2-0koNOHYYp9Swlj4gh9mcv"/>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+<span class="text-[10px] font-bold text-on-surface uppercase">Popular</span>
+</div>
+</div>
+<div class="p-stack-md">
+<h4 class="font-headline-md text-[14px] text-on-surface truncate">Vibe Cuts &amp; Color</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-label-md text-on-surface-variant">1.4 km away</span>
+<span class="text-label-md text-primary font-bold">$$</span>
+</div>
+</div>
+</div>
+<!-- Trending Card 2 -->
+<div class="w-72 shrink-0 bg-surface border border-outline-variant rounded-xl overflow-hidden group cursor-pointer transition-all hover:-translate-y-1">
+<div class="h-32 relative">
+<img class="w-full h-full object-cover" data-alt="A clean, clinical facial aesthetics studio with bright white lighting and a peaceful blue palette. Minimalist cabinets and ergonomic treatment chairs create an atmosphere of precision and professional care. The scene is pristine and modern, suggesting a high-utility medical beauty environment with an emphasis on clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhTC7WFHTKXN8_zP-voaOsb2p2fgE-z8qoVsuEN-YLhzg9aDOH3bYQBFhnCKuF2dAFwHNVupu3_pEAZ8v9B-fvSlnRm5wmrosSbkPzKoQs1jQEo5FqZaXPPQ9CG-dEK7avWENTk-7K115JPXQvRBAtCa4MDqhw-Z1lw-X8mILpJ1Yi979LOefsvhSwdt9v0O-upzZz0RkGXzDHJRGVrI76G13ShTUm2kOvDxY8rf4E25-GSKjkpKVg86MW-8RCUX8a3_Rnx7BmlpZp"/>
+</div>
+<div class="p-stack-md">
+<h4 class="font-headline-md text-[14px] text-on-surface truncate">Glow Facial Studio</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-label-md text-on-surface-variant">2.1 km away</span>
+<span class="text-label-md text-primary font-bold">$$$</span>
+</div>
+</div>
+</div>
+<!-- Trending Card 3 -->
+<div class="w-72 shrink-0 bg-surface border border-outline-variant rounded-xl overflow-hidden group cursor-pointer transition-all hover:-translate-y-1">
+<div class="h-32 relative">
+<img class="w-full h-full object-cover" data-alt="A high-end makeup studio with large mirrors surrounded by bright vanity bulbs. The environment is glamorous and well-organized, with a vast array of luxury cosmetics on display. The lighting is warm and flattering, creating a premium and professional service atmosphere that is both inviting and technologically advanced." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhzqSLzhq4SLKHCzeF_-GrJWZE9WPedmWD0n9c8n9n05P014NM1l1g1UO517CmP2OPdXRKY8Pw4PF2kVix4uePhSPfNoaQ3FdmPYaeey92S3xPDPDyMnEbjfC3hFZMSTIZ3oYkJPKsaoZmpsLPDJgu7xeL-7LX9W_bMPE4rIuIcFMuSi4FmFkzH-l0er9EP-benXYYmuZOLdYF9ZB3k7x75F_Y1F_kCELai_0L59Yl71Axr1WNJRP0x8HIFwjZ5wcxCA19taCH5Mq_"/>
+</div>
+<div class="p-stack-md">
+<h4 class="font-headline-md text-[14px] text-on-surface truncate">Artisan Makeup Lab</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-label-md text-on-surface-variant">0.5 km away</span>
+<span class="text-label-md text-primary font-bold">$$</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Placeholder for Map Search -->
+<section class="mt-stack-xl p-stack-lg bg-surface-container rounded-2xl flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-stack-md shadow-sm">
+<span class="material-symbols-outlined text-primary text-3xl">map</span>
+</div>
+<h3 class="font-headline-md text-on-surface">Search by Map</h3>
+<p class="font-body-md text-on-surface-variant mb-stack-lg">Explore all available slots in your neighborhood interactively.</p>
+<button class="px-8 py-3 border-2 border-primary text-primary font-button rounded-xl hover:bg-primary hover:text-white transition-colors">Open Interactive Map</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe w-full">
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-semibold hover:opacity-80 transition-opacity active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-label-md">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+<!-- Floating Action Button for Filter -->
+<button class="fixed right-6 bottom-20 w-14 h-14 bg-primary-container text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-40">
+<span class="material-symbols-outlined">tune</span>
+</button>
+<script>
+        // Simple scroll reveal for cards
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.card-shadow').forEach(card => {
+            card.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(card);
+        });
+
+        // Search interaction
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('scale-[1.02]');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('scale-[1.02]');
+        });
+    </script>
+</body></html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify - Owner Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#001f26",
+                        "on-primary-fixed": "#25005a",
+                        "surface-variant": "#d8e3fb",
+                        "inverse-primary": "#d2bbff",
+                        "on-background": "#111c2d",
+                        "surface-tint": "#732ee4",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface-dim": "#cfdaf2",
+                        "on-surface-variant": "#4a4455",
+                        "surface-container": "#e7eeff",
+                        "on-tertiary-container": "#e4e6e8",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-fixed": "#eaddff",
+                        "outline": "#7b7487",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d8e3fb",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-primary-container": "#ede0ff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "surface-container-high": "#dee8ff",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "secondary-fixed": "#acedff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-container": "#006172",
+                        "background": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "secondary-container": "#57dffe",
+                        "outline-variant": "#ccc3d8",
+                        "inverse-surface": "#263143",
+                        "on-surface": "#111c2d",
+                        "tertiary-container": "#646769",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "tertiary": "#4c4f51",
+                        "secondary": "#00687a",
+                        "primary-container": "#7c3aed"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "gutter": "16px",
+                        "container-padding-mobile": "16px",
+                        "stack-xl": "32px",
+                        "stack-lg": "24px",
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "container-padding-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "button": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .form-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen flex flex-col font-body-md text-on-surface">
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-container-mobile h-16 w-full bg-surface">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-headline-md text-headline-md font-bold text-primary">Slotify</span>
+</div>
+<div class="hidden md:flex items-center gap-stack-lg">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Pricing</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Solutions</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center pt-16 px-gutter relative overflow-hidden">
+<div class="absolute inset-0 z-0 opacity-40">
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary-container rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-container opacity-20 rounded-full blur-[120px]"></div>
+</div>
+<div class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-stack-xl items-center relative z-10">
+<div class="hidden lg:flex flex-col gap-stack-lg pr-stack-xl">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Grow your business with <span class="text-primary">Precision &amp; Vitality.</span></h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                    Join thousands of service providers who trust Slotify to manage their schedules, engage clients, and scale their local marketplace presence effortlessly.
+                </p>
+<div class="grid grid-cols-2 gap-stack-md mt-stack-md">
+<div class="glass-panel p-stack-md rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+<h3 class="font-headline-md text-headline-md text-sm">Revenue Growth</h3>
+<p class="text-xs text-on-surface-variant">Average 30% increase in bookings within 3 months.</p>
+</div>
+<div class="glass-panel p-stack-md rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<h3 class="font-headline-md text-headline-md text-sm">Smart Automation</h3>
+<p class="text-xs text-on-surface-variant">Automated reminders reduce no-shows by 75%.</p>
+</div>
+</div>
+</div>
+<div class="w-full max-w-md mx-auto">
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_10px_25px_-5px_rgba(124,58,237,0.1)] p-stack-xl border border-outline-variant">
+<div class="flex flex-col gap-stack-md mb-stack-xl">
+<div class="flex p-1 bg-surface-container rounded-lg gap-1">
+<button class="flex-1 py-2 rounded-md font-button text-button transition-all duration-300 bg-white text-primary shadow-sm" id="login-tab" onclick="toggleForm('login')">
+                                Login
+                            </button>
+<button class="flex-1 py-2 rounded-md font-button text-button transition-all duration-300 text-on-surface-variant hover:bg-surface-container-high" id="register-tab" onclick="toggleForm('register')">
+                                Create Account
+                            </button>
+</div>
+<div class="text-center">
+<h2 class="font-headline-md text-headline-md" id="form-title">Welcome back</h2>
+<p class="font-label-md text-label-md text-on-surface-variant mt-1" id="form-subtitle">Sign in to manage your professional schedule</p>
+</div>
+</div>
+<form class="flex flex-col gap-stack-md" id="auth-form" onsubmit="return false;">
+<div class="hidden flex flex-col gap-stack-md" id="registration-fields">
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Business Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">storefront</span>
+<input class="w-full pl-10 pr-4 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md text-body-md" placeholder="e.g. Modern Cuts Barber" type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Category</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">category</span>
+<select class="w-full pl-10 pr-4 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none appearance-none transition-all font-body-md text-body-md bg-white">
+<option disabled="" selected="" value="">Select business type</option>
+<option>Health &amp; Beauty</option>
+<option>Fitness &amp; Gym</option>
+<option>Professional Services</option>
+<option>Education</option>
+<option>Home Maintenance</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Email</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">mail</span>
+<input class="w-full pl-10 pr-4 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md text-body-md" placeholder="owner@business.com" type="email"/>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">lock</span>
+<input class="w-full pl-10 pr-10 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md text-body-md" placeholder="••••••••" type="password"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary" type="button">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1" id="login-extras">
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label-md text-label-md text-on-surface-variant">Remember me</span>
+</label>
+<a class="font-label-md text-label-md text-primary font-semibold hover:underline" href="#">Forgot password?</a>
+</div>
+<button class="mt-stack-md w-full py-4 bg-primary text-white font-button text-button rounded-lg shadow-md hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2" id="submit-btn">
+<span>Sign In</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</form>
+<div class="mt-stack-xl pt-stack-xl border-t border-surface-container-high flex flex-col gap-stack-md">
+<p class="text-center font-label-md text-label-md text-outline">Or continue with</p>
+<div class="grid grid-cols-2 gap-stack-md">
+<button class="flex items-center justify-center gap-2 py-3 px-4 border border-outline-variant rounded-lg font-button text-button text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<img alt="Google" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsk4pFfQsvwZKsoXb7FPggiHDe6drEdIKNJU85j2CTEWjZVry6_yTvINbGxlfRpvlzVP5IJTiF8CG7Bq7lhqBH5cKOZNqVehD4iho9P49ghsD5TXwykmoXhZb25wwBr2up4aMmTGVhNnxSWEN3XZXk1gQV63npdFZDrh5zOvXTOBRyyreyphVMvbEC4fclsZ0gmTynXuUn78eD16PH5SGQGnGOn8SuYBggaZ3JwtOOe2YirxiJhxSQgz39q6_atbnlyrXEj10Uqbfn"/>
+                                Google
+                            </button>
+<button class="flex items-center justify-center gap-2 py-3 px-4 border border-outline-variant rounded-lg font-button text-button text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">face_nod</span>
+                                Facebook
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-auto py-stack-lg px-container-mobile bg-white border-t border-surface-container">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-stack-md">
+<p class="font-label-md text-label-md text-on-surface-variant">© 2024 Slotify Inc. All rights reserved.</p>
+<div class="flex gap-stack-lg">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary" href="#">Terms of Service</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary" href="#">Privacy Policy</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary" href="#">Cookie Settings</a>
+</div>
+</div>
+</footer>
+<script>
+        function toggleForm(mode) {
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const regFields = document.getElementById('registration-fields');
+            const loginExtras = document.getElementById('login-extras');
+            const title = document.getElementById('form-title');
+            const subtitle = document.getElementById('form-subtitle');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (mode === 'register') {
+                registerTab.classList.add('bg-white', 'text-primary', 'shadow-sm');
+                registerTab.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high');
+                loginTab.classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                loginTab.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high');
+
+                regFields.classList.remove('hidden');
+                loginExtras.classList.add('hidden');
+                title.innerText = 'Create your account';
+                subtitle.innerText = 'Start growing your business with professional tools';
+                submitBtn.innerHTML = '<span>Create Account</span><span class="material-symbols-outlined text-lg">person_add</span>';
+            } else {
+                loginTab.classList.add('bg-white', 'text-primary', 'shadow-sm');
+                loginTab.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high');
+                registerTab.classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                registerTab.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high');
+
+                regFields.classList.add('hidden');
+                loginExtras.classList.remove('hidden');
+                title.innerText = 'Welcome back';
+                subtitle.innerText = 'Sign in to manage your professional schedule';
+                submitBtn.innerHTML = '<span>Sign In</span><span class="material-symbols-outlined text-lg">arrow_forward</span>';
+            }
+        }
+    </script>
+</body></html>

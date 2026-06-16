@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify - Booking History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#001f26",
+                        "on-primary-fixed": "#25005a",
+                        "surface-variant": "#d8e3fb",
+                        "inverse-primary": "#d2bbff",
+                        "on-background": "#111c2d",
+                        "surface-tint": "#732ee4",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface-dim": "#cfdaf2",
+                        "on-surface-variant": "#4a4455",
+                        "surface-container": "#e7eeff",
+                        "on-tertiary-container": "#e4e6e8",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-fixed": "#eaddff",
+                        "outline": "#7b7487",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d8e3fb",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-primary-container": "#ede0ff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "surface-container-high": "#dee8ff",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "secondary-fixed": "#acedff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-container": "#006172",
+                        "background": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "secondary-container": "#57dffe",
+                        "outline-variant": "#ccc3d8",
+                        "inverse-surface": "#263143",
+                        "on-surface": "#111c2d",
+                        "tertiary-container": "#646769",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "tertiary": "#4c4f51",
+                        "secondary": "#00687a",
+                        "primary-container": "#7c3aed"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "gutter": "16px",
+                        "container-padding-mobile": "16px",
+                        "stack-xl": "32px",
+                        "stack-lg": "24px",
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "container-padding-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "button": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .tab-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface min-h-screen pb-24">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background flex items-center justify-between px-container-mobile h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Slotify</h1>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional studio portrait of a friendly young man with a slight smile, styled in a modern corporate headshot aesthetic. The lighting is bright and clean with a soft grey background, emphasizing reliability and professional confidence. The overall image has a high-quality, airy feel that aligns with a premium digital service interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJJZTRqXPi0LAYipXdEbptB4mW_ScLWZfb1NHxuufHILnZku98Kqx4jo6QiPPJAZ6xFyOGyKeXsoXZzHBu1BG6ewzcp9pU6ifuZBiUjiqB_V-_6QcFNfb8BU9KEKobrJYtM7j0IBL5iHEEWJvNC_rR7EGiWYs1FbS4XPjiNk-dniwhyC77K8smVJX_X9Hto52Ew5Wn97OgwIMFEEMyi1xuIZcXjmhiQiunyDabFgQMLrf4OnOiCKjM-T9FZUTEEtalC75BRdf1_uWY"/>
+</div>
+</div>
+</header>
+<main class="mt-16 px-container-mobile pt-stack-lg max-w-3xl mx-auto">
+<!-- Header Content -->
+<div class="mb-stack-lg">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Bookings</h2>
+<p class="text-on-surface-variant font-body-md mt-1">Manage your appointments and history</p>
+</div>
+<!-- Sticky Tabs -->
+<div class="sticky top-16 z-40 bg-surface py-stack-sm flex gap-stack-md mb-stack-md">
+<button class="flex-1 py-3 px-4 rounded-xl font-button text-button transition-all duration-300 bg-primary-container text-on-primary-container shadow-sm" id="tab-upcoming" onclick="switchTab('upcoming')">
+                Upcoming
+            </button>
+<button class="flex-1 py-3 px-4 rounded-xl font-button text-button transition-all duration-300 text-on-surface-variant hover:bg-surface-container-low" id="tab-past" onclick="switchTab('past')">
+                Past
+            </button>
+</div>
+<!-- Content Area -->
+<div class="space-y-stack-md" id="booking-container">
+<!-- Upcoming Bookings (Visible by default) -->
+<div class="space-y-stack-md" id="section-upcoming">
+<!-- Booking Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-xl shadow-[0_4px_20px_-4px_rgba(124,58,237,0.05)] hover:border-primary/30 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A minimalist logo for a high-end hair salon, featuring a sleek, abstract scissor icon in Morado purple. The background is a clean white textured paper, evoking a sense of luxury, precision, and professional beauty services. The lighting is soft and centered, giving the brand an inviting yet sophisticated aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDagtlc8oM_csMJTou8WA9e_dKSqzPnERD_ez8hkz0jz058rc4eroO-AaTElY2VB8kpOe91PlheSHKvxGCYmAdYEJrwa6eJxqOYUYNII0xkrG0ccCP-YKJ_BX1JFDy6QHCY9dPt2LXNoYDpOS4od_oXj3s_tvOgBCFplLsk2TdwJp7XiTz2ER9CWarfLddNaEQihqgtrVn42YOmPpGXJjdUuhjuAdi3XjOtZPHbcgN2yKWQ_0OQqF8hnejGLrLbC4RltCzM_Ec9qQ5I"/>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface text-base">Luxe Grooming Studio</h3>
+<p class="text-on-surface-variant font-body-md">Precision Haircut & Styling</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
+<span class="text-label-md font-label-md text-on-surface">Oct 24, 2023 • 2:30 PM</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary font-label-md text-label-md flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                            Confirmed
+                        </span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2.5 px-4 rounded-lg border border-primary text-primary font-button text-button hover:bg-primary/5 active:scale-[0.98] transition-all">
+                            Manage
+                        </button>
+<button class="w-12 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">directions</span>
+</button>
+</div>
+</div>
+<!-- Booking Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-xl shadow-[0_4px_20px_-4px_rgba(124,58,237,0.05)]">
+<div class="flex items-start justify-between mb-4">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A modern fitness center branding featuring bold typography and a vibrant Cyan accent. The image captures a clean, high-tech gym environment with polished concrete floors and bright, daylight-balanced lighting. The mood is energetic and vital, perfectly representing a space for personal health and athletic precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTi-LqphPQwwxSxLN7bqSdooEI_OzFgCZjGCOpyOxuuDSmhNn172panukO6gp-WdApcOfP1OfdbGeVCfg0VYprWrxsnmQfZqy5KX3CrRNw6lGBaPYrmGnq9CDeLCdGHmD80L_28aDNt9Fnd8SyyS1fJkPvcEBra_UZWjOEgDcLWZ_JCP0f5YhZt5FhirfPfCUzgsp-B49Ff1QGOi5BT8BiHE3k11cEjLTMJuekdtuuvEiukZIb4pyBWAzM06WXK3qkh3ZcVOO0TfNp"/>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface text-base">Elite Fitness Hub</h3>
+<p class="text-on-surface-variant font-body-md">Personal Training Session</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
+<span class="text-label-md font-label-md text-on-surface">Oct 27, 2023 • 9:00 AM</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary font-label-md text-label-md flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Confirmed
+                        </span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2.5 px-4 rounded-lg border border-primary text-primary font-button text-button hover:bg-primary/5 active:scale-[0.98] transition-all">
+                            Manage
+                        </button>
+<button class="w-12 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Past Bookings (Hidden by default) -->
+<div class="hidden space-y-stack-md" id="section-past">
+<!-- Past Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-xl opacity-90">
+<div class="flex items-start justify-between mb-4">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 grayscale">
+<img class="w-full h-full object-cover" data-alt="A grayscale version of a salon logo, maintaining the sophisticated Morado and Cyan color scheme but with muted tones to indicate history. The aesthetic is still professional and premium, with clean lines and soft ambient lighting that highlights the texture of the business cards and promotional materials in a modern boutique setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmGux8vUTvNXeYY7nqd6keEJ5aZtiG_rKFf1tRC3_2dlgSNBEeDiplRHDX8GkIRf4pyWmB5mPY25C1mgVBKY5Z9O3mGMqzUn2AHucR2DIeiTJIX-i2lOPNKtfZRNGscF6QNUpGVQiwVeHO_r2Fn7l_Tv8Eq_H0AuCiNiZZVtoNCjXDmb20Mknnu0REN0Fb2j85FiFHJnDFdONKg7MXJIgJta7FtWyqQuWYEOV24KQnuOWCom18O3ryOwW5uFjrWadMewU6ro_tkZcK"/>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface text-base">Luxe Grooming Studio</h3>
+<p class="text-on-surface-variant font-body-md">Precision Haircut</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[18px] text-outline">check_circle</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Sep 12, 2023 • 4:00 PM</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-md text-label-md">
+                            Completed
+                        </span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-secondary text-on-secondary font-button text-button hover:opacity-90 active:scale-[0.98] transition-all">
+                        Book Again
+                    </button>
+</div>
+<!-- Past Card 2 (Cancelled) -->
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-xl opacity-75">
+<div class="flex items-start justify-between mb-4">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 grayscale">
+<img class="w-full h-full object-cover" data-alt="A professional wellness center logo on a blurred background of a tranquil spa environment. The lighting is low and warm, creating a relaxing and inviting mood. The design features a subtle floral motif and clean sans-serif typography, presented in a minimalist, corporate modern style that emphasizes health, vitality, and professional care." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtybojvL7jOwZ7fYCSdgEFfifIoH-BDCGTuPKsEPdQ4JW2-2b5mdqKogB4gYpDCSBIwNV3-X6RuOL-_GHAE6VB6JgpuZ4-9pt_OxJaoZZwAagQdWASHWUf7YqJXKMil1VWBJgj5dWGRCnaudScD8-MSBU6yw6xXrhV6ZE81nID-ppo4d7v4iLHjFledg4pCh0GsGC8HD0tChKqdN4Y--4TEgGMCrxrDLKEznAvB7ez6R9g97Gf-9VGFl9N745FmlRm99UMvhwoPLn9"/>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface text-base">Zen Spa & Wellness</h3>
+<p class="text-on-surface-variant font-body-md">Deep Tissue Massage</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[18px] text-error">cancel</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Aug 30, 2023 • 11:30 AM</span>
+</div>
+</div>
+</div>
+<span class="px-3 py-1 rounded-full bg-error-container/20 text-error font-label-md text-label-md">
+                            Cancelled
+                        </span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg border border-outline text-on-surface-variant font-button text-button hover:bg-surface-container-low transition-all">
+                        View Details
+                    </button>
+</div>
+</div>
+</div>
+<!-- Empty State Hint (Hidden) -->
+<div class="hidden flex-col items-center justify-center py-stack-xl text-center" id="empty-state">
+<div class="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-4xl text-outline">calendar_today</span>
+</div>
+<h4 class="font-headline-md text-on-surface">No bookings found</h4>
+<p class="text-on-surface-variant max-w-xs mx-auto mt-2">Looks like you haven't scheduled any services yet. Explore businesses to get started!</p>
+<button class="mt-6 bg-primary text-on-primary px-8 py-3 rounded-full font-button text-button shadow-lg shadow-primary/20">
+                Explore Services
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe w-full">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-semibold hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-label-md text-label-md">Bookings</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</button>
+</nav>
+<script>
+        function switchTab(tab) {
+            const upcomingBtn = document.getElementById('tab-upcoming');
+            const pastBtn = document.getElementById('tab-past');
+            const upcomingSection = document.getElementById('section-upcoming');
+            const pastSection = document.getElementById('section-past');
+
+            if (tab === 'upcoming') {
+                // Style updates
+                upcomingBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+                upcomingBtn.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-low');
+                
+                pastBtn.classList.remove('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+                pastBtn.classList.add('text-on-surface-variant', 'hover:bg-surface-container-low');
+
+                // Visibility updates
+                upcomingSection.classList.remove('hidden');
+                pastSection.classList.add('hidden');
+            } else {
+                // Style updates
+                pastBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+                pastBtn.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-low');
+                
+                upcomingBtn.classList.remove('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+                upcomingBtn.classList.add('text-on-surface-variant', 'hover:bg-surface-container-low');
+
+                // Visibility updates
+                pastSection.classList.remove('hidden');
+                upcomingSection.classList.add('hidden');
+            }
+        }
+
+        // Micro-interactions for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Simple feedback effect
+                this.classList.add('brightness-95');
+                setTimeout(() => this.classList.remove('brightness-95'), 100);
+            });
+        });
+    </script>
+</body></html>

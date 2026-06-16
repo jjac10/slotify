@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify - Admin Panel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "on-surface": "#111c2d",
+                        "surface-tint": "#732ee4",
+                        "surface": "#f9f9ff",
+                        "inverse-surface": "#263143",
+                        "surface-variant": "#d8e3fb",
+                        "on-secondary-container": "#006172",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-primary-container": "#ede0ff",
+                        "surface-container-high": "#dee8ff",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#646769",
+                        "surface-container-highest": "#d8e3fb",
+                        "outline-variant": "#ccc3d8",
+                        "outline": "#7b7487",
+                        "background": "#f9f9ff",
+                        "on-primary-fixed": "#25005a",
+                        "on-background": "#111c2d",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-secondary-fixed": "#001f26",
+                        "secondary": "#00687a",
+                        "on-surface-variant": "#4a4455",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "inverse-primary": "#d2bbff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "surface-container": "#e7eeff",
+                        "surface-dim": "#cfdaf2",
+                        "primary-container": "#7c3aed",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "surface-bright": "#f9f9ff",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#eaddff",
+                        "tertiary": "#4c4f51",
+                        "primary": "#630ed4",
+                        "on-tertiary-container": "#e4e6e8",
+                        "inverse-on-surface": "#ecf1ff",
+                        "secondary-fixed": "#acedff",
+                        "surface-container-low": "#f0f3ff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#57dffe",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "gutter": "16px",
+                        "container-padding-desktop": "32px",
+                        "stack-xl": "32px",
+                        "container-padding-mobile": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "button": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "button": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #f9f9ff;
+            font-family: 'Inter', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-active {
+            border-bottom: 3px solid #630ed4;
+            color: #630ed4;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface flex items-center justify-between px-container-mobile h-16 w-full">
+<div class="flex items-center gap-stack-sm">
+<button class="material-symbols-outlined text-primary p-2 active:scale-95 transition-transform" data-icon="menu">menu</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Slotify</h1>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant">
+<img alt="Profile" data-alt="A professional headshot of a middle-aged male business owner with a friendly smile, wearing a clean white shirt in a bright, modern office setting. The lighting is soft and natural, emphasizing a professional yet approachable personality that fits a clean, high-end digital service platform aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBugdGav3e6j5q1Q5XZ9Wed4rLI_5yU-PaQQzfBj60YS3_bG3L3nTFrlTUERI9e52TFEznnJNzMwfn2HzxO9IHGKMBKBynTCywkD7SK3o404PwGnnZn_N4stiGZFEGt5XUAT--sOsXZAwaCgrGRdinjUD3GdlWHp9KKPZeSCxwCWNV9b9Cwp5CA4G9ttmbBT3CnAXV3H9hnlYbRheBDsaVjVHBcv21bqHc9w9ABj8R5qflofNDmxgjphG3xcB6kfUsnRLzGgYFT_Un"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pt-20 pb-24 px-container-mobile md:px-container-padding-desktop max-w-5xl mx-auto">
+<!-- Header & Stats Overview -->
+<section class="mb-stack-xl">
+<div class="flex justify-between items-end mb-stack-md">
+<div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Panel de Control</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Gestiona tus servicios y colaboradores</p>
+</div>
+<div class="hidden md:flex gap-stack-sm">
+<div class="bg-surface-container-low p-stack-sm rounded-xl border border-outline-variant flex flex-col items-center min-w-[100px]">
+<span class="font-label-md text-label-md text-on-surface-variant">Activos</span>
+<span class="font-headline-md text-headline-md text-primary">12</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Tab Navigation -->
+<nav class="flex border-b border-outline-variant mb-stack-lg sticky top-16 bg-surface z-40">
+<button class="flex-1 py-3 font-button text-button transition-all duration-200 tab-active" id="btn-servicios" onclick="switchTab('servicios')">
+                Servicios
+            </button>
+<button class="flex-1 py-3 font-button text-button transition-all duration-200 text-on-surface-variant" id="btn-equipo" onclick="switchTab('equipo')">
+                Equipo
+            </button>
+</nav>
+<!-- Tab Content: Servicios -->
+<div class="space-y-stack-md" id="tab-servicios">
+<!-- Service Cards (Bento-like list) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant hover:border-primary-container transition-colors group">
+<div class="flex justify-between items-start mb-stack-sm">
+<div class="p-2 bg-primary-fixed rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Corte Clásico</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">Corte de cabello profesional con terminación a navaja y lavado incluido.</p>
+<div class="flex justify-between items-center pt-stack-sm border-t border-outline-variant">
+<div class="flex gap-stack-sm">
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span> 45 min
+                            </span>
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> $25.00
+                            </span>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Popular</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant hover:border-primary-container transition-colors group">
+<div class="flex justify-between items-start mb-stack-sm">
+<div class="p-2 bg-surface-container-high rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="face_6">face_6</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Perfilado de Barba</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">Diseño y recorte de barba con toalla caliente y aceites esenciales.</p>
+<div class="flex justify-between items-center pt-stack-sm border-t border-outline-variant">
+<div class="flex gap-stack-sm">
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span> 30 min
+                            </span>
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> $18.00
+                            </span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant hover:border-primary-container transition-colors group">
+<div class="flex justify-between items-start mb-stack-sm">
+<div class="p-2 bg-surface-container-high rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="shutter_speed">shutter_speed</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Combo Premium</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">Servicio completo de corte, barba y mascarilla facial purificante.</p>
+<div class="flex justify-between items-center pt-stack-sm border-t border-outline-variant">
+<div class="flex gap-stack-sm">
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span> 90 min
+                            </span>
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> $45.00
+                            </span>
+</div>
+<span class="bg-primary-fixed text-primary px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Premium</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Tab Content: Equipo -->
+<div class="hidden space-y-stack-md" id="tab-equipo">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-stack-md">
+<!-- Staff 1 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant text-center flex flex-col items-center">
+<div class="relative mb-stack-sm">
+<img alt="Staff 1" class="w-20 h-20 rounded-full object-cover border-2 border-primary shadow-sm" data-alt="A close-up portrait of a young, stylish male barber with a neat beard and trendy hairstyle. He is wearing a professional black apron in a high-end, brightly lit barbershop environment. The background is slightly blurred to maintain focus on the staff member, evoking a sense of expertise and reliability." src="https://lh3.googleusercontent.com/aida-public/AB6AXuApyanoX7c-kWzjBqa_FeI8OKeWnDJppdw306VEiKMDZFRbMDM3PEuMmA8YVHMF0kgyTT_gFD-3sJVrGrLFWUun5Lfc0ON8rQPuZQYTK8hgYgbXLGpiviibc75GxQPdNxsEGMMTpa9sOTwt-94yjGscFJM7-fGmXw3AFjlIMHxdkdISj9byPXtoxoFpZOGtJPaYPItNhE4xZ3bHiiy9JcGDmQL7SGZcDHejq8mW1uZmel_c_ytthWnlkR9GxNNLYdV1GMLMnX5X4JQl"/>
+<div class="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-4 border-surface-container-lowest rounded-full"></div>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Marco Polo</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-stack-md">Especialista en Degradados</p>
+<div class="w-full flex items-center justify-center gap-stack-sm py-2 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-green-600 text-[18px]" data-icon="check_circle">check_circle</span>
+<span class="font-label-md text-label-md text-green-700">Disponible hoy</span>
+</div>
+</div>
+<!-- Staff 2 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant text-center flex flex-col items-center opacity-80">
+<div class="relative mb-stack-sm">
+<img alt="Staff 2" class="w-20 h-20 rounded-full object-cover border-2 border-outline-variant" data-alt="A portrait of a smiling female hair stylist with vibrant hair and a creative look. She is standing in a modern salon with soft lighting and minimalist decor. The photo emphasizes professionalism and creativity, perfectly integrated into a clean, modern digital interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDimLKlV4WV-wlTgU6yBBR3VuxUOgeGic4RAfDZPci4CtO6xbwYWCUGUPoYIh38FcHcC-cF54h6TF42SosiynARJel8zUJxgdS3A5vshSkAwcex3FB9YRcvx-XiqgelFTm_Pxu7eZcsYihX9ETNsEyfqjrWn09a6E1m2McEjZ8DPU-fs4-BOcOYLejcxlPUQk5_WK1i7__wCWhDqdUggfi-AKLuNbvDxK4WttDfBGBbVgDqZTrtj1c9FybLFR1u4_XarhNi8NMCkewD"/>
+<div class="absolute bottom-0 right-0 w-5 h-5 bg-tertiary-container border-4 border-surface-container-lowest rounded-full"></div>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Elena García</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-stack-md">Colorista Senior</p>
+<div class="w-full flex items-center justify-center gap-stack-sm py-2 bg-surface-container-high rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="block">block</span>
+<span class="font-label-md text-label-md text-on-surface-variant">No disponible</span>
+</div>
+</div>
+<!-- Staff 3 -->
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant text-center flex flex-col items-center">
+<div class="relative mb-stack-sm">
+<img alt="Staff 3" class="w-20 h-20 rounded-full object-cover border-2 border-primary shadow-sm" data-alt="A professional headshot of a friendly male technician in a clean, modern studio setting. He has a warm smile and is wearing professional casual attire. The image is bright and airy, matching the light-mode UI design, emphasizing trust and high-quality service." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9NOImhtcxOD7_M-HgkJ18mIKG9NQ_UGienBHrV45VuRE0cIV5T-5BynldY3p6oV_fYO5-hJsOFqEpmqAexXuulrK_GZwGYptRVr9BHhnrKQu88cQCA3yPiCaS7qvrYN4tgYgHfg-gLnd3VmzaQL9NSRtlNvqoLUqKdy4YXph5znfMVjEbujMsICEuPMWNQkt4JwENJK4CGX_Oap83Oh6SCQbJkKft3V_UOAg-0MF58qkYN13WliSN7Fq41-gzXVlcZ3tL2al-sCfk"/>
+<div class="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-4 border-surface-container-lowest rounded-full"></div>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Julián R.</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-stack-md">Corte & Barba</p>
+<div class="w-full flex items-center justify-center gap-stack-sm py-2 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-green-600 text-[18px]" data-icon="check_circle">check_circle</span>
+<span class="font-label-md text-label-md text-green-700">Disponible hoy</span>
+</div>
+</div>
+<!-- Add Staff Member Empty State -->
+<button class="bg-surface-container-low p-stack-md rounded-xl border-2 border-dashed border-outline-variant hover:border-primary hover:bg-surface-container-high transition-all flex flex-col items-center justify-center min-h-[200px] group">
+<span class="material-symbols-outlined text-outline group-hover:text-primary mb-2 text-3xl" data-icon="person_add">person_add</span>
+<span class="font-button text-button text-on-surface-variant group-hover:text-primary">Añadir Staff</span>
+</button>
+</div>
+</div>
+</main>
+<!-- FAB: Add Service (Visible only on Services tab) -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary-container text-on-primary-container rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-50" id="fab-add-service">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface flex justify-around items-center h-16 px-4 pb-safe w-full shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-md text-label-md">Bookings</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</div>
+<div class="flex flex-col items-center justify-center text-primary font-semibold">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</div>
+</nav>
+<script>
+        function switchTab(tab) {
+            const serviciosTab = document.getElementById('tab-servicios');
+            const equipoTab = document.getElementById('tab-equipo');
+            const btnServicios = document.getElementById('btn-servicios');
+            const btnEquipo = document.getElementById('btn-equipo');
+            const fab = document.getElementById('fab-add-service');
+
+            if (tab === 'servicios') {
+                serviciosTab.classList.remove('hidden');
+                equipoTab.classList.add('hidden');
+                btnServicios.classList.add('tab-active');
+                btnServicios.classList.remove('text-on-surface-variant');
+                btnEquipo.classList.remove('tab-active');
+                btnEquipo.classList.add('text-on-surface-variant');
+                fab.classList.remove('hidden');
+                
+                // Content for Services FAB
+                fab.innerHTML = '<span class="material-symbols-outlined" data-icon="add">add</span>';
+            } else {
+                serviciosTab.classList.add('hidden');
+                equipoTab.classList.remove('hidden');
+                btnEquipo.classList.add('tab-active');
+                btnEquipo.classList.remove('text-on-surface-variant');
+                btnServicios.classList.remove('tab-active');
+                btnServicios.classList.add('text-on-surface-variant');
+                
+                // Keep FAB but change icon or logic if needed, or hide it
+                // Logic: keep it for adding staff too
+                fab.innerHTML = '<span class="material-symbols-outlined" data-icon="person_add">person_add</span>';
+            }
+        }
+
+        // Ripple / Interaction effects
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => {
+                btn.style.transform = 'scale(0.95)';
+            });
+            btn.addEventListener('mouseup', () => {
+                btn.style.transform = 'scale(1)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>

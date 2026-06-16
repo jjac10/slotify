@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reserva Confirmada - Slotify</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#e4e6e8",
+                    "surface-variant": "#d8e3fb",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "surface-container-highest": "#d8e3fb",
+                    "error": "#ba1a1a",
+                    "secondary": "#00687a",
+                    "tertiary": "#4c4f51",
+                    "surface-container": "#e7eeff",
+                    "secondary-container": "#57dffe",
+                    "inverse-on-surface": "#ecf1ff",
+                    "on-tertiary-fixed": "#191c1e",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-container-high": "#dee8ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#cfdaf2",
+                    "outline-variant": "#ccc3d8",
+                    "primary": "#630ed4",
+                    "surface": "#f9f9ff",
+                    "outline": "#7b7487",
+                    "on-secondary-fixed": "#001f26",
+                    "on-secondary-container": "#006172",
+                    "primary-container": "#7c3aed",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#25005a",
+                    "on-background": "#111c2d",
+                    "on-primary-container": "#ede0ff",
+                    "on-tertiary": "#ffffff",
+                    "background": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "on-surface-variant": "#4a4455",
+                    "tertiary-container": "#646769",
+                    "primary-fixed-dim": "#d2bbff",
+                    "surface-bright": "#f9f9ff",
+                    "on-surface": "#111c2d",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "inverse-surface": "#263143",
+                    "inverse-primary": "#d2bbff",
+                    "surface-tint": "#732ee4",
+                    "secondary-fixed": "#acedff",
+                    "primary-fixed": "#eaddff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter": "16px",
+                    "container-padding-desktop": "32px",
+                    "container-padding-mobile": "16px",
+                    "stack-xl": "32px",
+                    "unit": "4px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "button": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f9f9ff;
+            color: #111c2d;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- Top App Bar - Simplified for Confirmation Screen -->
+<header class="fixed top-0 w-full z-50 bg-surface flex items-center justify-between px-container-mobile h-16 w-full">
+<div class="flex items-center">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 duration-200">
+                close
+            </button>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary">Slotify</div>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Main Content -->
+<main class="flex-1 mt-16 pb-stack-xl px-container-mobile flex flex-col items-center justify-center max-w-lg mx-auto w-full">
+<!-- Animation Section -->
+<div class="w-full flex justify-center mb-stack-lg">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<div class="absolute inset-0 bg-primary/5 rounded-full animate-pulse"></div>
+<!-- STITCH_SVG_START:ANIMATION_3 class="w-full h-full relative z-10" --><div class="w-full h-full relative z-10" id="animated-svg-ANIMATION_3" style="display:block;"><svg viewbox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+<circle cx="26" cy="26" fill="none" r="25" stroke="#06B6D4" stroke-width="2">
+<animate attributename="stroke-dasharray" dur="0.6s" fill="freeze" from="0,157" to="157,0"></animate>
+</circle>
+<path d="M14.1 27.2l7.1 7.2 16.7-16.8" fill="none" stroke="#06B6D4" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+<animate attributename="stroke-dashoffset" begin="0.6s" dur="0.4s" fill="freeze" from="40" to="0"></animate>
+<style>
+      path { stroke-dasharray: 40; stroke-dashoffset: 40; }
+    </style>
+</path>
+</svg></div><!-- STITCH_SVG_END:ANIMATION_3 -->
+</div>
+</div>
+<!-- Success Message -->
+<div class="text-center mb-stack-xl">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-stack-sm">Reserva confirmada</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">¡Todo listo! Te hemos enviado un correo con los detalles.</p>
+</div>
+<!-- Details Card -->
+<div class="w-full bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-md mb-stack-xl shadow-[0_10px_25px_-5px_rgba(124,58,237,0.05)]">
+<div class="flex items-center gap-stack-md mb-stack-md pb-stack-md border-b border-surface-container">
+<div class="h-14 w-14 rounded-lg bg-surface-container-high overflow-hidden flex-shrink-0">
+<img alt="Barbería Elegance" class="w-full h-full object-cover" data-alt="A stylish and professional modern barber shop interior with leather chairs and high-end grooming tools. The lighting is warm and inviting, highlighting a clean, sophisticated atmosphere with purple and cyan neon accents. The setting is high-utility yet energetic, capturing a premium service brand essence for a local marketplace." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCTFlV-IZml99sYUbizC6QNCQ87dbt6oF0wWOuALF6fRkcslUdPrXYvsRKkGydiBxnXMvCHy-YBbpH2otUGoCVAhK-MVLTJkvuvk21s6cr74RXkbhbIPvdvL9QmtEW_kzxCOVKo0tI_89aPaXTPDdopzA5UU5JE-m0NhJnjKf1Py4NevEnTOev_LRy1E0BKZYDTS3DclQhsIf28x-uoDaeOFFj6R-g2HDKRMpusNTe7VGkcUTvygP1ZmZBBXslA8FJ4KkazWyLvvpe"/>
+</div>
+<div>
+<p class="font-label-md text-label-md text-primary font-semibold uppercase tracking-wider mb-1">Barbería Elegance</p>
+<h3 class="font-headline-md text-headline-md text-on-surface">Corte de Cabello</h3>
+</div>
+</div>
+<div class="space-y-stack-md">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Fecha y Hora</p>
+<p class="font-body-md text-body-md font-semibold text-on-surface">Hoy, 24 de Mayo • 10:00 AM</p>
+</div>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Ubicación</p>
+<p class="font-body-md text-body-md font-semibold text-on-surface">Calle de la Moda 123, Madrid</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Buttons Section -->
+<div class="w-full space-y-stack-sm mb-stack-xl">
+<button class="w-full py-4 bg-primary text-on-primary rounded-xl font-button text-button shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[20px]">share</span>
+                Compartir con contacto
+            </button>
+<button class="w-full py-4 bg-[#25D366] text-white rounded-xl font-button text-button shadow-lg shadow-[#25D366]/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.526-2.961-2.64-.086-.115-.699-.935-.699-1.783 0-.848.443-1.264.601-1.435.158-.171.344-.214.458-.214.115 0 .229.001.329.006.106.005.249-.041.391.302.144.353.487 1.192.529 1.277.043.085.071.184.015.3-.056.115-.085.184-.171.286l-.258.303c-.086.101-.174.21-.074.382.099.171.442.731.948 1.18.651.58 1.201.76 1.373.845.171.086.271.071.371-.043.1-.115.429-.5.543-.671.114-.171.229-.144.387-.086.158.057 1.001.472 1.173.558.171.085.286.128.329.2.043.072.043.414-.101.819z"></path>
+</svg>
+                Recordatorio WhatsApp
+            </button>
+</div>
+<!-- Secondary Actions -->
+<div class="flex flex-col items-center gap-stack-md w-full">
+<div class="flex gap-stack-xl justify-center w-full">
+<button class="font-button text-button text-primary hover:underline transition-all">Modificar cita</button>
+<button class="font-button text-button text-error hover:underline transition-all">Cancelar</button>
+</div>
+<button class="mt-stack-xl font-button text-button text-on-surface-variant flex items-center gap-1 group" onclick="window.location.reload()">
+<span class="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                Volver al inicio
+            </button>
+</div>
+</main>
+<!-- Success Confetti Overlay Script -->
+<script>
+        // Simple micro-interaction for the share button
+        document.querySelector('button.bg-primary').addEventListener('click', function() {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-bounce">check</span> ¡Copiado!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+
+        // WhatsApp trigger placeholder
+        document.querySelector('button.bg-\\[\\#25D366\\]').addEventListener('click', function() {
+            console.log("Notificación de WhatsApp activada");
+            this.style.opacity = '0.7';
+            setTimeout(() => { this.style.opacity = '1'; }, 200);
+        });
+    </script>
+</body></html>
