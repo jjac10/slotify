@@ -13,4 +13,7 @@ public class StaffRepository(SlotifyDbContext db) : IStaffRepository
 
     public Task<Staff?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Staff.FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    public Task<bool> ExistsForUserAsync(Guid userId, Guid businessId, CancellationToken ct = default)
+        => db.Staff.AnyAsync(s => s.UserId == userId && s.BusinessId == businessId, ct);
 }
