@@ -10,8 +10,8 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 32/32 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
-- **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, validación de límite Freemium de staff, y **autenticación completa** (registro de owner, login, refresh con rotación, `/me` protegido por JWT).
+- **Tests:** 48/48 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, límites Freemium (staff y servicios), **autenticación completa** (registro/login/refresh/`me` con JWT) y **CRUD de servicios** (alta owner-only con límite, listado público, `GET /businesses`).
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
 ---
@@ -41,7 +41,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1*
   - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
 - ✅ `staff` (+ owner-as-staff) — *PR #2*
-- ⬜ `services`
+- ✅ `services` — *PR #6*
 - ⬜ `staff_services`
 - ⬜ `guests` (AES-256-GCM + HMAC blind index)
 - ⬜ `reservations` (+ unique index anti-doble-booking por staff, optimistic locking)
@@ -56,9 +56,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 - ✅ `BusinessService.CreateAsync` → crea negocio + owner-staff atómico — *PR #2*
   - ✅ `IBusinessRepository` / `BusinessRepository` (EF)
-- ✅ `FreemiumLimitService.CanAddStaffAsync` (data-driven, ADR #9) — *PR #3*
-  - ✅ `ITierRepository` / `IStaffRepository` (+ impl. EF)
-  - ⬜ `CanAddServiceAsync`, `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
+- ✅ `FreemiumLimitService` (data-driven, ADR #9): `CanAddStaffAsync` — *PR #3*, `CanAddServiceAsync` — *PR #6*
+  - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
+  - ⬜ `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
+- ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
 - ✅ Auth: registro (bcrypt), login (JWT HS256), refresh con rotación — *PR #5*
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
   - ⬜ reset password (password_reset_tokens)
@@ -74,7 +75,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 - ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
 - ✅ `POST /auth/register` · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
-- ⬜ `GET/POST /businesses/{id}/services`
+- ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
 - ⬜ `GET /businesses/{id}/availability`
 - ⬜ `POST/GET/PATCH/DELETE /reservations`
 - ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
@@ -107,9 +108,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #3 | `feature/freemium-limits` | `FreemiumLimitService` + repos EF (límite de staff) |
 | #4 | `docs/project-roadmap` | Roadmap + READMEs |
 | #5 | `feature/api-auth-jwt` | `Slotify.API` + auth completa (register/login/refresh/me) con JWT + bcrypt |
+| #6 | `feature/services-crud` | `services` + `ServiceService` + endpoints (owner-only create, límite Freemium) + `GET /businesses` |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Servicios (CRUD) con límite Freemium**: `services` (tabla + entidad), `CanAddServiceAsync`, y endpoints `GET/POST /businesses/{id}/services` protegidos (owner). Alternativas: `guests` + `reservations` (núcleo de reservas), o scaffold del frontend para empezar a consumir la API.
+🎯 A elegir: **horarios + disponibilidad** (`business_hours`, `business_holidays`, `GET /availability`) como antesala de reservas; **núcleo de reservas** (`guests` + `reservations` + anti-doble-booking); o **scaffold del frontend** (React 19 + Vite) para empezar a consumir la API ya existente.

@@ -29,7 +29,7 @@ public class FreemiumLimitIntegrationTests : IClassFixture<PostgresFixture>, IAs
     public async Task CanAddStaff_FreeBusinessWithOwnerStaff_ReturnsFalse()
     {
         var business = await SeedBusinessWithOwnerAsync("free");
-        var service = new FreemiumLimitService(new TierRepository(_db), new StaffRepository(_db));
+        var service = new FreemiumLimitService(new TierRepository(_db), new StaffRepository(_db), new ServiceRepository(_db));
 
         Assert.False(await service.CanAddStaffAsync(business.Id));
     }
@@ -38,7 +38,7 @@ public class FreemiumLimitIntegrationTests : IClassFixture<PostgresFixture>, IAs
     public async Task CanAddStaff_PremiumBusiness_ReturnsTrue()
     {
         var business = await SeedBusinessWithOwnerAsync("premium");
-        var service = new FreemiumLimitService(new TierRepository(_db), new StaffRepository(_db));
+        var service = new FreemiumLimitService(new TierRepository(_db), new StaffRepository(_db), new ServiceRepository(_db));
 
         Assert.True(await service.CanAddStaffAsync(business.Id));
     }

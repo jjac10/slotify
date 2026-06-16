@@ -9,6 +9,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<PricingTier> PricingTiers => Set<PricingTier>();
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Staff> Staff => Set<Staff>();
+    public DbSet<Service> Services => Set<Service>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -19,6 +20,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigurePricingTiers(modelBuilder);
         ConfigureBusinesses(modelBuilder);
         ConfigureStaff(modelBuilder);
+        ConfigureServices(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -129,6 +131,32 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.HasIndex(s => new { s.BusinessId, s.Status });
             e.HasIndex(s => s.UserId);
             e.HasIndex(s => new { s.BusinessId, s.Role }); // localizar al owner-staff
+        });
+    }
+
+    private static void ConfigureServices(ModelBuilder mb)
+    {
+        mb.Entity<Service>(e =>
+        {
+            e.ToTable("services");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(s => s.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(s => s.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+            e.Property(s => s.Description).HasColumnName("description");
+            e.Property(s => s.DurationMinutes).HasColumnName("duration_minutes").IsRequired();
+            e.Property(s => s.Price).HasColumnName("price").HasColumnType("decimal(10,2)");
+            e.Property(s => s.Color).HasColumnName("color").HasMaxLength(7);
+            e.Property(s => s.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
+            e.Property(s => s.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(s => s.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(s => s.Business)
+                .WithMany()
+                .HasForeignKey(s => s.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(s => new { s.BusinessId, s.Status });
         });
     }
 

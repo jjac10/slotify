@@ -21,13 +21,13 @@ backend/
 
 ## Implementado
 
-- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `RefreshToken`.
+- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `Service`, `RefreshToken`.
 - `SlotifyDbContext` (mapeo snake_case, FKs, índices, seed free/premium).
-- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`.
-- Servicios: `BusinessService` (owner-as-staff), `FreemiumLimitService`, `AuthService` (register/login/refresh).
+- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`, `AddServices`.
+- Servicios: `BusinessService` (owner-as-staff + listado), `FreemiumLimitService` (staff/servicios), `ServiceService`, `AuthService`.
 - Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256).
-- Repositorios EF: `BusinessRepository`, `TierRepository`, `StaffRepository`, `AuthRepository`, `RefreshTokenRepository`.
-- Endpoints: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` (protegido).
+- Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Auth`, `RefreshToken`.
+- Endpoints: auth (`register`/`login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`.
 
 ## Ejecutar la API
 
@@ -42,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 32/32 verde
+dotnet test          # 48/48 verde
 ```
 
 ## Migraciones (EF Core)

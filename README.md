@@ -11,12 +11,13 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **32/32 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **48/48 tests en verde**.
 
 Implementado y probado: capa de datos (`pricing_tiers`, `users`, `businesses`, `staff`,
-`refresh_tokens`), creación de negocio con *owner-as-staff* atómico, límites Freemium y
-**autenticación completa** (registro de owner, login, refresh con rotación, `/me` protegido
-por JWT). La API ya se levanta con `docker-compose up` (UI Scalar en `/scalar`).
+`services`, `refresh_tokens`), *owner-as-staff* atómico, límites Freemium (staff y servicios),
+**autenticación completa** (registro/login/refresh/`me` con JWT) y **CRUD de servicios**
+(alta owner-only, listado público, `GET /businesses`). La API se levanta con
+`docker-compose up` (UI Scalar en `/scalar`).
 
 👉 Planificación completa y checklist: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 
