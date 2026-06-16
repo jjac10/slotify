@@ -9,6 +9,8 @@ public interface IAuthRepository
 
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
 
+    Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>
     /// Persiste atómicamente el alta de un propietario: user + negocio + owner-staff.
     /// </summary>
