@@ -7,24 +7,38 @@ using Slotify.Domain.DTOs;
 namespace Slotify.Tests.Integration;
 
 /// <summary>
-/// Flujo de autenticación end-to-end contra la API real: register, login, refresh
-/// y endpoint protegido /me.
+/// Flujo de autenticación end-to-end contra la API real: registro (customer y
+/// owner), login, refresh y endpoint protegido /me.
 /// </summary>
 public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<SlotifyApiFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private static RegisterRequest NewRegister() =>
+    private static RegisterOwnerRequest NewOwnerRegister() =>
         new($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería Pepe");
 
+    private static RegisterCustomerRequest NewCustomerRegister() =>
+        new($"cust-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Ana");
+
     [Fact]
-    public async Task Register_ReturnsCreatedWithTokens()
+    public async Task RegisterCustomer_ReturnsCreated_WithoutBusiness()
     {
-        var response = await _client.PostAsJsonAsync("/auth/register", NewRegister());
+        var response = await _client.PostAsJsonAsync("/auth/register", NewCustomerRegister());
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<AuthResult>();
-        Assert.NotNull(body);
+        Assert.NotEqual(Guid.Empty, body!.UserId);
+        Assert.Null(body.BusinessId); // customer no tiene negocio
+        Assert.False(string.IsNullOrWhiteSpace(body.AccessToken));
+    }
+
+    [Fact]
+    public async Task RegisterOwner_ReturnsCreated_WithBusinessAndTokens()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/register-owner", NewOwnerRegister());
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<AuthResult>();
         Assert.NotEqual(Guid.Empty, body!.UserId);
         Assert.NotNull(body.BusinessId);
         Assert.False(string.IsNullOrWhiteSpace(body.AccessToken));
@@ -34,7 +48,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Register_WeakPassword_ReturnsBadRequest()
     {
-        var weak = new RegisterRequest($"owner-{Guid.NewGuid():N}@test.local", "weak", "Pepe", "Barbería Pepe");
+        var weak = new RegisterCustomerRequest($"cust-{Guid.NewGuid():N}@test.local", "weak", "Ana");
 
         var response = await _client.PostAsJsonAsync("/auth/register", weak);
 
@@ -44,7 +58,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Register_DuplicateEmail_ReturnsConflict()
     {
-        var request = NewRegister();
+        var request = NewCustomerRegister();
         (await _client.PostAsJsonAsync("/auth/register", request)).EnsureSuccessStatusCode();
 
         var duplicate = await _client.PostAsJsonAsync("/auth/register", request);
@@ -55,7 +69,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Login_AfterRegister_ReturnsTokens()
     {
-        var request = NewRegister();
+        var request = NewCustomerRegister();
         (await _client.PostAsJsonAsync("/auth/register", request)).EnsureSuccessStatusCode();
 
         var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(request.Email, request.Password));
@@ -68,7 +82,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Login_WrongPassword_ReturnsUnauthorized()
     {
-        var request = NewRegister();
+        var request = NewCustomerRegister();
         (await _client.PostAsJsonAsync("/auth/register", request)).EnsureSuccessStatusCode();
 
         var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(request.Email, "wrong-password"));
@@ -87,7 +101,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Me_WithToken_ReturnsCurrentUser()
     {
-        var request = NewRegister();
+        var request = NewCustomerRegister();
         var registered = await (await _client.PostAsJsonAsync("/auth/register", request))
             .Content.ReadFromJsonAsync<AuthResult>();
 
@@ -104,7 +118,7 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     [Fact]
     public async Task Refresh_WithValidToken_ReturnsRotatedTokens()
     {
-        var registered = await (await _client.PostAsJsonAsync("/auth/register", NewRegister()))
+        var registered = await (await _client.PostAsJsonAsync("/auth/register", NewCustomerRegister()))
             .Content.ReadFromJsonAsync<AuthResult>();
 
         var response = await _client.PostAsJsonAsync("/auth/refresh", new RefreshRequest(registered!.RefreshToken));

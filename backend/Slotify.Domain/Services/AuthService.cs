@@ -19,9 +19,32 @@ public class AuthService(
 {
     public const string FreeTierCode = "free";
     public const string OwnerType = "owner";
+    public const string CustomerType = "customer";
     public const string OwnerRole = "owner";
 
-    public async Task<AuthResult> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
+    /// <summary>Alta de cliente (sin negocio): user con type='customer'.</summary>
+    public async Task<AuthResult> RegisterCustomerAsync(RegisterCustomerRequest request, CancellationToken ct = default)
+    {
+        PasswordPolicy.Validate(request.Password);
+
+        if (await auth.EmailExistsAsync(request.Email, ct))
+            throw new EmailAlreadyExistsException(request.Email);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = request.Email,
+            PasswordHash = hasher.Hash(request.Password),
+            Name = request.Name,
+            Type = CustomerType,
+        };
+        await auth.AddUserAsync(user, ct);
+
+        return await IssueResultAsync(user, businessId: null, ct);
+    }
+
+    /// <summary>Alta de propietario + su negocio (plan Free) + owner-staff, atómico.</summary>
+    public async Task<AuthResult> RegisterOwnerAsync(RegisterOwnerRequest request, CancellationToken ct = default)
     {
         PasswordPolicy.Validate(request.Password); // rechaza contraseñas débiles antes de tocar BD
 

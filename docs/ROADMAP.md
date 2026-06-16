@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 57/57 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Tests:** 61/61 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
 - **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, límites Freemium (staff y servicios), **autenticación completa** (registro/login/refresh/`me` con JWT) y **CRUD de servicios** (alta owner-only con límite, listado público, `GET /businesses`).
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -74,7 +74,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 ## API (host + endpoints)
 
 - ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
-- ✅ `POST /auth/register` · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
+- ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
 - ⬜ `GET /businesses/{id}/availability`
 - ⬜ `POST/GET/PATCH/DELETE /reservations`
@@ -110,6 +110,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #5 | `feature/api-auth-jwt` | `Slotify.API` + auth completa (register/login/refresh/me) con JWT + bcrypt |
 | #6 | `feature/services-crud` | `services` + `ServiceService` + endpoints (owner-only create, límite Freemium) + `GET /businesses` |
 | #7 | `feature/password-policy` | Política de contraseña segura en el registro (`PasswordPolicy`, 400 si débil) |
+| #8 | `feature/customer-registration` | Split de registro: customer (`/auth/register`) vs owner (`/auth/register-owner`) |
 
 ---
 

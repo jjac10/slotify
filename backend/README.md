@@ -27,7 +27,7 @@ backend/
 - Servicios: `BusinessService` (owner-as-staff + listado), `FreemiumLimitService` (staff/servicios), `ServiceService`, `AuthService`.
 - Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256).
 - Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Auth`, `RefreshToken`.
-- Endpoints: auth (`register`/`login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`.
+- Endpoints: auth (`register` customer / `register-owner` / `login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`.
 
 ## Ejecutar la API
 
@@ -42,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 57/57 verde
+dotnet test          # 61/61 verde
 ```
 
 ## Migraciones (EF Core)
