@@ -69,6 +69,13 @@ builder.Services
     });
 builder.Services.AddAuthorization();
 
+// --- CORS (frontend React/Vite) ---
+const string FrontendCorsPolicy = "frontend";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:5173"];
+builder.Services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy =>
+    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+
 // --- API / OpenAPI ---
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(options =>
@@ -89,6 +96,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();                       // UI interactiva en /scalar
 }
 
+app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
