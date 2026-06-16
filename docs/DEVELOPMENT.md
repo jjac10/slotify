@@ -9,7 +9,7 @@ slotify/
 │   ├── Slotify.Domain/           # Entities, Interfaces, DTOs
 │   ├── Slotify.Infrastructure/   # DbContext, Repositories, Services
 │   ├── Slotify.Tests/            # xUnit tests
-│   └── Slotify.sln               # Solution file
+│   └── Slotify.slnx              # Solution file (formato .slnx, .NET 10)
 ├── frontend/
 │   ├── src/
 │   │   ├── components/           # React components
