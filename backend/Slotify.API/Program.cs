@@ -34,6 +34,8 @@ builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IGuestRepository, GuestRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+builder.Services.AddScoped<IBusinessHourRepository, BusinessHourRepository>();
+builder.Services.AddScoped<IBusinessHolidayRepository, BusinessHolidayRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -42,6 +44,7 @@ builder.Services.AddScoped<IFreemiumLimitService, FreemiumLimitService>();
 builder.Services.AddScoped<BusinessService>();
 builder.Services.AddScoped<ServiceService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<BusinessScheduleService>();
 builder.Services.AddScoped<AuthService>();
 
 // --- Autenticación JWT (ADR #3) ---
