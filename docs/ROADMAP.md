@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 114/114 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Tests:** 117/117 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
 - **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos) y **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -68,7 +68,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
 - ⬜ `CanAddReservationThisMonthAsync` (límite Freemium de reservas)
 - ✅ Reservas: crear (guest/user) con anti-doble-booking — *PR #9* · ⬜ modificar, cancelar (hard delete + audit)
-- ✅ Guests: cifrado + blind index — *PR #9* · ⬜ sync invitado→usuario automática
+- ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12*
 - ⬜ Notificaciones (async fire & forget), audit logs, reviews, waitlist
 
 ---
@@ -116,10 +116,13 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #8 | `feature/customer-registration` | Split de registro: customer (`/auth/register`) vs owner (`/auth/register-owner`) |
 | #9 | `feature/reservations-core` | `guests` + `reservations` (exclusion constraint), `CryptoService`/`BlindIndex`, `BookingService`, endpoints `POST/GET /reservations` |
 | #10 | `feature/business-hours` | `business_hours` + `business_holidays` + `BusinessScheduleService` + endpoints (owner) |
-| #11 | `feature/availability` | `slot_interval_minutes` + `AvailabilityService` + `GET /availability` (slots = horario − festivos − reservas) |
+| #11 | `feature/availability` | `slot_interval_minutes` + `AvailabilityService` + `GET /availability` (slots = horario − festivos − reservas); OpenAPI Bearer (Scalar Authorize); runbook Docker en SETUP.md |
+| #12 | `feature/guest-user-sync` | Sync invitado→usuario: vincular guests por blind index al registrar customer (apilada sobre #11) |
+
+> **Orden de merge pendiente:** primero PR #11 (`feature/availability`), luego PR #12 (`feature/guest-user-sync`).
 
 ---
 
 ## Siguiente paso
 
-🎯 A elegir (el dominio de reservas ya funciona de punta a punta): **modificar/cancelar reservas** (permisos por rol — Anexo B, + hard-delete con audit), **sync invitado→usuario** al registrarse, o **scaffold del frontend** (React 19 + Vite) para empezar a consumir la API.
+🎯 A elegir (dominio de reservas completo de punta a punta): **modificar/cancelar reservas** (permisos por rol — Anexo B, + hard-delete con audit), **scaffold del frontend** (React 19 + Vite), o **CI/CD** (GitHub Actions: build + test).
