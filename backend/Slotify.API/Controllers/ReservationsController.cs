@@ -51,6 +51,28 @@ public class ReservationsController(BookingService booking, ReservationManagemen
         return reservation is null ? NotFound() : Ok(reservation);
     }
 
+    /// <summary>Reservas del usuario autenticado ("mis reservas").</summary>
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListMine(CancellationToken ct)
+        => Ok(await management.ListMineAsync(CurrentUserId, ct));
+
+    /// <summary>Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.</summary>
+    [HttpGet("/businesses/{businessId:guid}/reservations")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListForBusiness(
+        Guid businessId, [FromQuery] DateOnly? date, [FromQuery] Guid? staffId, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await management.ListForBusinessAsync(businessId, CurrentUserId, date, staffId, ct));
+        }
+        catch (ReservationForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>Reprograma una reserva (owner del negocio, staff o el propio usuario). Conserva la duración + auditoría.</summary>
     [HttpPatch("{id:guid}")]
     [Authorize]

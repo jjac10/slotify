@@ -70,4 +70,29 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
                 && r.StartTime >= dayStart && r.StartTime < dayEnd)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Reservation>> ListByBusinessAsync(
+        Guid businessId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
+    {
+        var query = db.Reservations.AsNoTracking()
+            .Where(r => r.BusinessId == businessId && r.Status != "cancelled");
+
+        if (staffId is not null)
+            query = query.Where(r => r.StaffId == staffId);
+
+        if (date is not null)
+        {
+            var dayStart = new DateTime(date.Value.Year, date.Value.Month, date.Value.Day, 0, 0, 0, DateTimeKind.Utc);
+            var dayEnd = dayStart.AddDays(1);
+            query = query.Where(r => r.StartTime >= dayStart && r.StartTime < dayEnd);
+        }
+
+        return await query.OrderBy(r => r.StartTime).ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default)
+        => await db.Reservations.AsNoTracking()
+            .Where(r => r.UserId == userId && r.Status != "cancelled")
+            .OrderBy(r => r.StartTime)
+            .ToListAsync(ct);
 }
