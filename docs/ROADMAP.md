@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 48/48 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Tests:** 57/57 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
 - **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, límites Freemium (staff y servicios), **autenticación completa** (registro/login/refresh/`me` con JWT) y **CRUD de servicios** (alta owner-only con límite, listado público, `GET /businesses`).
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -60,8 +60,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
   - ⬜ `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
-- ✅ Auth: registro (bcrypt), login (JWT HS256), refresh con rotación — *PR #5*
-  - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
+- ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*
+  - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
   - ⬜ reset password (password_reset_tokens)
 - ⬜ Servicios (CRUD) con límite Freemium
 - ⬜ Disponibilidad (slots) respetando horario, festivos, ocupación, timezone
@@ -109,6 +109,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #4 | `docs/project-roadmap` | Roadmap + READMEs |
 | #5 | `feature/api-auth-jwt` | `Slotify.API` + auth completa (register/login/refresh/me) con JWT + bcrypt |
 | #6 | `feature/services-crud` | `services` + `ServiceService` + endpoints (owner-only create, límite Freemium) + `GET /businesses` |
+| #7 | `feature/password-policy` | Política de contraseña segura en el registro (`PasswordPolicy`, 400 si débil) |
 
 ---
 

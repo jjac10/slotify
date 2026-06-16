@@ -27,6 +27,9 @@ Registrar nuevo propietario de negocio.
 > Registro de **propietario**: crea el `user` (type=owner) + su negocio en plan Free
 > + el owner-as-staff, de forma atómica. El registro de *customer* (flujo invitado,
 > sin negocio) es un endpoint futuro distinto. `name` es el nombre del propietario.
+>
+> **Contraseña:** mín. 8 caracteres con mayúscula, minúscula, dígito y símbolo.
+> Si no cumple → `400` (`weak_password`, con `details`). Email duplicado → `409`.
 
 **Response:** 201
 ```json

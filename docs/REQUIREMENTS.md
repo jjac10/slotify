@@ -7,6 +7,7 @@
 **RF-AUTH-001:** Registro de negocio
 - Crear cuenta con email + contraseña
 - Validar email único
+- **Contraseña segura:** mín. 8 caracteres con mayúscula, minúscula, dígito y símbolo (si no → 400)
 - Contraseña hasheada (bcrypt)
 - Plan asignado automáticamente (Free)
 

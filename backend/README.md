@@ -42,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 48/48 verde
+dotnet test          # 57/57 verde
 ```
 
 ## Migraciones (EF Core)
