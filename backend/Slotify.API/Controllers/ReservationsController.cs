@@ -51,6 +51,34 @@ public class ReservationsController(BookingService booking, ReservationManagemen
         return reservation is null ? NotFound() : Ok(reservation);
     }
 
+    /// <summary>Reprograma una reserva (owner del negocio, staff o el propio usuario). Conserva la duración + auditoría.</summary>
+    [HttpPatch("{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<ReservationResponse>> Reschedule(Guid id, RescheduleReservationRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await management.RescheduleAsync(id, CurrentUserId, request.StartTime, ct);
+            return Ok(result);
+        }
+        catch (ReservationNotFoundException ex)
+        {
+            return NotFound(new { error = "reservation_not_found", message = ex.Message });
+        }
+        catch (ReservationForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (SlotUnavailableException ex)
+        {
+            return Conflict(new { error = "slot_unavailable", message = ex.Message });
+        }
+        catch (ReservationConcurrencyException ex)
+        {
+            return Conflict(new { error = "concurrency_conflict", message = ex.Message });
+        }
+    }
+
     /// <summary>Cancela una reserva (owner del negocio, staff o el propio usuario). Hard-delete + auditoría.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize]

@@ -281,23 +281,33 @@ Obtener detalles de reserva (guest o owner).
 ---
 
 ### PATCH /reservations/{id}
-Modificar reserva (cambiar hora).
+Reprogramar reserva: cambia el inicio y **conserva la duración** (el fin se recalcula).
 
-**Auth:** Optional + token
+**Auth:** Required (JWT) — autoriza el owner del negocio, el staff del negocio o el propio usuario de la reserva.
 **Request:**
 ```json
 {
-  "newStartTime": "2026-06-20T15:00:00Z",
-  "confirmationToken": "abc123"  // si guest
+  "startTime": "2026-06-20T15:00:00Z"
 }
 ```
 
-**Response:** 200
+**Response:** 200 — la reserva actualizada (`ReservationResponse`).
+
+**Errores:**
+- `401` sin token · `403` sin permiso sobre la reserva
+- `404` la reserva no existe
+- `409 slot_unavailable` el nuevo horario solapa con otra reserva del mismo staff (garantía dura: exclusion constraint en BD)
+- `409 concurrency_conflict` otra operación modificó la reserva entretanto (optimistic locking por `version`)
+
+**Notas:**
+- Auditoría: registra `action='updated'` con el horario anterior (`old_values`) y el nuevo (`new_values`).
+- El pre-check de solape se excluye a sí misma; la BD lo garantiza con el exclusion constraint (ADR #4).
 
 **Tests:**
-- ✓ Validar nuevo slot disponible
-- ✓ Notificar owner + guest
-- ✓ Validar permissions (guest token o user logged)
+- ✓ Reprograma a hueco libre (200, conserva duración) + auditoría
+- ✓ 401 sin token · 403 por otro owner · 409 sobre hueco ocupado
+- ✓ Optimistic locking: version obsoleta → `ReservationConcurrencyException`
+- 🔮 Notificar owner + guest (pendiente: notificaciones)
 
 ---
 

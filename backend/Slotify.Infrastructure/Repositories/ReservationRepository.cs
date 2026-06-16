@@ -26,14 +26,37 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
         }
     }
 
-    public Task<bool> HasOverlapAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct = default)
+    public Task<bool> HasOverlapAsync(Guid staffId, DateTime start, DateTime end,
+        Guid? excludeReservationId = null, CancellationToken ct = default)
         => db.Reservations.AnyAsync(r =>
             r.StaffId == staffId &&
             r.Status != "cancelled" &&
+            (excludeReservationId == null || r.Id != excludeReservationId) &&
             r.StartTime < end && r.EndTime > start, ct);
 
     public Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Reservations.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task UpdateAsync(Reservation reservation, CancellationToken ct = default)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Optimistic locking: otra operación cambió la fila (version) mientras tanto.
+            db.Entry(reservation).State = EntityState.Detached;
+            throw new ReservationConcurrencyException();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            { SqlState: PostgresErrorCodes.ExclusionViolation })
+        {
+            // El exclusion constraint (anti-doble-booking) rechazó el nuevo horario.
+            db.Entry(reservation).State = EntityState.Detached;
+            throw new SlotUnavailableException();
+        }
+    }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
         => await db.Reservations.Where(r => r.Id == id).ExecuteDeleteAsync(ct);

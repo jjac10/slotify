@@ -10,10 +10,20 @@ public interface IReservationRepository
     /// <summary>
     /// ¿Hay alguna reserva no cancelada del mismo staff que solape [start, end)?
     /// (pre-check en la capa de servicio; la BD lo garantiza con exclusion constraint).
+    /// <paramref name="excludeReservationId"/> permite ignorar una reserva (útil al
+    /// reprogramarla, para que no solape consigo misma).
     /// </summary>
-    Task<bool> HasOverlapAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct = default);
+    Task<bool> HasOverlapAsync(Guid staffId, DateTime start, DateTime end,
+        Guid? excludeReservationId = null, CancellationToken ct = default);
 
     Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Persiste cambios de una reserva ya cargada (reprogramar). Garantiza el
+    /// anti-doble-booking (exclusion constraint → <see cref="Exceptions.SlotUnavailableException"/>)
+    /// y el optimistic locking (version → <see cref="Exceptions.ReservationConcurrencyException"/>).
+    /// </summary>
+    Task UpdateAsync(Reservation reservation, CancellationToken ct = default);
 
     /// <summary>Borrado físico de la reserva (hard delete, ADR #13).</summary>
     Task DeleteAsync(Guid id, CancellationToken ct = default);

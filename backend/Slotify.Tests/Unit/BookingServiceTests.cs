@@ -34,7 +34,7 @@ public class BookingServiceTests
             .ReturnsAsync(new Service { Id = _serviceId, BusinessId = _businessId, Name = "Corte", DurationMinutes = duration });
         _staff.Setup(s => s.GetByIdAsync(_staffId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Staff { Id = _staffId, BusinessId = _businessId, Role = "owner", Name = "O" });
-        _reservations.Setup(r => r.HasOverlapAsync(_staffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _reservations.Setup(r => r.HasOverlapAsync(_staffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -112,7 +112,7 @@ public class BookingServiceTests
     public async Task CreateAsync_WhenSlotOverlaps_Throws_AndDoesNotPersist()
     {
         SetupValidServiceAndStaff();
-        _reservations.Setup(r => r.HasOverlapAsync(_staffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _reservations.Setup(r => r.HasOverlapAsync(_staffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         await Assert.ThrowsAsync<SlotUnavailableException>(

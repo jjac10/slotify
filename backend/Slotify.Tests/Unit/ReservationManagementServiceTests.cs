@@ -21,22 +21,27 @@ public class ReservationManagementServiceTests
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _reservationId = Guid.NewGuid();
 
+    private static readonly DateTime At10 = new(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc);
+    private Reservation _reservation = null!;
+
     private ReservationManagementService CreateService() =>
         new(_reservations.Object, _businesses.Object, _staff.Object, _audit.Object);
 
     private void SetupReservation(Guid? reservationUserId = null)
     {
+        _reservation = new Reservation
+        {
+            Id = _reservationId, BusinessId = _businessId, ServiceId = Guid.NewGuid(), StaffId = Guid.NewGuid(),
+            UserId = reservationUserId, GuestId = reservationUserId is null ? Guid.NewGuid() : null,
+            Status = "pending", StartTime = At10, EndTime = At10.AddMinutes(30),
+        };
         _reservations.Setup(r => r.GetByIdAsync(_reservationId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Reservation
-            {
-                Id = _reservationId, BusinessId = _businessId, ServiceId = Guid.NewGuid(), StaffId = Guid.NewGuid(),
-                UserId = reservationUserId, GuestId = reservationUserId is null ? Guid.NewGuid() : null,
-                Status = "pending", StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddMinutes(30),
-            });
+            .ReturnsAsync(_reservation);
         _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Business { Id = _businessId, OwnerId = _ownerId, TierId = Guid.NewGuid(), Name = "Biz" });
         _audit.Setup(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _reservations.Setup(r => r.DeleteAsync(_reservationId, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _reservations.Setup(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -100,5 +105,84 @@ public class ReservationManagementServiceTests
 
         await Assert.ThrowsAsync<ReservationNotFoundException>(
             () => CreateService().CancelAsync(_reservationId, _ownerId, null));
+    }
+
+    // --- Reprogramar (PATCH) -------------------------------------------------
+
+    [Fact]
+    public async Task RescheduleAsync_AsOwner_MovesTime_PreservesDuration_BumpsVersion_AndAudits()
+    {
+        SetupReservation();
+        AuditLog? logged = null;
+        _audit.Setup(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()))
+            .Callback<AuditLog, CancellationToken>((a, _) => logged = a).Returns(Task.CompletedTask);
+        var newStart = At10.AddHours(2);
+
+        var result = await CreateService().RescheduleAsync(_reservationId, _ownerId, newStart);
+
+        // Conserva la duración (30 min) y recalcula el fin.
+        Assert.Equal(newStart, _reservation.StartTime);
+        Assert.Equal(newStart.AddMinutes(30), _reservation.EndTime);
+        Assert.Equal(newStart, result.StartTime);
+        Assert.Equal(newStart.AddMinutes(30), result.EndTime);
+        // Optimistic locking: la versión se incrementa.
+        Assert.Equal(1, _reservation.Version);
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
+        // Auditoría action='updated' con snapshot antiguo y nuevo.
+        Assert.NotNull(logged);
+        Assert.Equal("updated", logged!.Action);
+        Assert.Equal(_reservationId, logged.ReservationId);
+        Assert.Equal(_ownerId, logged.ActorId);
+        Assert.NotNull(logged.OldValues);
+        Assert.NotNull(logged.NewValues);
+    }
+
+    [Fact]
+    public async Task RescheduleAsync_AsReservationUser_IsAllowed()
+    {
+        var customerId = Guid.NewGuid();
+        SetupReservation(reservationUserId: customerId);
+
+        await CreateService().RescheduleAsync(_reservationId, customerId, At10.AddHours(1));
+
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RescheduleAsync_Unauthorized_Throws_AndDoesNotUpdate()
+    {
+        SetupReservation();
+        _staff.Setup(s => s.ExistsForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().RescheduleAsync(_reservationId, Guid.NewGuid(), At10.AddHours(1)));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+        _audit.Verify(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RescheduleAsync_OverlapsAnotherReservation_ThrowsSlotUnavailable_AndDoesNotUpdate()
+    {
+        SetupReservation();
+        // El pre-check excluye la propia reserva y aun así encuentra solape con otra.
+        _reservations.Setup(r => r.HasOverlapAsync(
+            _reservation.StaffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), _reservationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<SlotUnavailableException>(
+            () => CreateService().RescheduleAsync(_reservationId, _ownerId, At10.AddHours(1)));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+        _audit.Verify(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RescheduleAsync_NotFound_Throws()
+    {
+        _reservations.Setup(r => r.GetByIdAsync(_reservationId, It.IsAny<CancellationToken>())).ReturnsAsync((Reservation?)null);
+
+        await Assert.ThrowsAsync<ReservationNotFoundException>(
+            () => CreateService().RescheduleAsync(_reservationId, _ownerId, At10.AddHours(1)));
     }
 }
