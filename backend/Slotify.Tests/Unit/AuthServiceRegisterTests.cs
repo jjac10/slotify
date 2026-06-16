@@ -83,6 +83,18 @@ public class AuthServiceRegisterTests
     }
 
     [Fact]
+    public async Task RegisterAsync_WeakPassword_Throws_AndDoesNotPersist()
+    {
+        // Contraseña débil: debe rechazarse antes de tocar la BD.
+        var request = new RegisterRequest("owner@example.com", "weak", "Pepe", "Barbería Pepe");
+
+        await Assert.ThrowsAsync<WeakPasswordException>(() => CreateService().RegisterAsync(request));
+
+        _auth.Verify(a => a.RegisterOwnerAsync(
+            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RegisterAsync_WhenEmailExists_Throws_AndDoesNotPersist()
     {
         _auth.Setup(a => a.EmailExistsAsync("taken@example.com", It.IsAny<CancellationToken>()))

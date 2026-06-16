@@ -11,7 +11,7 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **48/48 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **57/57 tests en verde**.
 
 Implementado y probado: capa de datos (`pricing_tiers`, `users`, `businesses`, `staff`,
 `services`, `refresh_tokens`), *owner-as-staff* atómico, límites Freemium (staff y servicios),

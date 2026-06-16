@@ -21,6 +21,10 @@ public class AuthController(AuthService auth) : ControllerBase
             var result = await auth.RegisterAsync(request, ct);
             return StatusCode(StatusCodes.Status201Created, result);
         }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
+        }
         catch (EmailAlreadyExistsException ex)
         {
             return Conflict(new { error = "email_exists", message = ex.Message });
