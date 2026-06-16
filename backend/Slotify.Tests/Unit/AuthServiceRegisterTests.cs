@@ -17,8 +17,9 @@ public class AuthServiceRegisterTests
     private readonly Mock<ITierRepository> _tiers = new();
     private readonly Mock<IPasswordHasher> _hasher = new();
     private readonly Mock<ITokenService> _tokens = new();
+    private readonly Mock<IRefreshTokenRepository> _refresh = new();
 
-    private AuthService CreateService() => new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object);
+    private AuthService CreateService() => new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object);
 
     private static readonly PricingTier FreeTier = new()
     {
@@ -38,6 +39,8 @@ public class AuthServiceRegisterTests
         _hasher.Setup(h => h.Hash("SecurePass123!")).Returns("hashed-pw");
         _tokens.Setup(t => t.CreateAccessToken(It.IsAny<User>())).Returns("access-token");
         _tokens.Setup(t => t.CreateRefreshToken()).Returns("refresh-token");
+        _refresh.Setup(r => r.IssueAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         User? savedUser = null;
         Business? savedBusiness = null;
@@ -74,6 +77,9 @@ public class AuthServiceRegisterTests
         Assert.Equal(savedBusiness.Id, result.BusinessId);
         Assert.Equal("access-token", result.AccessToken);
         Assert.Equal("refresh-token", result.RefreshToken);
+
+        // El refresh token se persiste para el usuario creado.
+        _refresh.Verify(r => r.IssueAsync(savedUser.Id, "refresh-token", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

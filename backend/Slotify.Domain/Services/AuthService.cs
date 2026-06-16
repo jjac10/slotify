@@ -6,15 +6,16 @@ using Slotify.Domain.Interfaces;
 namespace Slotify.Domain.Services;
 
 /// <summary>
-/// Autenticación: registro de propietario (RF-AUTH-001), login (RF-AUTH-002).
-/// El plan vive en el negocio (businesses.tier_id); el registro crea el negocio
-/// en plan Free y su owner-as-staff.
+/// Autenticación: registro de propietario (RF-AUTH-001), login (RF-AUTH-002) y
+/// renovación de tokens (refresh con rotación). El plan vive en el negocio
+/// (businesses.tier_id); el registro crea el negocio Free y su owner-as-staff.
 /// </summary>
 public class AuthService(
     IAuthRepository auth,
     ITierRepository tiers,
     IPasswordHasher hasher,
-    ITokenService tokens)
+    ITokenService tokens,
+    IRefreshTokenRepository refreshTokens)
 {
     public const string FreeTierCode = "free";
     public const string OwnerType = "owner";
@@ -55,11 +56,7 @@ public class AuthService(
 
         await auth.RegisterOwnerAsync(user, business, ownerStaff, ct);
 
-        return new AuthResult(
-            user.Id,
-            business.Id,
-            tokens.CreateAccessToken(user),
-            tokens.CreateRefreshToken());
+        return await IssueResultAsync(user, business.Id, ct);
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
@@ -68,10 +65,26 @@ public class AuthService(
         if (user is null || !hasher.Verify(request.Password, user.PasswordHash))
             throw new InvalidCredentialsException();
 
-        return new AuthResult(
-            user.Id,
-            BusinessId: null,
-            tokens.CreateAccessToken(user),
-            tokens.CreateRefreshToken());
+        return await IssueResultAsync(user, businessId: null, ct);
+    }
+
+    public async Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var userId = await refreshTokens.ConsumeAsync(refreshToken, ct)
+            ?? throw new InvalidRefreshTokenException();
+
+        var user = await auth.GetByIdAsync(userId, ct)
+            ?? throw new InvalidRefreshTokenException();
+
+        return await IssueResultAsync(user, businessId: null, ct);
+    }
+
+    /// <summary>Emite access + refresh, persiste el refresh y devuelve el resultado.</summary>
+    private async Task<AuthResult> IssueResultAsync(User user, Guid? businessId, CancellationToken ct)
+    {
+        var accessToken = tokens.CreateAccessToken(user);
+        var refreshToken = tokens.CreateRefreshToken();
+        await refreshTokens.IssueAsync(user.Id, refreshToken, ct);
+        return new AuthResult(user.Id, businessId, accessToken, refreshToken);
     }
 }

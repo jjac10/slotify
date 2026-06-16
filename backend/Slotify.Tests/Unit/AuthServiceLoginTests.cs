@@ -14,8 +14,9 @@ public class AuthServiceLoginTests
     private readonly Mock<ITierRepository> _tiers = new();
     private readonly Mock<IPasswordHasher> _hasher = new();
     private readonly Mock<ITokenService> _tokens = new();
+    private readonly Mock<IRefreshTokenRepository> _refresh = new();
 
-    private AuthService CreateService() => new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object);
+    private AuthService CreateService() => new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object);
 
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsTokens()
@@ -33,6 +34,8 @@ public class AuthServiceLoginTests
         _hasher.Setup(h => h.Verify("SecurePass123!", "hashed-pw")).Returns(true);
         _tokens.Setup(t => t.CreateAccessToken(user)).Returns("access-token");
         _tokens.Setup(t => t.CreateRefreshToken()).Returns("refresh-token");
+        _refresh.Setup(r => r.IssueAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await CreateService().LoginAsync(new LoginRequest("owner@example.com", "SecurePass123!"));
 
