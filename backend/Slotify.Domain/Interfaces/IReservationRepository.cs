@@ -14,4 +14,7 @@ public interface IReservationRepository
     Task<bool> HasOverlapAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct = default);
 
     Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Reservas no canceladas de un staff en una fecha (para calcular disponibilidad).</summary>
+    Task<IReadOnlyList<Reservation>> ListByStaffOnDateAsync(Guid staffId, DateOnly date, CancellationToken ct = default);
 }

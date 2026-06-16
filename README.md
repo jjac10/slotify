@@ -11,12 +11,13 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **105/105 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **114/114 tests en verde**.
 
 Implementado y probado: auth completa (customer/owner, login, refresh, `/me` con JWT),
 negocios y servicios (CRUD con límites Freemium), **núcleo de reservas** (invitado cifrado
-o usuario, anti-doble-booking robusto) y **horario del negocio** (horarios + festivos). La
-API se levanta con `docker-compose up` (UI Scalar en `/scalar`).
+o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos) y
+**disponibilidad** (`GET /availability`: slots = horario − festivos − reservas). Flujo de
+reserva completo de punta a punta. La API se levanta con `docker-compose up` (Scalar en `/scalar`).
 
 👉 Planificación completa y checklist: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 

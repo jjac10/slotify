@@ -6,24 +6,47 @@
 - Node 22+ (opcional si usas Docker)
 - Git
 
-## Opción 1: Docker (Recomendado)
+## Opción 1: Docker (Recomendado) — runbook actual
 
-```bash
-# Clonar repo
+> ⚠️ De momento **solo se levantan `postgres` + `backend`**. El servicio `frontend`
+> del compose **aún no funciona** (no hay `package.json`); no uses `docker compose up`
+> a secas o fallará la build del frontend.
+
+```powershell
+# 1. Clonar y entrar
 git clone https://github.com/jjac10/slotify.git
 cd slotify
 
-# Iniciar todo (backend + frontend + postgres)
-docker-compose up --build
+# 2. Levantar postgres + API (compila la imagen del backend la 1ª vez, ~2-3 min)
+docker compose up --build backend        # añade -d para dejarlo en segundo plano
 
-# En otra terminal, correr migraciones
-docker exec slotify_api dotnet ef database update
+# (las migraciones se aplican SOLAS al arrancar; no hay que ejecutar nada)
 ```
 
 **Acceso:**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
-- PostgreSQL: localhost:5432
+- API: http://localhost:5000
+- **Scalar (UI para probar la API):** http://localhost:5000/scalar
+- OpenAPI JSON: http://localhost:5000/openapi/v1.json
+- PostgreSQL: localhost:5432 (db `slotify` · user `slotify_user` · pass `slotify_password`)
+
+**Probar el flujo en Scalar:**
+1. `POST /auth/register-owner` → copia `accessToken` y `businessId`.
+2. Pulsa **Authorize** (arriba) y pega el `accessToken` (sin `Bearer `) → se envía en todas las peticiones.
+3. `POST /businesses/{id}/services` → copia el `id` del servicio.
+4. Necesitas el `staffId` (el owner-staff). Míralo en la BD:
+   ```powershell
+   docker exec slotify_db psql -U slotify_user -d slotify -c "select id, role from staff;"
+   ```
+5. `PUT /businesses/{id}/hours` → fija el horario · `GET /businesses/{id}/availability` → slots · `POST /reservations`.
+
+**Parar / reiniciar:**
+```powershell
+docker compose down            # para los contenedores, CONSERVA los datos (volumen)
+docker compose down -v         # para y BORRA los datos (BD desde cero)
+docker compose up -d backend   # vuelve a arrancar (sin reconstruir)
+docker compose up -d --build backend   # reconstruye tras cambiar código del backend
+docker compose logs -f backend # ver logs del API
+```
 
 ## Opción 2: Local (Sin Docker)
 
@@ -60,20 +83,14 @@ docker run -d \
 ## Testing
 
 ### Backend
+Los tests de integración usan **Testcontainers**, así que necesitan **Docker en marcha**.
 ```bash
 cd backend
-dotnet test
+dotnet test          # 114/114 verde
 ```
 
 ### Frontend
-```bash
-cd frontend
-npm run test          # Unit tests
-npm run test:e2e      # Playwright E2E
-```
+> Pendiente de scaffold (React 19 + Vite). Cuando exista: `npm run test` / `npm run test:e2e`.
 
 ## CI/CD
-GitHub Actions configurado para:
-- Ejecutar tests en cada push
-- Build Docker en main
-- Deploy automático a Ionos (manual config)
+> ⬜ Pendiente: GitHub Actions (build + test en cada push). Ver [ROADMAP](./ROADMAP.md).

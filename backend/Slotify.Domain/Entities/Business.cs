@@ -23,6 +23,12 @@ public class Business
 
     public string Name { get; set; } = null!;
 
+    /// <summary>
+    /// Paso de la rejilla de slots en minutos (cada cuántos minutos se ofrece un
+    /// inicio). NULL → se usa la duración del servicio. Configurable por el owner.
+    /// </summary>
+    public int? SlotIntervalMinutes { get; set; }
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 

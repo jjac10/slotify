@@ -10,8 +10,8 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 105/105 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
-- **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), y **horario del negocio** (`business_hours` + `business_holidays` gestionados por el owner).
+- **Tests:** 114/114 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos) y **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
 ---
@@ -65,7 +65,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ⬜ reset password (password_reset_tokens)
 - ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9*
 - ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
-- ⬜ Disponibilidad (slots) respetando horario, festivos, ocupación, timezone
+- ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
+- ⬜ `CanAddReservationThisMonthAsync` (límite Freemium de reservas)
 - ✅ Reservas: crear (guest/user) con anti-doble-booking — *PR #9* · ⬜ modificar, cancelar (hard delete + audit)
 - ✅ Guests: cifrado + blind index — *PR #9* · ⬜ sync invitado→usuario automática
 - ⬜ Notificaciones (async fire & forget), audit logs, reviews, waitlist
@@ -78,7 +79,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
-- ⬜ `GET /businesses/{id}/availability`
+- ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ⬜ `PATCH/DELETE /reservations/{id}`
 - ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
 
@@ -115,9 +116,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #8 | `feature/customer-registration` | Split de registro: customer (`/auth/register`) vs owner (`/auth/register-owner`) |
 | #9 | `feature/reservations-core` | `guests` + `reservations` (exclusion constraint), `CryptoService`/`BlindIndex`, `BookingService`, endpoints `POST/GET /reservations` |
 | #10 | `feature/business-hours` | `business_hours` + `business_holidays` + `BusinessScheduleService` + endpoints (owner) |
+| #11 | `feature/availability` | `slot_interval_minutes` + `AvailabilityService` + `GET /availability` (slots = horario − festivos − reservas) |
 
 ---
 
 ## Siguiente paso
 
-🎯 **`feature/availability`**: `GET /businesses/{id}/availability` — calcular slots libres = horario − festivos − reservas, con paso configurable y regla anti-huecos ([design/reservations-core.md](design/reservations-core.md) Anexo A). Alternativas: **modificar/cancelar reservas** (permisos por rol — Anexo B), **sync invitado→usuario**, o **scaffold del frontend**.
+🎯 A elegir (el dominio de reservas ya funciona de punta a punta): **modificar/cancelar reservas** (permisos por rol — Anexo B, + hard-delete con audit), **sync invitado→usuario** al registrarse, o **scaffold del frontend** (React 19 + Vite) para empezar a consumir la API.

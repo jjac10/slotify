@@ -45,6 +45,7 @@ builder.Services.AddScoped<BusinessService>();
 builder.Services.AddScoped<ServiceService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<BusinessScheduleService>();
+builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<AuthService>();
 
 // --- Autenticación JWT (ADR #3) ---
@@ -68,7 +69,8 @@ builder.Services.AddAuthorization();
 
 // --- API / OpenAPI ---
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+    options.AddDocumentTransformer<Slotify.API.OpenApi.BearerSecuritySchemeTransformer>());
 
 var app = builder.Build();
 
