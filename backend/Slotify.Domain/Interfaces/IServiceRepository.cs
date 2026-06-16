@@ -7,6 +7,8 @@ public interface IServiceRepository
 {
     Task AddAsync(Service service, CancellationToken ct = default);
 
+    Task<Service?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
     Task<IReadOnlyList<Service>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default);
 
     /// <summary>Cuenta los servicios activos de un negocio (para límites Freemium).</summary>

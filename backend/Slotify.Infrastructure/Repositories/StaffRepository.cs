@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Slotify.Domain.Entities;
 using Slotify.Domain.Interfaces;
 using Slotify.Infrastructure.Data;
 
@@ -9,4 +10,7 @@ public class StaffRepository(SlotifyDbContext db) : IStaffRepository
 {
     public Task<int> CountByBusinessAsync(Guid businessId, CancellationToken ct = default)
         => db.Staff.CountAsync(s => s.BusinessId == businessId, ct);
+
+    public Task<Staff?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Staff.FirstOrDefaultAsync(s => s.Id == id, ct);
 }

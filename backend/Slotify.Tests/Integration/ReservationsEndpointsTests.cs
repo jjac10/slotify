@@ -1,0 +1,86 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Slotify.Domain.DTOs;
+using Slotify.Infrastructure.Data;
+
+namespace Slotify.Tests.Integration;
+
+/// <summary>Endpoints de reservas contra la API real: alta de invitado, 409, 400 y consulta.</summary>
+public class ReservationsEndpointsTests(SlotifyApiFactory factory) : IClassFixture<SlotifyApiFactory>
+{
+    private readonly SlotifyApiFactory _factory = factory;
+    private readonly HttpClient _client = factory.CreateClient();
+    private static readonly DateTime At10 = new(2026, 6, 20, 10, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>Registra owner, crea un servicio y devuelve (businessId, serviceId, staffId).</summary>
+    private async Task<(Guid businessId, Guid serviceId, Guid staffId)> SetupBusinessAsync()
+    {
+        var owner = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", owner)).Content.ReadFromJsonAsync<AuthResult>();
+        var businessId = auth!.BusinessId!.Value;
+
+        var authed = _factory.CreateClient();
+        authed.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var service = await (await authed.PostAsJsonAsync($"/businesses/{businessId}/services",
+            new CreateServiceRequest("Corte", null, 30, 15m, null))).Content.ReadFromJsonAsync<ServiceResponse>();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SlotifyDbContext>();
+        var staffId = await db.Staff.Where(s => s.BusinessId == businessId).Select(s => s.Id).FirstAsync();
+
+        return (businessId, service!.Id, staffId);
+    }
+
+    private static CreateReservationRequest GuestReservation(
+        (Guid businessId, Guid serviceId, Guid staffId) ctx, DateTime start, string phone) =>
+        new(ctx.businessId, ctx.serviceId, ctx.staffId, start, "Juan", phone, null);
+
+    [Fact]
+    public async Task CreateReservation_AsGuest_Returns201_AndIsRetrievable()
+    {
+        var ctx = await SetupBusinessAsync();
+
+        var create = await _client.PostAsJsonAsync("/reservations", GuestReservation(ctx, At10, "+34912345678"));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var body = await create.Content.ReadFromJsonAsync<ReservationResponse>();
+        Assert.NotNull(body!.GuestId);
+        Assert.Equal(At10.AddMinutes(30), body.EndTime);
+
+        var get = await _client.GetAsync($"/reservations/{body.Id}");
+        get.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task CreateReservation_InvalidGuestContact_Returns400()
+    {
+        var ctx = await SetupBusinessAsync();
+        // Ni teléfono ni email.
+        var request = new CreateReservationRequest(ctx.businessId, ctx.serviceId, ctx.staffId, At10, "Juan", null, null);
+
+        var response = await _client.PostAsJsonAsync("/reservations", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateReservation_Overlapping_Returns409()
+    {
+        var ctx = await SetupBusinessAsync();
+        (await _client.PostAsJsonAsync("/reservations", GuestReservation(ctx, At10, "+34900000001"))).EnsureSuccessStatusCode();
+
+        var overlap = await _client.PostAsJsonAsync("/reservations", GuestReservation(ctx, At10.AddMinutes(15), "+34900000002"));
+
+        Assert.Equal(HttpStatusCode.Conflict, overlap.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetReservation_Unknown_Returns404()
+    {
+        var response = await _client.GetAsync($"/reservations/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}

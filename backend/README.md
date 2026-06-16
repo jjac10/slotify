@@ -21,13 +21,13 @@ backend/
 
 ## Implementado
 
-- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `Service`, `RefreshToken`.
-- `SlotifyDbContext` (mapeo snake_case, FKs, índices, seed free/premium).
-- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`, `AddServices`.
-- Servicios: `BusinessService` (owner-as-staff + listado), `FreemiumLimitService` (staff/servicios), `ServiceService`, `AuthService`.
-- Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256).
-- Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Auth`, `RefreshToken`.
-- Endpoints: auth (`register` customer / `register-owner` / `login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`.
+- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `Service`, `Guest`, `Reservation`, `RefreshToken`.
+- `SlotifyDbContext` (mapeo snake_case, FKs, índices, CHECKs, exclusion constraint, seed free/premium).
+- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`, `AddServices`, `AddGuests`, `AddReservations`.
+- Servicios: `BusinessService`, `FreemiumLimitService`, `ServiceService`, `AuthService`, `BookingService`, `PasswordPolicy`.
+- Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256), `AesGcmCryptoService` + `HmacBlindIndex` (ADR #5).
+- Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Guest`, `Reservation`, `Auth`, `RefreshToken`.
+- Endpoints: auth (`register`/`register-owner`/`login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`, `POST /reservations`, `GET /reservations/{id}`.
 
 ## Ejecutar la API
 
@@ -42,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 61/61 verde
+dotnet test          # 85/85 verde
 ```
 
 ## Migraciones (EF Core)

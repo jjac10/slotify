@@ -10,8 +10,8 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 61/61 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
-- **Lo que ya funciona (probado):** seed de planes, alta de negocio con owner-as-staff atómico, límites Freemium (staff y servicios), **autenticación completa** (registro/login/refresh/`me` con JWT) y **CRUD de servicios** (alta owner-only con límite, listado público, `GET /businesses`).
+- **Tests:** 85/85 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Lo que ya funciona (probado):** auth completa (customer/owner, login, refresh, `/me`), negocios + servicios (CRUD con límite Freemium), y **núcleo de reservas**: alta de invitado (cifrado AES-GCM + blind index) o usuario, con **anti-doble-booking robusto** (exclusion constraint gist) → `POST /reservations`, `GET /reservations/{id}`.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
 ---
@@ -43,8 +43,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `staff` (+ owner-as-staff) — *PR #2*
 - ✅ `services` — *PR #6*
 - ⬜ `staff_services`
-- ⬜ `guests` (AES-256-GCM + HMAC blind index)
-- ⬜ `reservations` (+ unique index anti-doble-booking por staff, optimistic locking)
+- ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
+- ✅ `reservations` (+ exclusion constraint gist anti-doble-booking, optimistic locking) — *PR #9*
 - ⬜ `business_hours` · ⬜ `business_holidays`
 - ✅ `refresh_tokens` — *PR #5* · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
 - ⬜ `notification_logs` · ⬜ `waitlists` · ⬜ `audit_logs` · ⬜ `reviews`
@@ -63,10 +63,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
   - ⬜ reset password (password_reset_tokens)
-- ⬜ Servicios (CRUD) con límite Freemium
+- ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9*
 - ⬜ Disponibilidad (slots) respetando horario, festivos, ocupación, timezone
-- ⬜ Reservas: crear (guest/user), anti-doble-booking, modificar, cancelar (hard delete + audit)
-- ⬜ Guests: cifrado + blind index + sync invitado→usuario automática
+- ✅ Reservas: crear (guest/user) con anti-doble-booking — *PR #9* · ⬜ modificar, cancelar (hard delete + audit)
+- ✅ Guests: cifrado + blind index — *PR #9* · ⬜ sync invitado→usuario automática
 - ⬜ Notificaciones (async fire & forget), audit logs, reviews, waitlist
 
 ---
@@ -77,7 +77,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
 - ⬜ `GET /businesses/{id}/availability`
-- ⬜ `POST/GET/PATCH/DELETE /reservations`
+- ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ⬜ `PATCH/DELETE /reservations/{id}`
 - ⬜ Dashboard owner · ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
 
 ---
@@ -111,9 +111,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #6 | `feature/services-crud` | `services` + `ServiceService` + endpoints (owner-only create, límite Freemium) + `GET /businesses` |
 | #7 | `feature/password-policy` | Política de contraseña segura en el registro (`PasswordPolicy`, 400 si débil) |
 | #8 | `feature/customer-registration` | Split de registro: customer (`/auth/register`) vs owner (`/auth/register-owner`) |
+| #9 | `feature/reservations-core` | `guests` + `reservations` (exclusion constraint), `CryptoService`/`BlindIndex`, `BookingService`, endpoints `POST/GET /reservations` |
 
 ---
 
 ## Siguiente paso
 
-🎯 A elegir: **horarios + disponibilidad** (`business_hours`, `business_holidays`, `GET /availability`) como antesala de reservas; **núcleo de reservas** (`guests` + `reservations` + anti-doble-booking); o **scaffold del frontend** (React 19 + Vite) para empezar a consumir la API ya existente.
+🎯 A elegir: **horarios + disponibilidad** (`business_hours`, `business_holidays`, `GET /availability` con slots configurables — ver [design/reservations-core.md](design/reservations-core.md) Anexo A); **modificar/cancelar reservas** (permisos por rol — Anexo B); **sync invitado→usuario** al registrarse; o **scaffold del frontend** (React 19 + Vite).

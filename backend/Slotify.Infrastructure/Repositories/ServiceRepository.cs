@@ -14,6 +14,9 @@ public class ServiceRepository(SlotifyDbContext db) : IServiceRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public Task<Service?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Services.FirstOrDefaultAsync(s => s.Id == id, ct);
+
     public async Task<IReadOnlyList<Service>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
         => await db.Services.AsNoTracking()
             .Where(s => s.BusinessId == businessId && s.Status == "active")
