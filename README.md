@@ -1,21 +1,57 @@
 # Slotify
 
-App de reservas local para negocios (estilo Booksy).
+App de reservas local para negocios (estilo Booksy). Proyecto TFM desarrollado con
+metodología **TDD estricta** asistida por IA.
 
 ## Stack
-- **Backend:** ASP.NET Core 10 + Entity Framework Core + PostgreSQL
+- **Backend:** ASP.NET Core 10 + Entity Framework Core 10 + PostgreSQL 17
 - **Frontend:** React 19 + TypeScript + Vite
-- **Testing:** xUnit + Moq + Vitest + Playwright
-- **Infra:** Docker + Docker Compose
+- **Testing:** xUnit + Moq + Testcontainers (backend) · Vitest + RTL + Playwright (frontend)
+- **Infra:** Docker + Docker Compose + GitHub Actions
 
-## Setup Local
-```bash
-git clone <repo-url>
-cd slotify
-docker-compose up
+## Estado del proyecto
+
+**Fase 3 (Desarrollo TDD)** en curso · **13/13 tests en verde**.
+
+Implementado y probado: capa de datos (`pricing_tiers`, `users`, `businesses`, `staff`),
+creación de negocio con *owner-as-staff* atómico y validación de límites Freemium.
+Siguiente hito: host `Slotify.API` con Swagger para verlo en el navegador.
+
+👉 Planificación completa y checklist: [`docs/ROADMAP.md`](docs/ROADMAP.md)
+
+## Estructura
+
+```
+slotify/
+├── backend/      # ASP.NET Core (Domain, Infrastructure, Tests; API próximamente)
+├── frontend/     # React 19 + TS + Vite (pendiente de scaffold)
+├── infra/        # Dockerfiles + nginx
+├── docs/         # Documentación (ver índice abajo)
+└── docker-compose.yml
 ```
 
-## Docs
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database](docs/DATABASE.md)
-- [API](docs/API.md)
+## Setup local
+
+Requisitos: Docker Desktop, .NET 10 SDK, Node 22+.
+
+```bash
+git clone https://github.com/jjac10/slotify.git
+cd slotify
+docker-compose up --build   # postgres + (backend/frontend cuando existan)
+```
+
+> Los tests de integración del backend usan **Testcontainers**, así que necesitan
+> **Docker en marcha**. Ejecutar la suite:
+> ```bash
+> cd backend
+> dotnet test
+> ```
+
+## Documentación
+
+- [ROADMAP](docs/ROADMAP.md) — planificación y checklist
+- [REQUIREMENTS](docs/REQUIREMENTS.md) — requisitos y casos de uso
+- [DATA_MODEL](docs/DATA_MODEL.md) — esquema canónico de BD
+- [DECISIONS](docs/DECISIONS.md) — ADRs (decisiones de arquitectura)
+- [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [DATABASE](docs/DATABASE.md)
+- [SETUP](docs/SETUP.md) · [DEVELOPMENT](docs/DEVELOPMENT.md) · [GITFLOW](GITFLOW.md)
