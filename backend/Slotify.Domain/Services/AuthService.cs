@@ -61,4 +61,17 @@ public class AuthService(
             tokens.CreateAccessToken(user),
             tokens.CreateRefreshToken());
     }
+
+    public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
+    {
+        var user = await auth.GetByEmailAsync(request.Email, ct);
+        if (user is null || !hasher.Verify(request.Password, user.PasswordHash))
+            throw new InvalidCredentialsException();
+
+        return new AuthResult(
+            user.Id,
+            BusinessId: null,
+            tokens.CreateAccessToken(user),
+            tokens.CreateRefreshToken());
+    }
 }
