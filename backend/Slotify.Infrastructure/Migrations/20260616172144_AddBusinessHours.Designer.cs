@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Slotify.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Slotify.Infrastructure.Data;
 namespace Slotify.Infrastructure.Migrations
 {
     [DbContext(typeof(SlotifyDbContext))]
-    partial class SlotifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260616172144_AddBusinessHours")]
+    partial class AddBusinessHours
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,41 +74,6 @@ namespace Slotify.Infrastructure.Migrations
                     b.HasIndex("TierId");
 
                     b.ToTable("businesses", (string)null);
-                });
-
-            modelBuilder.Entity("Slotify.Domain.Entities.BusinessHoliday", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid>("BusinessId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("business_id");
-
-                    b.Property<DateOnly>("HolidayDate")
-                        .HasColumnType("date")
-                        .HasColumnName("holiday_date");
-
-                    b.Property<bool>("IsClosed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_closed");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("reason");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BusinessId", "HolidayDate")
-                        .IsUnique();
-
-                    b.ToTable("business_holidays", (string)null);
                 });
 
             modelBuilder.Entity("Slotify.Domain.Entities.BusinessHour", b =>
@@ -717,17 +685,6 @@ namespace Slotify.Infrastructure.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("Tier");
-                });
-
-            modelBuilder.Entity("Slotify.Domain.Entities.BusinessHoliday", b =>
-                {
-                    b.HasOne("Slotify.Domain.Entities.Business", "Business")
-                        .WithMany()
-                        .HasForeignKey("BusinessId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Business");
                 });
 
             modelBuilder.Entity("Slotify.Domain.Entities.BusinessHour", b =>

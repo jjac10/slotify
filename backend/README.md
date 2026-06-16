@@ -21,13 +21,13 @@ backend/
 
 ## Implementado
 
-- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `Service`, `Guest`, `Reservation`, `RefreshToken`.
+- Entidades: `PricingTier`, `User`, `Business`, `Staff`, `Service`, `Guest`, `Reservation`, `BusinessHour`, `BusinessHoliday`, `RefreshToken`.
 - `SlotifyDbContext` (mapeo snake_case, FKs, índices, CHECKs, exclusion constraint, seed free/premium).
-- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`, `AddServices`, `AddGuests`, `AddReservations`.
-- Servicios: `BusinessService`, `FreemiumLimitService`, `ServiceService`, `AuthService`, `BookingService`, `PasswordPolicy`.
+- Migraciones: `InitialCreate`, `AddStaff`, `AddRefreshTokens`, `AddServices`, `AddGuests`, `AddReservations`, `AddBusinessHours`, `AddBusinessHolidays`.
+- Servicios: `BusinessService`, `FreemiumLimitService`, `ServiceService`, `AuthService`, `BookingService`, `BusinessScheduleService`, `PasswordPolicy`.
 - Seguridad: `BcryptPasswordHasher`, `JwtTokenService` (JWT HS256), `AesGcmCryptoService` + `HmacBlindIndex` (ADR #5).
-- Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Guest`, `Reservation`, `Auth`, `RefreshToken`.
-- Endpoints: auth (`register`/`register-owner`/`login`/`refresh`/`me`), `GET /businesses`, `GET/POST /businesses/{id}/services`, `POST /reservations`, `GET /reservations/{id}`.
+- Repositorios EF: `Business`, `Tier`, `Staff`, `Service`, `Guest`, `Reservation`, `BusinessHour`, `BusinessHoliday`, `Auth`, `RefreshToken`.
+- Endpoints: auth, `GET /businesses`, servicios, reservas (`POST /reservations`, `GET /reservations/{id}`), horario (`GET/PUT /businesses/{id}/hours`, `GET/POST/DELETE /businesses/{id}/holidays`).
 
 ## Ejecutar la API
 
@@ -42,7 +42,7 @@ Requiere **Docker en marcha** (los tests de integración levantan PostgreSQL con
 
 ```bash
 cd backend
-dotnet test          # 85/85 verde
+dotnet test          # 105/105 verde
 ```
 
 ## Migraciones (EF Core)

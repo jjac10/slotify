@@ -12,6 +12,8 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Service> Services => Set<Service>();
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<BusinessHour> BusinessHours => Set<BusinessHour>();
+    public DbSet<BusinessHoliday> BusinessHolidays => Set<BusinessHoliday>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,6 +27,8 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureServices(modelBuilder);
         ConfigureGuests(modelBuilder);
         ConfigureReservations(modelBuilder);
+        ConfigureBusinessHours(modelBuilder);
+        ConfigureBusinessHolidays(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
@@ -241,6 +245,50 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.HasIndex(r => new { r.StaffId, r.StartTime });
             e.HasIndex(r => new { r.GuestId, r.StartTime });
             e.HasIndex(r => new { r.Status, r.CreatedAt });
+        });
+    }
+
+    private static void ConfigureBusinessHours(ModelBuilder mb)
+    {
+        mb.Entity<BusinessHour>(e =>
+        {
+            e.ToTable("business_hours", t => t.HasCheckConstraint(
+                "ck_business_hours_times", "opening_time < closing_time OR is_closed = true"));
+            e.HasKey(h => h.Id);
+            e.Property(h => h.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(h => h.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(h => h.DayOfWeek).HasColumnName("day_of_week").IsRequired();
+            e.Property(h => h.IsClosed).HasColumnName("is_closed").HasDefaultValue(false);
+            e.Property(h => h.OpeningTime).HasColumnName("opening_time");
+            e.Property(h => h.ClosingTime).HasColumnName("closing_time");
+
+            e.HasOne(h => h.Business)
+                .WithMany()
+                .HasForeignKey(h => h.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(h => new { h.BusinessId, h.DayOfWeek }).IsUnique();
+        });
+    }
+
+    private static void ConfigureBusinessHolidays(ModelBuilder mb)
+    {
+        mb.Entity<BusinessHoliday>(e =>
+        {
+            e.ToTable("business_holidays");
+            e.HasKey(h => h.Id);
+            e.Property(h => h.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(h => h.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(h => h.HolidayDate).HasColumnName("holiday_date").IsRequired();
+            e.Property(h => h.Reason).HasColumnName("reason").HasMaxLength(255);
+            e.Property(h => h.IsClosed).HasColumnName("is_closed").HasDefaultValue(true);
+
+            e.HasOne(h => h.Business)
+                .WithMany()
+                .HasForeignKey(h => h.BusinessId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(h => new { h.BusinessId, h.HolidayDate }).IsUnique();
         });
     }
 
