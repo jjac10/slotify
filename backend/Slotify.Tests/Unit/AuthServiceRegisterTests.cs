@@ -18,8 +18,11 @@ public class AuthServiceRegisterTests
     private readonly Mock<IPasswordHasher> _hasher = new();
     private readonly Mock<ITokenService> _tokens = new();
     private readonly Mock<IRefreshTokenRepository> _refresh = new();
+    private readonly Mock<IGuestRepository> _guests = new();
+    private readonly Mock<IBlindIndex> _blindIndex = new();
 
-    private AuthService CreateService() => new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object);
+    private AuthService CreateService() =>
+        new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object, _guests.Object, _blindIndex.Object);
 
     private static readonly PricingTier FreeTier = new()
     {
