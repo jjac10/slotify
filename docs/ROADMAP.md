@@ -98,7 +98,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
 - ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*
 - ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
-- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*) · ⬜ Vitest + RTL
+- ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** desde la UI — *PR #21*
+- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*) · ⬜ Vitest + RTL
 
 ---
 
@@ -133,9 +134,11 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #17 | `feature/staff-listing` | `GET /businesses/{id}/staff` (público): `StaffResponse` + `StaffService` + `IStaffRepository.ListByBusinessAsync` (activos, ordenados por nombre). Desbloquea el `staffId` del flujo de reserva |
 | #18 | `feature/complete-booking-flow` | **Frontend**: flujo de reserva completo como wizard de 7 pasos (negocio → servicio → staff → fecha → slots → datos invitado → confirmado); usuario autenticado reserva en un clic. E2e Playwright de reserva completa de punta a punta |
 | #19 | `feature/owner-dashboard` | `GET /businesses/{id}/dashboard` (owner-only): `DashboardService` + `DashboardResponse` + 3 agregados en `IReservationRepository` (count con ventana, ingresos vía join con services, próximas). **Fix**: `login`/`refresh` devuelven el `businessId` del owner (antes solo el registro) → el front muestra Panel/Agenda tras un login. Pantalla **Panel** en el front + e2e |
+| #20 | `infra/ci-github-actions` | **CI/CD GitHub Actions**: 3 jobs en push/PR a `main`/`develop` (backend `dotnet build`+`test`; frontend typecheck+build; e2e Playwright vía docker compose). Badge de CI en el README |
+| #21 | `feature/owner-business-services-ui` | **Frontend**: pantalla **Mi negocio** (owner): ver negocio (nombre + id, enlace a reservar) + **listar y crear servicios** desde la UI (`POST /businesses/{id}/services`). Estilos base (cards). E2e de alta de servicio |
 
 ---
 
 ## Siguiente paso
 
-🎯 **CI/CD (GitHub Actions)**: build + test en cada push/PR (backend xUnit 178 + frontend typecheck + e2e Playwright) — pendiente desde Fase 2 y el siguiente sello de calidad profesional. Alternativas: **límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync`) o **PWA + responsive** del frontend.
+🎯 **Límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync` + `409 limit_reached` en `BookingService`) para cerrar el modelo Freemium. Alternativas: **RLS de PostgreSQL** (blindar aislamiento entre negocios + su ADR) o **PWA + responsive** del frontend.

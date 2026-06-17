@@ -1,5 +1,11 @@
 import { api } from './apiClient'
-import type { AvailableSlot, BusinessResponse, DashboardResponse, ServiceResponse } from '../types/api'
+import type {
+  AvailableSlot,
+  BusinessResponse,
+  CreateServiceRequest,
+  DashboardResponse,
+  ServiceResponse,
+} from '../types/api'
 
 interface AvailabilityQuery {
   serviceId: string
@@ -18,6 +24,12 @@ export const businessService = {
   /** GET /businesses/{id}/services — servicios de un negocio (público). */
   async listServices(businessId: string): Promise<ServiceResponse[]> {
     const { data } = await api.get<ServiceResponse[]>(`/businesses/${businessId}/services`)
+    return data
+  },
+
+  /** POST /businesses/{id}/services — alta de servicio (solo owner). */
+  async createService(businessId: string, request: CreateServiceRequest): Promise<ServiceResponse> {
+    const { data } = await api.post<ServiceResponse>(`/businesses/${businessId}/services`, request)
     return data
   },
 

@@ -75,3 +75,53 @@ button:disabled {
 [role='alert'] {
   color: #b91c1c;
 }
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0;
+}
+
+.card h2 {
+  margin: 0 0 0.25rem;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0.25rem 0;
+}
+
+code {
+  background: #f1f5f9;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+}
+
+.service-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.service-list .card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.service-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+input[type='color'] {
+  padding: 0.1rem;
+  height: 2.25rem;
+  width: 4rem;
+}
