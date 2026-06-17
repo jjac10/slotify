@@ -44,6 +44,7 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IFreemiumLimitService, FreemiumLimitService>();
 builder.Services.AddScoped<BusinessService>();
 builder.Services.AddScoped<ServiceService>();
+builder.Services.AddScoped<StaffService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<ReservationManagementService>();
 builder.Services.AddScoped<BusinessScheduleService>();

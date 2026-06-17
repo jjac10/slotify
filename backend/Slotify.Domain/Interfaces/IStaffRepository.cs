@@ -8,6 +8,9 @@ public interface IStaffRepository
     /// <summary>Cuenta los trabajadores (incluido el owner) de un negocio.</summary>
     Task<int> CountByBusinessAsync(Guid businessId, CancellationToken ct = default);
 
+    /// <summary>Trabajadores activos de un negocio, ordenados por nombre (listado público).</summary>
+    Task<IReadOnlyList<Staff>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default);
+
     Task<Staff?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>¿Es el usuario miembro del staff del negocio? (para autorización por rol)</summary>

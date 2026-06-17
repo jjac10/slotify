@@ -16,4 +16,10 @@ public class StaffRepository(SlotifyDbContext db) : IStaffRepository
 
     public Task<bool> ExistsForUserAsync(Guid userId, Guid businessId, CancellationToken ct = default)
         => db.Staff.AnyAsync(s => s.UserId == userId && s.BusinessId == businessId, ct);
+
+    public async Task<IReadOnlyList<Staff>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
+        => await db.Staff.AsNoTracking()
+            .Where(s => s.BusinessId == businessId && s.Status == "active")
+            .OrderBy(s => s.Name)
+            .ToListAsync(ct);
 }
