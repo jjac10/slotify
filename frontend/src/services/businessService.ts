@@ -29,4 +29,12 @@ export const businessService = {
     )
     return data
   },
+
+  /** GET /businesses/{id}/staff — trabajadores activos del negocio (público). */
+  async listStaff(businessId: string): Promise<Array<{ id: string; name: string; role: string }>> {
+    const { data } = await api.get(
+      `/businesses/${businessId}/staff`,
+    )
+    return data
+  },
 }
