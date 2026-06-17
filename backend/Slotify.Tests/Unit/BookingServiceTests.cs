@@ -19,14 +19,23 @@ public class BookingServiceTests
     private readonly Mock<IGuestRepository> _guests = new();
     private readonly Mock<ICryptoService> _crypto = new();
     private readonly Mock<IBlindIndex> _blindIndex = new();
+    private readonly Mock<IFreemiumLimitService> _limits = new();
 
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _serviceId = Guid.NewGuid();
     private readonly Guid _staffId = Guid.NewGuid();
     private static readonly DateTime Start = new(2026, 6, 20, 10, 0, 0, DateTimeKind.Utc);
 
+    public BookingServiceTests()
+    {
+        // Por defecto el negocio está dentro del límite Freemium; los tests que
+        // prueban el bloqueo lo sobrescriben explícitamente.
+        _limits.Setup(l => l.CanAddReservationThisMonthAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+    }
+
     private BookingService CreateService() =>
-        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object);
+        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object);
 
     private void SetupValidServiceAndStaff(int duration = 30)
     {
@@ -139,5 +148,32 @@ public class BookingServiceTests
 
         await Assert.ThrowsAsync<ServiceNotFoundException>(
             () => CreateService().CreateAsync(GuestRequest(), userId: null));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenMonthlyFreemiumLimitReached_Throws_AndDoesNotPersist()
+    {
+        SetupValidServiceAndStaff();
+        _limits.Setup(l => l.CanAddReservationThisMonthAsync(_businessId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<FreemiumLimitReachedException>(
+            () => CreateService().CreateAsync(GuestRequest(), userId: null));
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenUnderMonthlyLimit_Persists()
+    {
+        SetupValidServiceAndStaff();
+        _guests.Setup(g => g.FindByHashAsync(_businessId, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guest?)null);
+        _crypto.Setup(c => c.Encrypt(It.IsAny<string>())).Returns("ENC");
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("HASH");
+
+        await CreateService().CreateAsync(GuestRequest(), userId: null);
+
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
+        _limits.Verify(l => l.CanAddReservationThisMonthAsync(_businessId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

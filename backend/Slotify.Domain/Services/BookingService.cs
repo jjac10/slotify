@@ -16,7 +16,8 @@ public class BookingService(
     IStaffRepository staff,
     IGuestRepository guests,
     ICryptoService crypto,
-    IBlindIndex blindIndex)
+    IBlindIndex blindIndex,
+    IFreemiumLimitService limits)
 {
     public async Task<ReservationResponse> CreateAsync(
         CreateReservationRequest request, Guid? userId, CancellationToken ct = default)
@@ -28,6 +29,10 @@ public class BookingService(
         var worker = await staff.GetByIdAsync(request.StaffId, ct);
         if (worker is null || worker.BusinessId != request.BusinessId)
             throw new StaffNotFoundException(request.StaffId);
+
+        // Límite Freemium: nº de reservas/mes del plan (ADR #9). NULL = ilimitado.
+        if (!await limits.CanAddReservationThisMonthAsync(request.BusinessId, DateTime.UtcNow, ct))
+            throw new FreemiumLimitReachedException("reservas");
 
         var startTime = request.StartTime;
         var endTime = startTime.AddMinutes(service.DurationMinutes);
