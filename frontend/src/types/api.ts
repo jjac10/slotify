@@ -59,6 +59,15 @@ export interface ServiceResponse {
   status: string
 }
 
+/** POST /businesses/{id}/services — alta de servicio (solo owner). */
+export interface CreateServiceRequest {
+  name: string
+  description?: string | null
+  durationMinutes: number
+  price?: number | null
+  color?: string | null
+}
+
 /** Un hueco reservable. `start` se usa como `startTime` al crear la reserva (ISO UTC). */
 export interface AvailableSlot {
   start: string

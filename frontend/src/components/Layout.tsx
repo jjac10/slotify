@@ -24,6 +24,11 @@ export function Layout() {
             </Link>
           )}
           {isOwner && (
+            <Link to="/mi-negocio" data-testid="nav-my-business">
+              Mi negocio
+            </Link>
+          )}
+          {isOwner && (
             <Link to="/agenda" data-testid="nav-agenda">
               Agenda
             </Link>

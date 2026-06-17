@@ -7,6 +7,7 @@ import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { MyBusinessPage } from './pages/MyBusinessPage'
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
         {/* Rutas que requieren sesión. */}
         <Route element={<ProtectedRoute />}>
           <Route path="mis-reservas" element={<MyReservationsPage />} />
+          <Route path="mi-negocio" element={<MyBusinessPage />} />
           <Route path="agenda" element={<OwnerAgendaPage />} />
           <Route path="panel" element={<DashboardPage />} />
         </Route>
