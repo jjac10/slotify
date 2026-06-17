@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 155/155 en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory).
+- **Tests:** 162/162 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + e2e frontend (Playwright).
 - **Lo que ya funciona (probado):** auth completa, negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos) y **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -26,7 +26,7 @@
   - ✅ Scaffold backend (`Slotify.slnx`: Domain, Infrastructure, Tests) + aislamiento NuGet
   - ✅ Proyecto `Slotify.API` (host ASP.NET + OpenAPI/Scalar + JWT + migrate-on-startup)
   - ⬜ CI/CD GitHub Actions (build + test en cada push)
-  - ⬜ Scaffold frontend (Vite + React 19 + TS)
+  - ✅ Scaffold frontend (Vite + React 19 + TS strict) — *PR #16*
 - 🚧 **Fase 3 — Desarrollo TDD** (ver detalle abajo)
 - 🔮 **Fase 4 — Producción:** despliegue Ionos, HTTPS, dominio.
 
@@ -60,6 +60,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
   - ⬜ `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
+- ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync`
 - ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
   - ⬜ reset password (password_reset_tokens)
@@ -79,6 +80,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ **CORS** habilitado para el frontend (orígenes en `Cors:AllowedOrigins`) — *PR #15*
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
+- ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14*
@@ -89,10 +91,12 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## Frontend
 
-- ⬜ Scaffold Vite + React 19 + TS (strict) · ⬜ cliente API (axios)
-- ⬜ Flujo de reserva (toggle teléfono/email) · ⬜ slots disponibles
-- ⬜ Auth (login/registro) · ⬜ Dashboard owner · ⬜ PWA + responsive
-- ⬜ Tests Vitest + RTL + Playwright (E2E)
+- ✅ Scaffold Vite + React 19 + TS (strict) · ✅ cliente API tipado (axios, interceptor JWT) — *PR #16*
+- ✅ Auth (login/registro cliente+owner, JWT en localStorage, rutas protegidas) — *PR #16*
+- ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
+- 🚧 Flujo de reserva: lista servicios + **staff** (*PR #17*) · ⬜ slots disponibles · ⬜ crear reserva
+- ⬜ Dashboard owner · ⬜ PWA + responsive
+- ✅ E2E Playwright (registro+login+mis reservas) — *PR #16* · ⬜ Vitest + RTL
 
 ---
 
@@ -123,9 +127,11 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #13 | `feature/cancel-reservation` | `audit_logs` + `ReservationManagementService.CancelAsync` + `DELETE /reservations/{id}` (autz rol + audit + hard-delete) |
 | #14 | `feature/modify-reservation` | `ReservationManagementService.RescheduleAsync` + `PATCH /reservations/{id}` (reprogramar: conserva duración, solape excluyéndose, optimistic locking `version`, audit `updated`); `IReservationRepository.UpdateAsync` |
 | #15 | `feature/list-reservations` | Listar reservas: `GET /reservations/mine` + `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) + `ListBy{Business,User}Async`; **CORS** para el frontend; e2e de `GET /businesses` (hueco de cobertura) |
+| #16 | `feature/frontend-scaffold` | **Frontend** React 19 + Vite + TS strict: cliente API tipado (axios + interceptor JWT), auth (login/registro cliente+owner), rutas (React Router v6), "mis reservas" + agenda owner, e2e Playwright (registro+login+vacío) contra el stack real |
+| #17 | `feature/staff-listing` | `GET /businesses/{id}/staff` (público): `StaffResponse` + `StaffService` + `IStaffRepository.ListByBusinessAsync` (activos, ordenados por nombre). Desbloquea el `staffId` del flujo de reserva |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Frontend** (scaffold React 19 + Vite + TS, cliente API, flujo de reserva, auth, agenda owner). Alternativas: **CI/CD** (GitHub Actions build+test) o **límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync`).
+🎯 **Completar el flujo de reserva en el frontend** (con `GET /businesses/{id}/staff` ya disponible): encadenar negocio → servicio → staff → fecha → slots (`GET /availability`) → `POST /reservations`. Alternativas: **CI/CD** (GitHub Actions build+test) o **límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync`).
