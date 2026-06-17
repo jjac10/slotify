@@ -268,6 +268,12 @@ Crear reserva (guest o logged).
 }
 ```
 
+**Errores:**
+- `404 service_not_found` / `404 staff_not_found` el servicio o el trabajador no existen en ese negocio
+- `400 invalid_guest_contact` invitado sin nombre, o sin exactamente uno de teléfono/email
+- `409 slot_unavailable` el hueco solapa con otra reserva del mismo staff (garantía dura: exclusion constraint en BD)
+- `409 limit_reached` el plan Freemium del negocio alcanzó su tope de reservas del mes natural (Free=100/mes; Premium ilimitado). Mejora a Premium para más.
+
 **Tests (TDD - Crítico):**
 - ✓ Guest: teléfono O email (no ambos, no ninguno)
 - ✓ Guest: encriptar teléfono/email en BD

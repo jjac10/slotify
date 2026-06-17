@@ -58,7 +58,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `IBusinessRepository` / `BusinessRepository` (EF)
 - ✅ `FreemiumLimitService` (data-driven, ADR #9): `CanAddStaffAsync` — *PR #3*, `CanAddServiceAsync` — *PR #6*
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
-  - ⬜ `CanAddReservationThisMonthAsync`, `CanAddClientAsync`
+  - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync`
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync`
 - ✅ `DashboardService` (resumen owner-only: contadores histórico/mes, ingresos del mes, próximas reservas) — *PR #19*; `IReservationRepository.{CountByBusiness,SumRevenueByBusiness,ListUpcomingByBusiness}Async`
@@ -68,7 +68,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9*
 - ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
 - ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
-- ⬜ `CanAddReservationThisMonthAsync` (límite Freemium de reservas)
+- ✅ `CanAddReservationThisMonthAsync` (límite Freemium de reservas) — `BookingService` lanza `FreemiumLimitReachedException` → `409 limit_reached`
 - ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
 - ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12*
 - ⬜ Notificaciones (async fire & forget), reviews, waitlist

@@ -40,6 +40,10 @@ public class ReservationsController(BookingService booking, ReservationManagemen
         {
             return Conflict(new { error = "slot_unavailable", message = ex.Message });
         }
+        catch (FreemiumLimitReachedException ex)
+        {
+            return Conflict(new { error = "limit_reached", message = ex.Message });
+        }
     }
 
     /// <summary>Obtiene una reserva por id.</summary>
