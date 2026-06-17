@@ -142,7 +142,7 @@ export function ReserveFlowPage() {
   }
 
   return (
-    <section>
+    <section className="reserve-flow">
       <h1>Reservar</h1>
 
       {error && (

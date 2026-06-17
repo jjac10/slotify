@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
+import { StatusPill } from '../components/StatusPill'
 import type { DashboardResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
@@ -56,29 +57,35 @@ export function DashboardPage() {
 
       {dashboard !== null && (
         <>
-          <div data-testid="dashboard-metrics" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <article data-testid="metric-total-reservations">
-              <h2>{dashboard.totalReservations}</h2>
-              <p>Reservas totales</p>
-            </article>
-            <article data-testid="metric-reservations-month">
-              <h2>{dashboard.reservationsThisMonth}</h2>
-              <p>Reservas este mes</p>
-            </article>
-            <article data-testid="metric-monthly-revenue">
-              <h2>{formatEuro(dashboard.estimatedMonthlyRevenue)}</h2>
-              <p>Ingresos estimados (mes)</p>
-            </article>
+          <div className="metric-grid" data-testid="dashboard-metrics">
+            <div className="metric" data-testid="metric-total-reservations">
+              <p className="metric-value">{dashboard.totalReservations}</p>
+              <p className="metric-label">Reservas totales</p>
+            </div>
+            <div className="metric" data-testid="metric-reservations-month">
+              <p className="metric-value">{dashboard.reservationsThisMonth}</p>
+              <p className="metric-label">Reservas este mes</p>
+            </div>
+            <div className="metric" data-testid="metric-monthly-revenue">
+              <p className="metric-value">{formatEuro(dashboard.estimatedMonthlyRevenue)}</p>
+              <p className="metric-label">Ingresos estimados (mes)</p>
+            </div>
           </div>
 
           <h2>Próximas reservas</h2>
           {dashboard.upcomingReservations.length === 0 ? (
             <p data-testid="dashboard-upcoming-empty">No hay próximas reservas.</p>
           ) : (
-            <ul data-testid="dashboard-upcoming-list">
+            <ul className="list-plain" data-testid="dashboard-upcoming-list">
               {dashboard.upcomingReservations.map((reservation) => (
-                <li key={reservation.id} data-testid="dashboard-upcoming-item">
-                  {formatDateTime(reservation.startTime)} — {reservation.status}
+                <li
+                  key={reservation.id}
+                  className="card"
+                  data-testid="dashboard-upcoming-item"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <span>{formatDateTime(reservation.startTime)}</span>
+                  <StatusPill status={reservation.status} />
                 </li>
               ))}
             </ul>

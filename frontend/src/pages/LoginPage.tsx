@@ -29,39 +29,42 @@ export function LoginPage() {
   }
 
   return (
-    <section>
+    <section className="auth-shell">
       <h1>Iniciar sesión</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Email
-          <input
-            type="email"
-            data-testid="login-email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Contraseña
-          <input
-            type="password"
-            data-testid="login-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        {error && (
-          <p role="alert" data-testid="login-error">
-            {error}
-          </p>
-        )}
-        <button type="submit" data-testid="login-submit" disabled={submitting}>
-          {submitting ? 'Entrando…' : 'Entrar'}
-        </button>
-      </form>
-      <p>
+      <p className="muted">Accede a tu cuenta de Slotify.</p>
+      <div className="card">
+        <form onSubmit={handleSubmit}>
+          <label>
+            Email
+            <input
+              type="email"
+              data-testid="login-email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Contraseña
+            <input
+              type="password"
+              data-testid="login-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          {error && (
+            <p role="alert" data-testid="login-error">
+              {error}
+            </p>
+          )}
+          <button type="submit" data-testid="login-submit" disabled={submitting}>
+            {submitting ? 'Entrando…' : 'Entrar'}
+          </button>
+        </form>
+      </div>
+      <p style={{ marginTop: '1rem' }}>
         ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
       </p>
     </section>
