@@ -25,7 +25,7 @@
   - ✅ `docker-compose.yml` (postgres + backend + frontend) y `infra/Dockerfile.*`
   - ✅ Scaffold backend (`Slotify.slnx`: Domain, Infrastructure, Tests) + aislamiento NuGet
   - ✅ Proyecto `Slotify.API` (host ASP.NET + OpenAPI/Scalar + JWT + migrate-on-startup)
-  - ⬜ CI/CD GitHub Actions (build + test en cada push)
+  - ✅ CI/CD GitHub Actions (build + test en cada push/PR: backend + frontend + e2e) — *PR #20*
   - ✅ Scaffold frontend (Vite + React 19 + TS strict) — *PR #16*
 - 🚧 **Fase 3 — Desarrollo TDD** (ver detalle abajo)
 - 🔮 **Fase 4 — Producción:** despliegue Ionos, HTTPS, dominio.
@@ -104,7 +104,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## Infra / Calidad
 
-- ⬜ CI/CD GitHub Actions (build + test)
+- ✅ CI/CD GitHub Actions (build + test) — *PR #20*: 3 jobs (backend xUnit+Testcontainers, frontend typecheck+build, e2e Playwright vía docker compose); corre en push/PR a `main`/`develop`
 - ⬜ Fijar versión parcheada de `System.Security.Cryptography.Xml` (warning NU1903, transitivo vía EF Design)
 - 🔮 Despliegue Ionos, backups, HTTPS
 

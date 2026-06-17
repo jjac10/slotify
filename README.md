@@ -1,5 +1,7 @@
 # Slotify
 
+[![CI](https://github.com/jjac10/slotify/actions/workflows/ci.yml/badge.svg)](https://github.com/jjac10/slotify/actions/workflows/ci.yml)
+
 App de reservas local para negocios (estilo Booksy). Proyecto TFM desarrollado con
 metodología **TDD estricta** asistida por IA.
 
@@ -11,7 +13,7 @@ metodología **TDD estricta** asistida por IA.
 
 ## Estado del proyecto
 
-**Fase 3 (Desarrollo TDD)** en curso · **155/155 tests en verde**.
+**Fase 3 (Desarrollo TDD)** en curso · **178/178 tests backend en verde** + e2e Playwright (auth, reserva completa, panel owner) · **CI** (build + test en cada push/PR).
 
 Implementado y probado: auth completa (customer/owner, login, refresh, `/me` con JWT),
 negocios y servicios (CRUD con límites Freemium), **núcleo de reservas** (invitado cifrado
