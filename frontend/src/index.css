@@ -1,162 +1,96 @@
-:root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
-  color: #1f2937;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  body {
+    @apply bg-background text-on-surface antialiased;
+    margin: 0;
+  }
+  h1 {
+    @apply font-display text-2xl font-bold tracking-tight;
+  }
+  h2 {
+    @apply font-display text-xl font-semibold;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer components {
+  /* Tarjeta translúcida del diseño */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    @apply border border-outline-variant/60;
+  }
+
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center gap-stack-sm rounded-xl px-stack-lg py-3 font-semibold transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-primary-container text-on-primary shadow-card hover:brightness-105;
+  }
+  .btn-secondary {
+    @apply btn border border-primary-container/20 bg-surface-container-high text-primary hover:bg-surface-container-highest;
+  }
+  .btn-ghost {
+    @apply btn text-on-surface-variant hover:bg-surface-container-low;
+  }
+
+  /* Campos de formulario */
+  .field {
+    @apply flex flex-col gap-1.5;
+  }
+  .field-label {
+    @apply text-xs font-medium text-on-surface-variant;
+  }
+  .field-input {
+    @apply w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-on-surface outline-none transition-shadow placeholder:text-on-surface-variant/50 focus:border-primary-container focus:ring-2 focus:ring-primary-container/30;
+  }
+
+  /* Tarjeta estándar */
+  .card {
+    @apply rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-md shadow-card;
+  }
+
+  /* Pills de estado */
+  .pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* Alertas */
+  .alert {
+    @apply rounded-xl border border-error/20 bg-error-container px-4 py-2.5 text-sm font-medium text-on-error-container;
+  }
 }
 
-body {
-  margin: 0;
-  background: #f8fafc;
+/* Iconos Material Symbols */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-a {
-  color: #7c3aed;
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-}
-
-header nav {
-  display: flex;
-  gap: 1rem;
-  flex: 1;
-}
-
-main {
-  max-width: 720px;
-  margin: 2rem auto;
-  padding: 0 1.5rem;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-width: 360px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-}
-
-input,
-select,
-button {
-  font: inherit;
-  padding: 0.5rem;
-}
-
-button {
-  cursor: pointer;
-  background: #7c3aed;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: progress;
-}
-
-[role='alert'] {
-  color: #b91c1c;
-}
-
-.card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  margin: 0.75rem 0;
-}
-
-.card h2 {
-  margin: 0 0 0.25rem;
-}
-
-.muted {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin: 0.25rem 0;
-}
-
-code {
-  background: #f1f5f9;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.8125rem;
-}
-
-.service-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.service-list .card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.service-color {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-input[type='color'] {
-  padding: 0.1rem;
-  height: 2.25rem;
-  width: 4rem;
-}
-
-.hours-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
-}
-
-.hours-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.hours-day-label {
-  font-weight: 600;
-  width: 5.5rem;
-}
-
-.hours-open-toggle {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.hours-times {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.hours-times input[type='time'] {
-  padding: 0.35rem;
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

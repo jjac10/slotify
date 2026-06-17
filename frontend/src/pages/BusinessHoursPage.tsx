@@ -109,7 +109,7 @@ export function BusinessHoursPage() {
     return (
       <section>
         <h1>Horario</h1>
-        <p>Esta sección es solo para propietarios de un negocio.</p>
+        <p className="text-on-surface-variant">Esta sección es solo para propietarios de un negocio.</p>
       </section>
     )
   }
@@ -117,46 +117,51 @@ export function BusinessHoursPage() {
   return (
     <section>
       <h1>Horario del negocio</h1>
-      <p className="muted">
-        Define cuándo abres cada día. Los clientes solo verán huecos disponibles dentro de este horario.
+      <p className="text-on-surface-variant mb-stack-md">
+        Define cuándo abres cada día. Los clientes solo verán huecos dentro de este horario.
       </p>
 
       {error && (
-        <p role="alert" data-testid="hours-error">
+        <p role="alert" className="alert" data-testid="hours-error">
           {error}
         </p>
       )}
-      {rows === null && !error && <p>Cargando…</p>}
+      {rows === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
 
       {rows !== null && (
-        <form onSubmit={handleSave} data-testid="hours-form" style={{ maxWidth: '460px' }}>
-          <ul className="hours-list">
+        <form onSubmit={handleSave} data-testid="hours-form" className="max-w-lg">
+          <ul className="flex flex-col gap-stack-sm mb-stack-md">
             {rows.map((r) => (
-              <li key={r.dayOfWeek} className="card hours-row" data-testid={`hours-day-${r.dayOfWeek}`}>
-                <span className="hours-day-label">{r.label}</span>
-                <label className="hours-open-toggle">
+              <li
+                key={r.dayOfWeek}
+                className="glass-card rounded-xl px-stack-md py-3 flex items-center gap-stack-md flex-wrap"
+                data-testid={`hours-day-${r.dayOfWeek}`}
+              >
+                <span className="font-semibold w-24">{r.label}</span>
+                <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
                   <input
                     type="checkbox"
+                    className="w-4 h-4 accent-primary-container"
                     data-testid={`hours-day-${r.dayOfWeek}-open-toggle`}
                     checked={!r.isClosed}
                     onChange={(e) => updateRow(r.dayOfWeek, { isClosed: !e.target.checked })}
                   />
-                  Abierto
+                  {r.isClosed ? 'Cerrado' : 'Abierto'}
                 </label>
-                {r.isClosed ? (
-                  <span className="muted">Cerrado</span>
-                ) : (
-                  <span className="hours-times">
+                {!r.isClosed && (
+                  <span className="flex items-center gap-2 ml-auto">
                     <input
                       type="time"
+                      className="field-input !py-1.5 w-28"
                       data-testid={`hours-day-${r.dayOfWeek}-opening`}
                       value={r.opening}
                       onChange={(e) => updateRow(r.dayOfWeek, { opening: e.target.value })}
                       required
                     />
-                    <span>–</span>
+                    <span className="text-on-surface-variant">–</span>
                     <input
                       type="time"
+                      className="field-input !py-1.5 w-28"
                       data-testid={`hours-day-${r.dayOfWeek}-closing`}
                       value={r.closing}
                       onChange={(e) => updateRow(r.dayOfWeek, { closing: e.target.value })}
@@ -168,14 +173,17 @@ export function BusinessHoursPage() {
             ))}
           </ul>
 
-          <button type="submit" data-testid="hours-save" disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar horario'}
-          </button>
-          {saved && (
-            <p data-testid="hours-saved" style={{ color: '#15803d' }}>
-              ✓ Horario guardado.
-            </p>
-          )}
+          <div className="flex items-center gap-stack-md">
+            <button type="submit" className="btn-primary" data-testid="hours-save" disabled={saving}>
+              {saving ? 'Guardando…' : 'Guardar horario'}
+            </button>
+            {saved && (
+              <p className="inline-flex items-center gap-1 text-sm font-semibold text-secondary" data-testid="hours-saved">
+                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                Horario guardado.
+              </p>
+            )}
+          </div>
         </form>
       )}
     </section>

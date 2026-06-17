@@ -29,6 +29,14 @@ interface BookingState {
 
 type PartialBooking = Partial<BookingState> & { businessId?: string }
 
+const STEP_LABELS: Partial<Record<Step, string>> = {
+  'select-service': 'Servicio',
+  'select-staff': 'Profesional',
+  'select-date': 'Fecha',
+  'select-slot': 'Hora',
+  'guest-info': 'Tus datos',
+}
+
 export function ReserveFlowPage() {
   const { status } = useAuth()
   const [searchParams] = useSearchParams()
@@ -47,8 +55,7 @@ export function ReserveFlowPage() {
     setError(null)
     setLoading(true)
     try {
-      const list = await businessService.listServices(businessId)
-      setServices(list)
+      setServices(await businessService.listServices(businessId))
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudieron cargar los servicios.')
     } finally {
@@ -60,8 +67,7 @@ export function ReserveFlowPage() {
     setError(null)
     setLoading(true)
     try {
-      const list = await businessService.listStaff(businessId)
-      setStaff(list)
+      setStaff(await businessService.listStaff(businessId))
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudieron cargar los trabajadores.')
     } finally {
@@ -76,9 +82,7 @@ export function ReserveFlowPage() {
     try {
       const list = await businessService.availability(businessId, { serviceId, staffId, date })
       setSlots(list)
-      if (list.length === 0) {
-        setError('No hay slots disponibles para esa fecha.')
-      }
+      if (list.length === 0) setError('No hay slots disponibles para esa fecha.')
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudieron cargar los horarios disponibles.')
     } finally {
@@ -86,14 +90,10 @@ export function ReserveFlowPage() {
     }
   }, [])
 
-  // Carga servicios cuando se tiene businessId
   useEffect(() => {
-    if (step === 'select-service' && booking.businessId) {
-      loadServices(booking.businessId)
-    }
+    if (step === 'select-service' && booking.businessId) loadServices(booking.businessId)
   }, [step, booking.businessId, loadServices])
 
-  // Al seleccionar un slot como usuario autenticado, crea la reserva directamente.
   async function bookSlot(slotStart: string) {
     if (!booking.businessId || !booking.serviceId || !booking.staffId) return
     setError(null)
@@ -113,7 +113,6 @@ export function ReserveFlowPage() {
     }
   }
 
-  // Para invitados, el form recoge los datos y luego crea.
   async function submitGuestBooking(e: FormEvent) {
     e.preventDefault()
     if (!booking.businessId || !booking.serviceId || !booking.staffId || !booking.slotStart) return
@@ -141,65 +140,71 @@ export function ReserveFlowPage() {
     setBooking((prev) => ({ ...prev, ...partial }))
   }
 
+  function formatTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  function BackButton({ to }: { to: Step }) {
+    return (
+      <button type="button" className="btn-ghost -ml-2 mb-stack-sm text-sm" onClick={() => setStep(to)}>
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span> Volver
+      </button>
+    )
+  }
+
   return (
     <section>
       <h1>Reservar</h1>
+      {STEP_LABELS[step] && <p className="text-on-surface-variant mb-stack-md">{STEP_LABELS[step]}</p>}
 
       {error && (
-        <p role="alert" data-testid="reserve-error">
+        <p role="alert" className="alert mb-stack-md" data-testid="reserve-error">
           {error}
         </p>
       )}
-      {loading && <p aria-live="polite">Cargando…</p>}
+      {loading && <p className="text-on-surface-variant mb-stack-sm" aria-live="polite">Cargando…</p>}
 
-      {/* PASO 1 — Ingresar ID del negocio */}
+      {/* PASO 1 — ID del negocio */}
       {step === 'enter-business' && (
         <form
+          className="card flex flex-col gap-stack-md max-w-md"
           onSubmit={(e) => {
             e.preventDefault()
             if (booking.businessId) setStep('select-service')
           }}
         >
-          <label>
-            ID del negocio
-            <input
-              type="text"
-              data-testid="reserve-business-id"
-              value={booking.businessId ?? ''}
-              onChange={(e) => merge({ businessId: e.target.value })}
-              placeholder="uuid del negocio"
-              required
-            />
-          </label>
-          <button type="submit" data-testid="reserve-confirm-business">
+          <div className="field">
+            <label className="field-label" htmlFor="reserve-business-id">ID del negocio</label>
+            <input id="reserve-business-id" type="text" className="field-input" data-testid="reserve-business-id"
+              value={booking.businessId ?? ''} onChange={(e) => merge({ businessId: e.target.value })}
+              placeholder="uuid del negocio" required />
+          </div>
+          <button type="submit" className="btn-primary self-start" data-testid="reserve-confirm-business">
             Continuar
           </button>
         </form>
       )}
 
-      {/* PASO 2 — Elegir servicio */}
+      {/* PASO 2 — Servicio */}
       {step === 'select-service' && (
         <div>
-          <button type="button" onClick={() => setStep('enter-business')}>← Volver</button>
-          <h2>Elige un servicio</h2>
+          <BackButton to="enter-business" />
           {services && services.length > 0 && (
-            <ul data-testid="reserve-services">
+            <ul className="flex flex-col gap-stack-sm" data-testid="reserve-services">
               {services.map((svc) => (
-                <li
-                  key={svc.id}
-                  data-testid="service-item"
-                  data-service-id={svc.id}
-                >
-                  <span><strong>{svc.name}</strong> · {svc.durationMinutes} min{svc.price !== null ? ` · ${svc.price} €` : ''}</span>
-                  <button
-                    type="button"
-                    data-testid="select-service"
+                <li key={svc.id} className="glass-card rounded-xl p-stack-md flex items-center gap-stack-md" data-testid="service-item" data-service-id={svc.id}>
+                  <div className="flex-1 min-w-0">
+                    <strong className="font-semibold">{svc.name}</strong>
+                    <p className="text-sm text-on-surface-variant">
+                      {svc.durationMinutes} min{svc.price !== null ? ` · ${svc.price} €` : ''}
+                    </p>
+                  </div>
+                  <button type="button" className="btn-primary py-2 text-sm" data-testid="select-service"
                     onClick={() => {
                       merge({ serviceId: svc.id })
                       if (booking.businessId) loadStaff(booking.businessId)
                       setStep('select-staff')
-                    }}
-                  >
+                    }}>
                     Elegir
                   </button>
                 </li>
@@ -207,33 +212,31 @@ export function ReserveFlowPage() {
             </ul>
           )}
           {services !== null && services.length === 0 && (
-            <p data-testid="reserve-no-services">Este negocio no tiene servicios disponibles.</p>
+            <p className="text-on-surface-variant" data-testid="reserve-no-services">Este negocio no tiene servicios disponibles.</p>
           )}
         </div>
       )}
 
-      {/* PASO 3 — Elegir trabajador */}
+      {/* PASO 3 — Profesional */}
       {step === 'select-staff' && (
         <div>
-          <button type="button" onClick={() => setStep('select-service')}>← Volver</button>
-          <h2>Elige un trabajador</h2>
+          <BackButton to="select-service" />
           {staff && staff.length > 0 && (
-            <ul data-testid="reserve-staff-list">
+            <ul className="flex flex-col gap-stack-sm" data-testid="reserve-staff-list">
               {staff.map((s) => (
-                <li
-                  key={s.id}
-                  data-testid="staff-item"
-                  data-staff-id={s.id}
-                >
-                  <span><strong>{s.name}</strong> ({s.role})</span>
-                  <button
-                    type="button"
-                    data-testid="select-staff"
+                <li key={s.id} className="glass-card rounded-xl p-stack-md flex items-center gap-stack-md" data-testid="staff-item" data-staff-id={s.id}>
+                  <span className="w-10 h-10 rounded-full bg-secondary-container/40 text-on-secondary-container flex items-center justify-center shrink-0 font-bold">
+                    {s.name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <strong className="font-semibold">{s.name}</strong>
+                    <p className="text-sm text-on-surface-variant">{s.role}</p>
+                  </div>
+                  <button type="button" className="btn-primary py-2 text-sm" data-testid="select-staff"
                     onClick={() => {
                       merge({ staffId: s.id })
                       setStep('select-date')
-                    }}
-                  >
+                    }}>
                     Elegir
                   </button>
                 </li>
@@ -243,71 +246,45 @@ export function ReserveFlowPage() {
         </div>
       )}
 
-      {/* PASO 4 — Elegir fecha */}
+      {/* PASO 4 — Fecha */}
       {step === 'select-date' && (
         <div>
-          <button type="button" onClick={() => setStep('select-staff')}>← Volver</button>
-          <h2>Elige una fecha</h2>
-          <div data-testid="reserve-date-picker">
-            <label>
-              Fecha
-              <input
-                type="date"
-                data-testid="reserve-date-input"
-                value={booking.date ?? ''}
-                onChange={(e) => merge({ date: e.target.value })}
-                required
-              />
-            </label>
-            <button
-              type="button"
-              data-testid="reserve-load-slots"
+          <BackButton to="select-staff" />
+          <div className="card flex flex-col gap-stack-md max-w-md" data-testid="reserve-date-picker">
+            <div className="field">
+              <label className="field-label" htmlFor="reserve-date-input">Fecha</label>
+              <input id="reserve-date-input" type="date" className="field-input" data-testid="reserve-date-input"
+                value={booking.date ?? ''} onChange={(e) => merge({ date: e.target.value })} required />
+            </div>
+            <button type="button" className="btn-primary self-start" data-testid="reserve-load-slots"
               disabled={!booking.date || loading}
               onClick={() => {
                 if (booking.businessId && booking.serviceId && booking.staffId && booking.date) {
                   loadSlots(booking.businessId, booking.serviceId, booking.staffId, booking.date)
                   setStep('select-slot')
                 }
-              }}
-            >
+              }}>
               Ver horarios disponibles
             </button>
           </div>
         </div>
       )}
 
-      {/* PASO 5 — Elegir slot */}
+      {/* PASO 5 — Hora */}
       {step === 'select-slot' && (
         <div>
-          <button type="button" onClick={() => setStep('select-date')}>← Volver</button>
-          <h2>Elige un horario</h2>
+          <BackButton to="select-date" />
           {slots && slots.length > 0 && (
-            <ul data-testid="reserve-slots">
+            <ul className="grid grid-cols-3 sm:grid-cols-4 gap-stack-sm" data-testid="reserve-slots">
               {slots.map((slot) => (
-                <li
-                  key={slot.start}
-                  data-testid="slot-item"
-                  data-start={slot.start}
-                >
-                  <span>
-                    {new Date(slot.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                    {' — '}
-                    {new Date(slot.end).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <button
-                    type="button"
-                    data-testid="select-slot"
-                    disabled={loading}
+                <li key={slot.start} data-testid="slot-item" data-start={slot.start}>
+                  <button type="button" className="btn-secondary w-full py-2.5 text-sm" data-testid="select-slot" disabled={loading}
                     onClick={() => {
                       merge({ slotStart: slot.start })
-                      if (status === 'authenticated') {
-                        bookSlot(slot.start)
-                      } else {
-                        setStep('guest-info')
-                      }
-                    }}
-                  >
-                    Reservar
+                      if (status === 'authenticated') bookSlot(slot.start)
+                      else setStep('guest-info')
+                    }}>
+                    {formatTime(slot.start)}
                   </button>
                 </li>
               ))}
@@ -318,49 +295,38 @@ export function ReserveFlowPage() {
 
       {/* PASO 6 — Datos de invitado */}
       {step === 'guest-info' && (
-        <form onSubmit={submitGuestBooking}>
-          <button type="button" onClick={() => setStep('select-slot')}>← Volver</button>
-          <h2>Tus datos</h2>
-          <label>
-            Nombre
-            <input
-              type="text"
-              data-testid="reserve-guest-name"
-              value={booking.guestName ?? ''}
-              onChange={(e) => merge({ guestName: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Teléfono (o email)
-            <input
-              type="tel"
-              data-testid="reserve-guest-phone"
-              value={booking.guestPhone ?? ''}
-              onChange={(e) => merge({ guestPhone: e.target.value })}
-            />
-          </label>
-          <label>
-            Email
-            <input
-              type="email"
-              data-testid="reserve-guest-email"
-              value={booking.guestEmail ?? ''}
-              onChange={(e) => merge({ guestEmail: e.target.value })}
-            />
-          </label>
-          <button type="submit" data-testid="reserve-confirm-booking" disabled={loading}>
+        <form className="card flex flex-col gap-stack-md max-w-md" onSubmit={submitGuestBooking}>
+          <BackButton to="select-slot" />
+          <div className="field">
+            <label className="field-label" htmlFor="reserve-guest-name">Nombre</label>
+            <input id="reserve-guest-name" type="text" className="field-input" data-testid="reserve-guest-name"
+              value={booking.guestName ?? ''} onChange={(e) => merge({ guestName: e.target.value })} required />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="reserve-guest-phone">Teléfono</label>
+            <input id="reserve-guest-phone" type="tel" className="field-input" data-testid="reserve-guest-phone"
+              value={booking.guestPhone ?? ''} onChange={(e) => merge({ guestPhone: e.target.value })} />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="reserve-guest-email">Email</label>
+            <input id="reserve-guest-email" type="email" className="field-input" data-testid="reserve-guest-email"
+              value={booking.guestEmail ?? ''} onChange={(e) => merge({ guestEmail: e.target.value })} />
+          </div>
+          <button type="submit" className="btn-primary" data-testid="reserve-confirm-booking" disabled={loading}>
             {loading ? 'Creando reserva…' : 'Confirmar reserva'}
           </button>
         </form>
       )}
 
-      {/* PASO 7 — Reserva creada */}
+      {/* PASO 7 — Confirmado */}
       {step === 'confirmed' && (
-        <div data-testid="booking-confirmed">
-          <h2>✓ Reserva confirmada</h2>
-          <p>Tu reserva se ha creado correctamente.</p>
-          <a href="/mis-reservas">Ver mis reservas</a>
+        <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="booking-confirmed">
+          <span className="w-14 h-14 rounded-full bg-primary-container/15 text-primary flex items-center justify-center">
+            <span className="material-symbols-outlined text-[32px] fill">check_circle</span>
+          </span>
+          <h2 className="!mt-stack-md">Reserva confirmada</h2>
+          <p className="text-on-surface-variant">Tu reserva se ha creado correctamente.</p>
+          <a href="/mis-reservas" className="btn-primary mt-stack-md">Ver mis reservas</a>
         </div>
       )}
     </section>
