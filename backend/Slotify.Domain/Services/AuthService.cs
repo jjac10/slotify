@@ -17,7 +17,8 @@ public class AuthService(
     ITokenService tokens,
     IRefreshTokenRepository refreshTokens,
     IGuestRepository guests,
-    IBlindIndex blindIndex)
+    IBlindIndex blindIndex,
+    IBusinessRepository businesses)
 {
     public const string FreeTierCode = "free";
     public const string OwnerType = "owner";
@@ -104,7 +105,7 @@ public class AuthService(
         if (user is null || !hasher.Verify(request.Password, user.PasswordHash))
             throw new InvalidCredentialsException();
 
-        return await IssueResultAsync(user, businessId: null, ct);
+        return await IssueResultAsync(user, await ResolveOwnedBusinessIdAsync(user, ct), ct);
     }
 
     public async Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
@@ -115,7 +116,7 @@ public class AuthService(
         var user = await auth.GetByIdAsync(userId, ct)
             ?? throw new InvalidRefreshTokenException();
 
-        return await IssueResultAsync(user, businessId: null, ct);
+        return await IssueResultAsync(user, await ResolveOwnedBusinessIdAsync(user, ct), ct);
     }
 
     /// <summary>Emite access + refresh, persiste el refresh y devuelve el resultado.</summary>
@@ -125,5 +126,18 @@ public class AuthService(
         var refreshToken = tokens.CreateRefreshToken();
         await refreshTokens.IssueAsync(user.Id, refreshToken, ct);
         return new AuthResult(user.Id, businessId, accessToken, refreshToken);
+    }
+
+    /// <summary>
+    /// Negocio que posee el usuario (si es owner), para que el cliente sepa que tiene
+    /// negocio al loguearse o renovar. Los clientes no consultan BD (no tienen negocio).
+    /// </summary>
+    private async Task<Guid?> ResolveOwnedBusinessIdAsync(User user, CancellationToken ct)
+    {
+        if (user.Type != OwnerType)
+            return null;
+
+        var owned = await businesses.ListByOwnerAsync(user.Id, ct);
+        return owned.Count > 0 ? owned[0].Id : null;
     }
 }

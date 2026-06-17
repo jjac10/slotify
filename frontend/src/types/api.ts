@@ -93,6 +93,14 @@ export interface CreateReservationRequest {
   guestEmail?: string
 }
 
+/** GET /businesses/{id}/dashboard — resumen para el owner. */
+export interface DashboardResponse {
+  totalReservations: number
+  reservationsThisMonth: number
+  estimatedMonthlyRevenue: number
+  upcomingReservations: ReservationResponse[]
+}
+
 /** Cuerpo de error estándar del backend. */
 export interface ApiError {
   error: string

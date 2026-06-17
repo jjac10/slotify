@@ -16,9 +16,10 @@ public class AuthServiceRefreshTests
     private readonly Mock<IRefreshTokenRepository> _refresh = new();
     private readonly Mock<IGuestRepository> _guests = new();
     private readonly Mock<IBlindIndex> _blindIndex = new();
+    private readonly Mock<IBusinessRepository> _businesses = new();
 
     private AuthService CreateService() =>
-        new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object, _guests.Object, _blindIndex.Object);
+        new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object, _guests.Object, _blindIndex.Object, _businesses.Object);
 
     [Fact]
     public async Task RefreshAsync_ValidToken_IssuesNewTokens()
@@ -30,6 +31,8 @@ public class AuthServiceRefreshTests
         _tokens.Setup(t => t.CreateRefreshToken()).Returns("new-refresh");
         _refresh.Setup(r => r.IssueAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _businesses.Setup(b => b.ListByOwnerAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Business>());
 
         var result = await CreateService().RefreshAsync("old-refresh");
 

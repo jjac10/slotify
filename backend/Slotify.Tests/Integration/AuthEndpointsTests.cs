@@ -80,6 +80,46 @@ public class AuthEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sloti
     }
 
     [Fact]
+    public async Task Login_AsOwner_ReturnsBusinessId()
+    {
+        var request = NewOwnerRegister();
+        var registered = await (await _client.PostAsJsonAsync("/auth/register-owner", request))
+            .Content.ReadFromJsonAsync<AuthResult>();
+
+        var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(request.Email, request.Password));
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<AuthResult>();
+        Assert.Equal(registered!.BusinessId, body!.BusinessId); // el owner recupera su negocio al loguearse
+    }
+
+    [Fact]
+    public async Task Login_AsCustomer_ReturnsNullBusinessId()
+    {
+        var request = NewCustomerRegister();
+        (await _client.PostAsJsonAsync("/auth/register", request)).EnsureSuccessStatusCode();
+
+        var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(request.Email, request.Password));
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<AuthResult>();
+        Assert.Null(body!.BusinessId);
+    }
+
+    [Fact]
+    public async Task Refresh_AsOwner_ReturnsBusinessId()
+    {
+        var registered = await (await _client.PostAsJsonAsync("/auth/register-owner", NewOwnerRegister()))
+            .Content.ReadFromJsonAsync<AuthResult>();
+
+        var response = await _client.PostAsJsonAsync("/auth/refresh", new RefreshRequest(registered!.RefreshToken));
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<AuthResult>();
+        Assert.Equal(registered.BusinessId, body!.BusinessId);
+    }
+
+    [Fact]
     public async Task Login_WrongPassword_ReturnsUnauthorized()
     {
         var request = NewCustomerRegister();

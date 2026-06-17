@@ -49,6 +49,7 @@ builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<ReservationManagementService>();
 builder.Services.AddScoped<BusinessScheduleService>();
 builder.Services.AddScoped<AvailabilityService>();
+builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AuthService>();
 
 // --- Autenticación JWT (ADR #3) ---

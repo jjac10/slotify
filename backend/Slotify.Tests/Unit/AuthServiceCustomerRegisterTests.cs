@@ -17,9 +17,10 @@ public class AuthServiceCustomerRegisterTests
     private readonly Mock<IRefreshTokenRepository> _refresh = new();
     private readonly Mock<IGuestRepository> _guests = new();
     private readonly Mock<IBlindIndex> _blindIndex = new();
+    private readonly Mock<IBusinessRepository> _businesses = new();
 
     private AuthService CreateService() =>
-        new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object, _guests.Object, _blindIndex.Object);
+        new(_auth.Object, _tiers.Object, _hasher.Object, _tokens.Object, _refresh.Object, _guests.Object, _blindIndex.Object, _businesses.Object);
 
     [Fact]
     public async Task RegisterCustomerAsync_CreatesCustomer_AndReturnsTokens()

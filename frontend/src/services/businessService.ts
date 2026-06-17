@@ -1,5 +1,5 @@
 import { api } from './apiClient'
-import type { AvailableSlot, BusinessResponse, ServiceResponse } from '../types/api'
+import type { AvailableSlot, BusinessResponse, DashboardResponse, ServiceResponse } from '../types/api'
 
 interface AvailabilityQuery {
   serviceId: string
@@ -35,6 +35,12 @@ export const businessService = {
     const { data } = await api.get(
       `/businesses/${businessId}/staff`,
     )
+    return data
+  },
+
+  /** GET /businesses/{id}/dashboard — resumen del negocio (solo owner). */
+  async dashboard(businessId: string): Promise<DashboardResponse> {
+    const { data } = await api.get<DashboardResponse>(`/businesses/${businessId}/dashboard`)
     return data
   },
 }

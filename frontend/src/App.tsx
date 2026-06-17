@@ -6,6 +6,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
+import { DashboardPage } from './pages/DashboardPage'
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="mis-reservas" element={<MyReservationsPage />} />
           <Route path="agenda" element={<OwnerAgendaPage />} />
+          <Route path="panel" element={<DashboardPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/reservar" replace />} />
