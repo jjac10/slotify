@@ -70,14 +70,12 @@ Autenticar usuario.
 }
 ```
 
-**Response:** 200
+**Response:** 200 — mismo `AuthResult` que el registro. Para un **owner**, `businessId`
+es el de su negocio (igual que en `refresh`); para un cliente es `null`. Así el
+frontend sabe si mostrar las secciones de propietario tras un login (no solo tras
+el registro).
 ```json
-{
-  "accessToken": "jwt",
-  "refreshToken": "refresh_uuid",
-  "expiresIn": 86400,
-  "user": { "id": "uuid", "email": "...", "plan": "free" }
-}
+{ "userId": "uuid", "businessId": "uuid", "accessToken": "jwt", "refreshToken": "opaque_token" }
 ```
 
 ---
@@ -381,21 +379,40 @@ Cancelar reserva.
 ## Dashboard Owner
 
 ### GET /businesses/{businessId}/dashboard
-Resumen para propietario.
+Resumen del negocio para su propietario.
 
-**Auth:** Required (owner)
+**Auth:** Required (solo el owner del negocio).
 **Response:** 200
 ```json
 {
   "totalReservations": 45,
-  "monthlyRevenue": 1250.00,
+  "reservationsThisMonth": 12,
+  "estimatedMonthlyRevenue": 1250.00,
   "upcomingReservations": [
-    { "id": "...", "guestName": "...", "time": "...", "status": "pending" }
-  ],
-  "noShowRate": 0.05,
-  "occupancyRate": 0.75
+    { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+      "userId": null, "guestId": "uuid",
+      "startTime": "2026-06-20T10:00:00Z", "endTime": "2026-06-20T10:30:00Z", "status": "pending" }
+  ]
 }
 ```
+
+**Métricas:**
+- `totalReservations`: reservas no canceladas del negocio (histórico).
+- `reservationsThisMonth`: reservas cuyo inicio cae en el mes en curso (UTC).
+- `estimatedMonthlyRevenue`: suma del **precio del servicio** de las reservas del mes
+  (los servicios gratuitos suman 0). Es una estimación: el precio puede cambiar con el tiempo.
+- `upcomingReservations`: las próximas (inicio ≥ ahora), ordenadas por inicio, máx. 5
+  (`ReservationResponse`).
+
+**Errores:** `401` sin token · `403` (`forbidden`) si no es el owner · `404` (`business_not_found`) si el negocio no existe.
+
+> Pendiente (🔮): `noShowRate` (requiere marcar asistencia) y `occupancyRate` (requiere
+> aforo sobre el horario). Se omiten a propósito hasta que existan los datos que los sustenten.
+
+**Tests:**
+- ✓ Owner: 200 con contadores + próximas reservas
+- ✓ 401 sin token · 403 por otro owner · 404 negocio inexistente
+- ✓ Ingresos = suma del precio del servicio (gratuito = 0); contadores con ventana de mes
 
 ---
 

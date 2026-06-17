@@ -40,4 +40,24 @@ public interface IReservationRepository
 
     /// <summary>Reservas de un usuario registrado ("mis reservas"), ordenadas por inicio.</summary>
     Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cuenta las reservas no canceladas de un negocio. Ventana temporal opcional por
+    /// inicio: <paramref name="fromUtc"/> inclusivo, <paramref name="toUtc"/> exclusivo
+    /// (ambos null → histórico completo). Para el panel del owner.
+    /// </summary>
+    Task<int> CountByBusinessAsync(Guid businessId, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Suma el precio del servicio de las reservas no canceladas de un negocio cuyo
+    /// inicio cae en [<paramref name="fromUtc"/>, <paramref name="toUtc"/>). Los
+    /// servicios sin precio (gratuitos) suman 0. Para los ingresos estimados del panel.
+    /// </summary>
+    Task<decimal> SumRevenueByBusinessAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Próximas reservas no canceladas de un negocio (inicio &gt;= <paramref name="fromUtc"/>),
+    /// ordenadas por inicio ascendente y limitadas a <paramref name="limit"/>.
+    /// </summary>
+    Task<IReadOnlyList<Reservation>> ListUpcomingByBusinessAsync(Guid businessId, DateTime fromUtc, int limit, CancellationToken ct = default);
 }
