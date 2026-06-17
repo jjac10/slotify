@@ -98,8 +98,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
 - ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*
 - ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
-- ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** desde la UI — *PR #21*
-- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*) · ⬜ Vitest + RTL
+- ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
+- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*) · ⬜ Vitest + RTL
 
 ---
 
@@ -135,7 +135,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #18 | `feature/complete-booking-flow` | **Frontend**: flujo de reserva completo como wizard de 7 pasos (negocio → servicio → staff → fecha → slots → datos invitado → confirmado); usuario autenticado reserva en un clic. E2e Playwright de reserva completa de punta a punta |
 | #19 | `feature/owner-dashboard` | `GET /businesses/{id}/dashboard` (owner-only): `DashboardService` + `DashboardResponse` + 3 agregados en `IReservationRepository` (count con ventana, ingresos vía join con services, próximas). **Fix**: `login`/`refresh` devuelven el `businessId` del owner (antes solo el registro) → el front muestra Panel/Agenda tras un login. Pantalla **Panel** en el front + e2e |
 | #20 | `infra/ci-github-actions` | **CI/CD GitHub Actions**: 3 jobs en push/PR a `main`/`develop` (backend `dotnet build`+`test`; frontend typecheck+build; e2e Playwright vía docker compose). Badge de CI en el README |
-| #21 | `feature/owner-business-services-ui` | **Frontend**: pantalla **Mi negocio** (owner): ver negocio (nombre + id, enlace a reservar) + **listar y crear servicios** desde la UI (`POST /businesses/{id}/services`). Estilos base (cards). E2e de alta de servicio |
+| #21 | `feature/owner-business-services-ui` | **Frontend**: gestión del negocio (owner). Pantalla **Mi negocio** (nombre + id, enlace a reservar, listar/crear servicios vía `POST /businesses/{id}/services`). Estilos base (cards). E2e de alta de servicio |
+| #22 | `feature/owner-business-hours` | **Frontend**: pantalla **Horario** (owner): editor del horario semanal vía `GET/PUT /businesses/{id}/hours` (toggle abierto/cerrado + apertura/cierre por día; prefija L–V 09–17). E2e de guardado de horario |
 
 ---
 
