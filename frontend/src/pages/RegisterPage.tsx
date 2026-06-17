@@ -38,9 +38,11 @@ export function RegisterPage() {
   }
 
   return (
-    <section>
+    <section className="auth-shell">
       <h1>Crear cuenta</h1>
-      <form onSubmit={handleSubmit}>
+      <p className="muted">Reserva en segundos o gestiona tu negocio.</p>
+      <div className="card">
+        <form onSubmit={handleSubmit}>
         <label>
           Tipo de cuenta
           <select
@@ -112,8 +114,9 @@ export function RegisterPage() {
         <button type="submit" data-testid="register-submit" disabled={submitting}>
           {submitting ? 'Creando…' : 'Crear cuenta'}
         </button>
-      </form>
-      <p>
+        </form>
+      </div>
+      <p style={{ marginTop: '1rem' }}>
         ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
       </p>
     </section>

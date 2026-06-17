@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
+import { StatusPill } from '../components/StatusPill'
 import type { ReservationResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
@@ -58,10 +59,16 @@ export function OwnerAgendaPage() {
       )}
 
       {reservations !== null && reservations.length > 0 && (
-        <ul data-testid="agenda-list">
+        <ul className="list-plain" data-testid="agenda-list">
           {reservations.map((reservation) => (
-            <li key={reservation.id} data-testid="agenda-item">
-              {formatDateTime(reservation.startTime)} — {reservation.status}
+            <li
+              key={reservation.id}
+              className="card"
+              data-testid="agenda-item"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span>{formatDateTime(reservation.startTime)}</span>
+              <StatusPill status={reservation.status} />
             </li>
           ))}
         </ul>

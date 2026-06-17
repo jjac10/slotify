@@ -1,5 +1,6 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { Logo } from './Logo'
 
 export function Layout() {
   const { user, status, isOwner, logout } = useAuth()
@@ -7,50 +8,52 @@ export function Layout() {
 
   return (
     <div>
-      <header>
-        <Link to="/" style={{ fontWeight: 700 }}>
-          Slotify
+      <header className="app-header">
+        <Link to="/" className="brand-link" aria-label="Slotify — inicio">
+          <Logo />
         </Link>
-        <nav>
-          <Link to="/reservar">Reservar</Link>
+        <nav className="app-nav">
+          <NavLink to="/reservar">Reservar</NavLink>
           {authenticated && (
-            <Link to="/mis-reservas" data-testid="nav-my-reservations">
+            <NavLink to="/mis-reservas" data-testid="nav-my-reservations">
               Mis reservas
-            </Link>
+            </NavLink>
           )}
           {isOwner && (
-            <Link to="/panel" data-testid="nav-dashboard">
+            <NavLink to="/panel" data-testid="nav-dashboard">
               Panel
-            </Link>
+            </NavLink>
           )}
           {isOwner && (
-            <Link to="/mi-negocio" data-testid="nav-my-business">
+            <NavLink to="/mi-negocio" data-testid="nav-my-business">
               Mi negocio
-            </Link>
+            </NavLink>
           )}
           {isOwner && (
-            <Link to="/horario" data-testid="nav-hours">
+            <NavLink to="/horario" data-testid="nav-hours">
               Horario
-            </Link>
+            </NavLink>
           )}
           {isOwner && (
-            <Link to="/agenda" data-testid="nav-agenda">
+            <NavLink to="/agenda" data-testid="nav-agenda">
               Agenda
-            </Link>
+            </NavLink>
           )}
         </nav>
         {authenticated ? (
-          <>
+          <div className="app-user">
             <span data-testid="current-user">{user?.email}</span>
-            <button type="button" onClick={logout} data-testid="logout">
+            <button type="button" className="btn-secondary" onClick={logout} data-testid="logout">
               Salir
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            <Link to="/login">Entrar</Link>
-            <Link to="/register">Registro</Link>
-          </>
+          <div className="app-user">
+            <NavLink to="/login">Entrar</NavLink>
+            <Link to="/register" className="btn" style={{ textDecoration: 'none' }}>
+              Registro
+            </Link>
+          </div>
         )}
       </header>
       <main>
