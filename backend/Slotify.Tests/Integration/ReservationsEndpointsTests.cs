@@ -83,4 +83,33 @@ public class ReservationsEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task CreateReservation_OwnerBooksThemselvesAsWorker_Returns400()
+    {
+        // Registramos un owner: su owner-staff queda enlazado a su propio user_id.
+        var owner = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", owner)).Content.ReadFromJsonAsync<AuthResult>();
+        var businessId = auth!.BusinessId!.Value;
+
+        var authed = _factory.CreateClient();
+        authed.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var service = await (await authed.PostAsJsonAsync($"/businesses/{businessId}/services",
+            new CreateServiceRequest("Corte", null, 30, 15m, null))).Content.ReadFromJsonAsync<ServiceResponse>();
+
+        Guid ownerStaffId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SlotifyDbContext>();
+            ownerStaffId = await db.Staff
+                .Where(s => s.BusinessId == businessId && s.UserId == auth.UserId)
+                .Select(s => s.Id).FirstAsync();
+        }
+
+        // El owner (logueado) intenta reservar consigo mismo como trabajador asignado.
+        var request = new CreateReservationRequest(businessId, service!.Id, ownerStaffId, At10, null, null, null);
+        var response = await authed.PostAsJsonAsync("/reservations", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

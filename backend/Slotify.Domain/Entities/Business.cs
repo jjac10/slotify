@@ -29,6 +29,12 @@ public class Business
     /// </summary>
     public int? SlotIntervalMinutes { get; set; }
 
+    /// <summary>
+    /// Zona horaria IANA del negocio (p. ej. "Europe/Madrid"). Las horas de apertura
+    /// se interpretan como hora local de esta zona y se convierten a UTC para los slots.
+    /// </summary>
+    public string Timezone { get; set; } = "Europe/Madrid";
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 

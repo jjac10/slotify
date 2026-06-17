@@ -37,12 +37,12 @@ public class BookingServiceTests
     private BookingService CreateService() =>
         new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object);
 
-    private void SetupValidServiceAndStaff(int duration = 30)
+    private void SetupValidServiceAndStaff(int duration = 30, Guid? staffUserId = null)
     {
         _services.Setup(s => s.GetByIdAsync(_serviceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Service { Id = _serviceId, BusinessId = _businessId, Name = "Corte", DurationMinutes = duration });
         _staff.Setup(s => s.GetByIdAsync(_staffId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Staff { Id = _staffId, BusinessId = _businessId, Role = "owner", Name = "O" });
+            .ReturnsAsync(new Staff { Id = _staffId, BusinessId = _businessId, Role = "owner", Name = "O", UserId = staffUserId });
         _reservations.Setup(r => r.HasOverlapAsync(_staffId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
@@ -175,5 +175,33 @@ public class BookingServiceTests
 
         _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
         _limits.Verify(l => l.CanAddReservationThisMonthAsync(_businessId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LoggedUserBooksThemselvesAsWorker_Throws_AndDoesNotPersist()
+    {
+        var userId = Guid.NewGuid();
+        SetupValidServiceAndStaff(staffUserId: userId); // el trabajador es el propio usuario logueado
+        var request = new CreateReservationRequest(_businessId, _serviceId, _staffId, Start, null, null, null);
+
+        await Assert.ThrowsAsync<SelfBookingNotAllowedException>(
+            () => CreateService().CreateAsync(request, userId));
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LoggedUserBooksDifferentWorker_Succeeds()
+    {
+        SetupValidServiceAndStaff(staffUserId: Guid.NewGuid()); // trabajador con un usuario distinto
+        var userId = Guid.NewGuid();
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        var request = new CreateReservationRequest(_businessId, _serviceId, _staffId, Start, null, null, null);
+        await CreateService().CreateAsync(request, userId);
+
+        Assert.Equal(userId, saved!.UserId);
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

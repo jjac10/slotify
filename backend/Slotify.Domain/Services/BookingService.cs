@@ -30,6 +30,11 @@ public class BookingService(
         if (worker is null || worker.BusinessId != request.BusinessId)
             throw new StaffNotFoundException(request.StaffId);
 
+        // Un usuario logueado no puede reservar consigo mismo como trabajador asignado
+        // (un owner/staff sí puede seguir creando reservas de invitado para clientes).
+        if (userId is not null && worker.UserId == userId)
+            throw new SelfBookingNotAllowedException();
+
         // Límite Freemium: nº de reservas/mes del plan (ADR #9). NULL = ilimitado.
         if (!await limits.CanAddReservationThisMonthAsync(request.BusinessId, DateTime.UtcNow, ct))
             throw new FreemiumLimitReachedException("reservas");
