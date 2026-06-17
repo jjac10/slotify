@@ -68,6 +68,22 @@ export interface CreateServiceRequest {
   color?: string | null
 }
 
+/**
+ * Un día del horario semanal. `dayOfWeek`: 0=domingo … 6=sábado.
+ * Las horas son `TimeOnly` serializadas como "HH:mm:ss" (null si el día está cerrado).
+ */
+export interface BusinessHour {
+  dayOfWeek: number
+  isClosed: boolean
+  openingTime: string | null
+  closingTime: string | null
+}
+
+/** PUT /businesses/{id}/hours — fija el horario semanal completo (solo owner). */
+export interface SetBusinessHoursRequest {
+  days: BusinessHour[]
+}
+
 /** Un hueco reservable. `start` se usa como `startTime` al crear la reserva (ISO UTC). */
 export interface AvailableSlot {
   start: string

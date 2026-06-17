@@ -125,3 +125,38 @@ input[type='color'] {
   height: 2.25rem;
   width: 4rem;
 }
+
+.hours-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hours-day-label {
+  font-weight: 600;
+  width: 5.5rem;
+}
+
+.hours-open-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hours-times {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.hours-times input[type='time'] {
+  padding: 0.35rem;
+}

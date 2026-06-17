@@ -1,6 +1,7 @@
 import { api } from './apiClient'
 import type {
   AvailableSlot,
+  BusinessHour,
   BusinessResponse,
   CreateServiceRequest,
   DashboardResponse,
@@ -53,6 +54,18 @@ export const businessService = {
   /** GET /businesses/{id}/dashboard — resumen del negocio (solo owner). */
   async dashboard(businessId: string): Promise<DashboardResponse> {
     const { data } = await api.get<DashboardResponse>(`/businesses/${businessId}/dashboard`)
+    return data
+  },
+
+  /** GET /businesses/{id}/hours — horario semanal del negocio (público). */
+  async getHours(businessId: string): Promise<BusinessHour[]> {
+    const { data } = await api.get<BusinessHour[]>(`/businesses/${businessId}/hours`)
+    return data
+  },
+
+  /** PUT /businesses/{id}/hours — fija el horario semanal completo (solo owner). */
+  async setHours(businessId: string, days: BusinessHour[]): Promise<BusinessHour[]> {
+    const { data } = await api.put<BusinessHour[]>(`/businesses/${businessId}/hours`, { days })
     return data
   },
 }
