@@ -180,6 +180,30 @@ Crear servicio.
 
 ---
 
+## Staff (Trabajadores)
+
+### GET /businesses/{businessId}/staff
+Lista los trabajadores **activos** de un negocio, ordenados por nombre. Público:
+el cliente lo usa para elegir con quién reservar (el `staffId` que exige crear una
+reserva). El owner aparece como staff (`role=owner`).
+
+**Auth:** Optional (público)
+**Response:** 200
+```json
+[
+  {
+    "id": "uuid",
+    "businessId": "uuid",
+    "name": "Pepe",
+    "role": "owner",
+    "status": "active"
+  }
+]
+```
+> No expone email/teléfono del trabajador. Los inactivos se excluyen.
+
+---
+
 ## Disponibilidad
 
 ### GET /businesses/{businessId}/availability
