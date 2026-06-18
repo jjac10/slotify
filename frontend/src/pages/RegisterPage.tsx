@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getApiError } from '../services/apiClient'
 import { Logo } from '../components/Logo'
@@ -10,7 +10,10 @@ type AccountType = 'customer' | 'owner'
 export function RegisterPage() {
   const { registerCustomer, registerOwner } = useAuth()
   const navigate = useNavigate()
-  const [accountType, setAccountType] = useState<AccountType>('customer')
+  const [searchParams] = useSearchParams()
+  const [accountType, setAccountType] = useState<AccountType>(
+    searchParams.get('type') === 'owner' ? 'owner' : 'customer',
+  )
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

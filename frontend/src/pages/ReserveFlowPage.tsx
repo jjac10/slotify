@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
@@ -164,25 +164,16 @@ export function ReserveFlowPage() {
       )}
       {loading && <p className="text-on-surface-variant mb-stack-sm" aria-live="polite">Cargando…</p>}
 
-      {/* PASO 1 — ID del negocio */}
+      {/* PASO 1 — Elegir negocio (desde Explorar, no por ID) */}
       {step === 'enter-business' && (
-        <form
-          className="card flex flex-col gap-stack-md max-w-md"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (booking.businessId) setStep('select-service')
-          }}
-        >
-          <div className="field">
-            <label className="field-label" htmlFor="reserve-business-id">ID del negocio</label>
-            <input id="reserve-business-id" type="text" className="field-input" data-testid="reserve-business-id"
-              value={booking.businessId ?? ''} onChange={(e) => merge({ businessId: e.target.value })}
-              placeholder="uuid del negocio" required />
-          </div>
-          <button type="submit" className="btn-primary self-start" data-testid="reserve-confirm-business">
-            Continuar
-          </button>
-        </form>
+        <div className="card flex flex-col items-center text-center py-stack-xl">
+          <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">storefront</span>
+          <p className="mt-stack-sm font-semibold">Elige primero un negocio</p>
+          <p className="text-sm text-on-surface-variant">Busca el negocio donde quieres reservar.</p>
+          <Link to="/explorar" className="btn-primary mt-stack-md" data-testid="reserve-go-explore">
+            Explorar negocios
+          </Link>
+        </div>
       )}
 
       {/* PASO 2 — Servicio */}
