@@ -47,7 +47,11 @@ public class AvailabilityServiceTests
     private static BusinessHour Open(int dow, int openH, int closeH) =>
         new() { DayOfWeek = dow, IsClosed = false, OpeningTime = new TimeOnly(openH, 0), ClosingTime = new TimeOnly(closeH, 0) };
 
-    private static DateTime Utc(int h, int m = 0) => new(Date.Year, Date.Month, Date.Day, h, m, 0, DateTimeKind.Utc);
+    // El horario del negocio es hora local de Europe/Madrid; los slots salen en UTC.
+    // Date (2026-06-22) cae en horario de verano (CEST, UTC+2) → UTC = local − 2h.
+    private const int MadridSummerOffsetHours = 2;
+    private static DateTime Utc(int localH, int m = 0) =>
+        new(Date.Year, Date.Month, Date.Day, localH - MadridSummerOffsetHours, m, 0, DateTimeKind.Utc);
 
     [Fact]
     public async Task GetSlots_ClosedDay_ReturnsEmpty()

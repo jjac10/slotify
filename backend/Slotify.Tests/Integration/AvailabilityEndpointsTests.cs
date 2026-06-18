@@ -50,7 +50,8 @@ public class AvailabilityEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
             $"/businesses/{businessId}/availability?serviceId={serviceId}&staffId={staffId}&date={Date:yyyy-MM-dd}");
 
         Assert.Equal(6, slots!.Count); // 9-12, 30 min → 6 slots
-        Assert.Equal(new DateTime(2026, 6, 22, 9, 0, 0, DateTimeKind.Utc), slots[0].Start);
+        // El horario (9:00) es hora local Europe/Madrid; en verano (CEST, UTC+2) → 07:00 UTC.
+        Assert.Equal(new DateTime(2026, 6, 22, 7, 0, 0, DateTimeKind.Utc), slots[0].Start);
     }
 
     [Fact]

@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 178/178 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 4 e2e frontend (Playwright: auth, reserva completa, panel owner).
+- **Tests:** 185/185 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -99,6 +99,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*
 - ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
+- ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
 - ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*) · ⬜ Vitest + RTL
 
 ---
@@ -137,9 +138,11 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #20 | `infra/ci-github-actions` | **CI/CD GitHub Actions**: 3 jobs en push/PR a `main`/`develop` (backend `dotnet build`+`test`; frontend typecheck+build; e2e Playwright vía docker compose). Badge de CI en el README |
 | #21 | `feature/owner-business-services-ui` | **Frontend**: gestión del negocio (owner). Pantalla **Mi negocio** (nombre + id, enlace a reservar, listar/crear servicios vía `POST /businesses/{id}/services`). Estilos base (cards). E2e de alta de servicio |
 | #22 | `feature/owner-business-hours` | **Frontend**: pantalla **Horario** (owner): editor del horario semanal vía `GET/PUT /businesses/{id}/hours` (toggle abierto/cerrado + apertura/cierre por día; prefija L–V 09–17). E2e de guardado de horario |
+| #23 | `feature/freemium-reservation-limit` | Límite Freemium de reservas/mes: `IFreemiumLimitService.CanAddReservationThisMonthAsync` (reutiliza `CountByBusinessAsync`, ventana del mes UTC); `BookingService` lanza `FreemiumLimitReachedException` → `ReservationsController` mapea a `409 limit_reached`. Sin migración. TDD unit + integración |
+| #24 | `feature/visual-redesign` | **Frontend**: rediseño visual. Sistema de diseño (tokens de marca morado/cyan, tipografía, componentes) + logo **Clock & Slot**, header con estados activos + responsive, cards de auth, métricas del panel, status pills, listas como cards, wizard pulido. Sin tocar `data-testid` (e2e intactos) |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Límite Freemium de reservas/mes** (`CanAddReservationThisMonthAsync` + `409 limit_reached` en `BookingService`) para cerrar el modelo Freemium. Alternativas: **RLS de PostgreSQL** (blindar aislamiento entre negocios + su ADR) o **PWA + responsive** del frontend.
+🎯 **Gestión de reservas en el front**: cancelar/reprogramar desde "Mis reservas" y agenda (endpoints `DELETE`/`PATCH /reservations/{id}` ya existen) + festivos del negocio (`/holidays`). Alternativas: **RLS de PostgreSQL** (aislamiento entre negocios + ADR) o **notificaciones** (email/recordatorios).
