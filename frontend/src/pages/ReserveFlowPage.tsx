@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { businessService } from '../services/businessService'
@@ -11,8 +11,7 @@ type Step =
   | 'enter-business'
   | 'select-service'
   | 'select-staff'
-  | 'select-date'
-  | 'select-slot'
+  | 'select-datetime'
   | 'guest-info'
   | 'confirmed'
 
@@ -20,7 +19,6 @@ interface BookingState {
   businessId: string
   serviceId: string
   staffId: string
-  date: string
   slotStart: string
   guestName: string
   guestPhone: string
@@ -32,9 +30,12 @@ type PartialBooking = Partial<BookingState> & { businessId?: string }
 const STEP_LABELS: Partial<Record<Step, string>> = {
   'select-service': 'Servicio',
   'select-staff': 'Profesional',
-  'select-date': 'Fecha',
-  'select-slot': 'Hora',
+  'select-datetime': 'Fecha y hora',
   'guest-info': 'Tus datos',
+}
+
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export function ReserveFlowPage() {
@@ -48,8 +49,22 @@ export function ReserveFlowPage() {
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
   const [staff, setStaff] = useState<Array<{ id: string; name: string; role: string }> | null>(null)
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null)
+  const [selectedDate, setSelectedDate] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Próximos 7 días, empezando hoy.
+  const days = useMemo(() => {
+    const base = new Date()
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i)
+      return {
+        iso: isoDate(d),
+        dow: d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', ''),
+        day: d.getDate(),
+      }
+    })
+  }, [])
 
   const loadServices = useCallback(async (businessId: string) => {
     setError(null)
@@ -80,9 +95,7 @@ export function ReserveFlowPage() {
     setSlots(null)
     setLoading(true)
     try {
-      const list = await businessService.availability(businessId, { serviceId, staffId, date })
-      setSlots(list)
-      if (list.length === 0) setError('No hay slots disponibles para esa fecha.')
+      setSlots(await businessService.availability(businessId, { serviceId, staffId, date }))
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudieron cargar los horarios disponibles.')
     } finally {
@@ -93,6 +106,13 @@ export function ReserveFlowPage() {
   useEffect(() => {
     if (step === 'select-service' && booking.businessId) loadServices(booking.businessId)
   }, [step, booking.businessId, loadServices])
+
+  function selectDay(iso: string) {
+    setSelectedDate(iso)
+    if (booking.businessId && booking.serviceId && booking.staffId) {
+      loadSlots(booking.businessId, booking.serviceId, booking.staffId, iso)
+    }
+  }
 
   async function bookSlot(slotStart: string) {
     if (!booking.businessId || !booking.serviceId || !booking.staffId) return
@@ -226,7 +246,10 @@ export function ReserveFlowPage() {
                   <button type="button" className="btn-primary py-2 text-sm" data-testid="select-staff"
                     onClick={() => {
                       merge({ staffId: s.id })
-                      setStep('select-date')
+                      const first = days[0].iso
+                      setSelectedDate(first)
+                      if (booking.businessId && booking.serviceId) loadSlots(booking.businessId, booking.serviceId, s.id, first)
+                      setStep('select-datetime')
                     }}>
                     Elegir
                   </button>
@@ -237,36 +260,39 @@ export function ReserveFlowPage() {
         </div>
       )}
 
-      {/* PASO 4 — Fecha */}
-      {step === 'select-date' && (
+      {/* PASO 4 — Fecha y hora (tira de días + slots debajo) */}
+      {step === 'select-datetime' && (
         <div>
           <BackButton to="select-staff" />
-          <div className="card flex flex-col gap-stack-md max-w-md" data-testid="reserve-date-picker">
-            <div className="field">
-              <label className="field-label" htmlFor="reserve-date-input">Fecha</label>
-              <input id="reserve-date-input" type="date" className="field-input" data-testid="reserve-date-input"
-                value={booking.date ?? ''} onChange={(e) => merge({ date: e.target.value })} required />
-            </div>
-            <button type="button" className="btn-primary self-start" data-testid="reserve-load-slots"
-              disabled={!booking.date || loading}
-              onClick={() => {
-                if (booking.businessId && booking.serviceId && booking.staffId && booking.date) {
-                  loadSlots(booking.businessId, booking.serviceId, booking.staffId, booking.date)
-                  setStep('select-slot')
-                }
-              }}>
-              Ver horarios disponibles
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* PASO 5 — Hora */}
-      {step === 'select-slot' && (
-        <div>
-          <BackButton to="select-date" />
+          {/* Tira de días */}
+          <div className="mb-stack-md flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="reserve-days">
+            {days.map((d) => {
+              const active = selectedDate === d.iso
+              return (
+                <button
+                  key={d.iso}
+                  type="button"
+                  data-testid="date-card"
+                  data-date={d.iso}
+                  onClick={() => selectDay(d.iso)}
+                  className={`flex min-w-[3.5rem] shrink-0 flex-col items-center rounded-xl border px-3 py-2 transition-colors ${
+                    active
+                      ? 'border-transparent bg-primary-container text-on-primary'
+                      : 'border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary-container'
+                  }`}
+                >
+                  <span className="text-[11px] font-medium uppercase">{d.dow}</span>
+                  <span className="text-lg font-bold leading-tight">{d.day}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Slots del día seleccionado */}
+          <h2 className="!text-base mb-stack-sm">Horarios disponibles</h2>
           {slots && slots.length > 0 && (
-            <ul className="grid grid-cols-3 sm:grid-cols-4 gap-stack-sm" data-testid="reserve-slots">
+            <ul className="grid grid-cols-3 gap-stack-sm sm:grid-cols-4" data-testid="reserve-slots">
               {slots.map((slot) => (
                 <li key={slot.start} data-testid="slot-item" data-start={slot.start}>
                   <button type="button" className="btn-secondary w-full py-2.5 text-sm" data-testid="select-slot" disabled={loading}
@@ -281,13 +307,18 @@ export function ReserveFlowPage() {
               ))}
             </ul>
           )}
+          {slots !== null && slots.length === 0 && !loading && (
+            <p className="text-on-surface-variant" data-testid="reserve-no-slots">
+              No hay horarios disponibles ese día. Prueba con otro.
+            </p>
+          )}
         </div>
       )}
 
-      {/* PASO 6 — Datos de invitado */}
+      {/* PASO 5 — Datos de invitado */}
       {step === 'guest-info' && (
         <form className="card flex flex-col gap-stack-md max-w-md" onSubmit={submitGuestBooking}>
-          <BackButton to="select-slot" />
+          <BackButton to="select-datetime" />
           <div className="field">
             <label className="field-label" htmlFor="reserve-guest-name">Nombre</label>
             <input id="reserve-guest-name" type="text" className="field-input" data-testid="reserve-guest-name"
@@ -309,7 +340,7 @@ export function ReserveFlowPage() {
         </form>
       )}
 
-      {/* PASO 7 — Confirmado */}
+      {/* PASO 6 — Confirmado */}
       {step === 'confirmed' && (
         <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="booking-confirmed">
           <span className="w-14 h-14 rounded-full bg-primary-container/15 text-primary flex items-center justify-center">

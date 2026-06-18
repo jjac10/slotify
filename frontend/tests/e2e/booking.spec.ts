@@ -67,12 +67,19 @@ async function setupBusinessWithServiceAndStaff(): Promise<string> {
   return businessId
 }
 
-/** Devuelve el próximo lunes a partir de hoy como "YYYY-MM-DD". */
-function nextMonday(): string {
-  const d = new Date()
-  const daysUntilMonday = (8 - d.getDay()) % 7 || 7
-  d.setDate(d.getDate() + daysUntilMonday)
-  return d.toISOString().split('T')[0]
+/**
+ * Primer día laboral (Lun–Vie) futuro dentro de la tira de 7 días (hoy..hoy+6),
+ * en formato local "YYYY-MM-DD" para casar con el data-date de las date-cards.
+ */
+function futureWeekdayInStrip(): string {
+  const base = new Date()
+  for (let i = 1; i < 7; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i)
+    if (d.getDay() >= 1 && d.getDay() <= 5) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+  }
+  throw new Error('no se encontró día laboral en la tira')
 }
 
 test('cliente registrado hace una reserva completa', async ({ page }) => {
@@ -99,10 +106,9 @@ test('cliente registrado hace una reserva completa', async ({ page }) => {
   await expect(page.getByTestId('reserve-staff-list')).toBeVisible()
   await page.getByTestId('staff-item').first().getByTestId('select-staff').click()
 
-  // 5. Elegir el próximo lunes (día laboral en la configuración de horarios)
-  await expect(page.getByTestId('reserve-date-input')).toBeVisible()
-  await page.getByTestId('reserve-date-input').fill(nextMonday())
-  await page.getByTestId('reserve-load-slots').click()
+  // 5. Elegir un día laboral en la tira de días → cargan los horarios disponibles
+  await expect(page.getByTestId('reserve-days')).toBeVisible()
+  await page.locator(`[data-testid="date-card"][data-date="${futureWeekdayInStrip()}"]`).click()
 
   // 6. Seleccionar el primer slot disponible (usuario autenticado → crea reserva directamente)
   await expect(page.getByTestId('reserve-slots')).toBeVisible()
