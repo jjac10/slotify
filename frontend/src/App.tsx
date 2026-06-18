@@ -1,8 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { LandingPage } from './pages/LandingPage'
+import { GuestRoute } from './components/GuestRoute'
+import { HomeRoute } from './components/HomeRoute'
 import { ExplorePage } from './pages/ExplorePage'
+import { MiSlotifyPage } from './pages/MiSlotifyPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ReserveFlowPage } from './pages/ReserveFlowPage'
@@ -15,17 +17,22 @@ import { BusinessHoursPage } from './pages/BusinessHoursPage'
 export function App() {
   return (
     <Routes>
-      {/* Landing pública, sin el chrome de la app */}
-      <Route path="/" element={<LandingPage />} />
+      {/* "/" — landing pública si anónimo; home según rol si hay sesión */}
+      <Route path="/" element={<HomeRoute />} />
 
       <Route element={<Layout />}>
         <Route path="explorar" element={<ExplorePage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
         <Route path="reservar" element={<ReserveFlowPage />} />
 
-        {/* Rutas que requieren sesión. */}
+        {/* Solo invitados (si hay sesión, fuera) */}
+        <Route element={<GuestRoute />}>
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+        </Route>
+
+        {/* Requieren sesión */}
         <Route element={<ProtectedRoute />}>
+          <Route path="inicio" element={<MiSlotifyPage />} />
           <Route path="mis-reservas" element={<MyReservationsPage />} />
           <Route path="mi-negocio" element={<MyBusinessPage />} />
           <Route path="horario" element={<BusinessHoursPage />} />

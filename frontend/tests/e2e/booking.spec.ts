@@ -79,14 +79,14 @@ test('cliente registrado hace una reserva completa', async ({ page }) => {
   const email = `customer-${Date.now()}@slotify.test`
   const businessId = await setupBusinessWithServiceAndStaff()
 
-  // 1. Registrarse como cliente → aterriza en /mis-reservas
+  // 1. Registrarse como cliente → aterriza en su inicio (Mi Slotify)
   await page.goto('/register')
   await page.getByTestId('register-account-type').selectOption('customer')
   await page.getByTestId('register-name').fill('Cliente Test')
   await page.getByTestId('register-email').fill(email)
   await page.getByTestId('register-password').fill('SecurePass123!')
   await page.getByTestId('register-submit').click()
-  await expect(page).toHaveURL(/\/mis-reservas$/)
+  await expect(page).toHaveURL(/\/inicio$/)
 
   // 2. Ir a reservar con businessId conocido (salta al paso 2: elige servicio)
   await page.goto(`/reservar?businessId=${businessId}`)

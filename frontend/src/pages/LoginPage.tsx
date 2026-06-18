@@ -21,7 +21,7 @@ export function LoginPage() {
     try {
       await login({ email, password })
       const from = (location.state as { from?: string } | null)?.from
-      navigate(from ?? '/mis-reservas', { replace: true })
+      navigate(from ?? '/', { replace: true })
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudo iniciar sesión. Revisa tus credenciales.')
     } finally {

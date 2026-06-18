@@ -69,10 +69,7 @@ test('el owner ve el resumen de su negocio en el panel', async ({ page }) => {
   await page.getByTestId('login-email').fill(email)
   await page.getByTestId('login-password').fill(PASSWORD)
   await page.getByTestId('login-submit').click()
-  await expect(page).toHaveURL(/\/mis-reservas$/)
-
-  // El owner ve el enlace al panel y entra
-  await page.getByTestId('nav-dashboard').click()
+  // El home del owner es directamente el Panel.
   await expect(page).toHaveURL(/\/panel$/)
 
   // Métricas visibles con la reserva creada

@@ -40,6 +40,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `users` (mínimo: identidad, type, status) — *PR #1*
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1*
   - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
+  - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
 - ✅ `staff` (+ owner-as-staff) — *PR #2*
 - ✅ `services` — *PR #6*
 - ⬜ `staff_services`

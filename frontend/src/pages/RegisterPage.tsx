@@ -21,6 +21,8 @@ export function RegisterPage() {
   const [businessName, setBusinessName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // Si llegas con intención (?type=owner|customer) no mostramos el selector.
+  const explicitType = searchParams.get('type') === 'owner' || searchParams.get('type') === 'customer'
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -29,11 +31,10 @@ export function RegisterPage() {
     try {
       if (accountType === 'owner') {
         await registerOwner({ name, email, password, businessName })
-        navigate('/agenda', { replace: true })
       } else {
         await registerCustomer({ name, email, password, phone: phone || undefined })
-        navigate('/mis-reservas', { replace: true })
       }
+      navigate('/', { replace: true })
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudo completar el registro.')
     } finally {
@@ -45,25 +46,29 @@ export function RegisterPage() {
     <section className="mx-auto max-w-md">
       <div className="flex flex-col items-center text-center mb-stack-lg">
         <Logo withWordmark={false} size={48} />
-        <h1 className="mt-stack-sm">Crear cuenta</h1>
-        <p className="text-on-surface-variant">Reserva en segundos o gestiona tu negocio.</p>
+        <h1 className="mt-stack-sm">{accountType === 'owner' ? 'Crea tu cuenta de propietario' : 'Crear cuenta'}</h1>
+        <p className="text-on-surface-variant">
+          {accountType === 'owner' ? 'Registra tu negocio en Slotify.' : 'Reserva en segundos.'}
+        </p>
       </div>
 
       <div className="card">
         <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
-          <div className="field">
-            <label className="field-label" htmlFor="register-account-type">Tipo de cuenta</label>
-            <select
-              id="register-account-type"
-              data-testid="register-account-type"
-              value={accountType}
-              onChange={(e) => setAccountType(e.target.value as AccountType)}
-              className="field-input"
-            >
-              <option value="customer">Cliente</option>
-              <option value="owner">Propietario</option>
-            </select>
-          </div>
+          {!explicitType && (
+            <div className="field">
+              <label className="field-label" htmlFor="register-account-type">Tipo de cuenta</label>
+              <select
+                id="register-account-type"
+                data-testid="register-account-type"
+                value={accountType}
+                onChange={(e) => setAccountType(e.target.value as AccountType)}
+                className="field-input"
+              >
+                <option value="customer">Cliente</option>
+                <option value="owner">Propietario</option>
+              </select>
+            </div>
+          )}
 
           <div className="field">
             <label className="field-label" htmlFor="register-name">Nombre</label>
