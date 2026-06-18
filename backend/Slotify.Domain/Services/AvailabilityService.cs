@@ -22,8 +22,12 @@ public class AvailabilityService(
     IBusinessHolidayRepository holidays,
     IReservationRepository reservations)
 {
+    /// <param name="nowUtc">
+    /// Momento actual (UTC). Si se indica, no se ofrecen slots cuyo inicio ya pasó
+    /// (útil para el día de hoy). Si es null, se devuelven todos los del horario.
+    /// </param>
     public async Task<IReadOnlyList<AvailableSlot>> GetSlotsAsync(
-        Guid businessId, Guid serviceId, Guid staffId, DateOnly date, CancellationToken ct = default)
+        Guid businessId, Guid serviceId, Guid staffId, DateOnly date, DateTime? nowUtc = null, CancellationToken ct = default)
     {
         var business = await businesses.GetByIdAsync(businessId, ct)
             ?? throw new BusinessNotFoundException(businessId);
@@ -67,6 +71,10 @@ public class AvailabilityService(
             var localStart = new DateTime(date.Year, date.Month, date.Day, m / 60, m % 60, 0, DateTimeKind.Unspecified);
             var start = TimeZoneInfo.ConvertTimeToUtc(localStart, tz);
             var end = start.AddMinutes(duration);
+
+            // No ofrecer horas que ya pasaron (p. ej. hoy a partir de la hora actual).
+            if (nowUtc is { } now && start <= now)
+                continue;
 
             var overlaps = occupied.Any(o => o.StartTime < end && o.EndTime > start);
             if (!overlaps)

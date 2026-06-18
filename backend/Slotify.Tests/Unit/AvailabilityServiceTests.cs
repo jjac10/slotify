@@ -96,6 +96,18 @@ public class AvailabilityServiceTests
     }
 
     [Fact]
+    public async Task GetSlots_WithNow_ExcludesPastSlots()
+    {
+        Setup(60, null, Open(Dow, 9, 12)); // inicios 9:00, 10:00, 11:00 (local)
+
+        // "Ahora" = 10:00 hora local del negocio → se descartan 9:00 y 10:00.
+        var slots = await CreateService().GetSlotsAsync(_businessId, _serviceId, _staffId, Date, nowUtc: Utc(10));
+
+        Assert.Single(slots);
+        Assert.Equal(Utc(11), slots[0].Start);
+    }
+
+    [Fact]
     public async Task GetSlots_ExcludesOccupied()
     {
         Setup(60, null, Open(Dow, 9, 12),
