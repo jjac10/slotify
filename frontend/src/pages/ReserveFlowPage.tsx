@@ -50,6 +50,7 @@ export function ReserveFlowPage() {
   const [staff, setStaff] = useState<Array<{ id: string; name: string; role: string }> | null>(null)
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -164,6 +165,16 @@ export function ReserveFlowPage() {
     return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
   }
 
+  function formatDateTime(iso: string): string {
+    return new Date(iso).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const monthLabel = selectedDate
+    ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    : ''
+  const selectedService = services?.find((s) => s.id === booking.serviceId)
+  const selectedStaff = staff?.find((s) => s.id === booking.staffId)
+
   function BackButton({ to }: { to: Step }) {
     return (
       <button type="button" className="btn-ghost -ml-2 mb-stack-sm text-sm" onClick={() => setStep(to)}>
@@ -265,9 +276,38 @@ export function ReserveFlowPage() {
         <div>
           <BackButton to="select-staff" />
 
-          {/* Tira de días */}
-          <div className="mb-stack-md flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="reserve-days">
-            {days.map((d) => {
+          {/* Mes + ver todo (calendario completo) */}
+          <div className="mb-stack-sm flex items-center justify-between">
+            <h2 className="!mt-0 !text-base capitalize">{monthLabel}</h2>
+            <button
+              type="button"
+              className="text-sm font-semibold text-primary hover:underline"
+              data-testid="reserve-show-all"
+              onClick={() => setShowPicker((v) => !v)}
+            >
+              {showPicker ? 'Ver menos' : 'Ver todo'}
+            </button>
+          </div>
+
+          {showPicker && (
+            <input
+              type="date"
+              className="field-input mb-stack-md"
+              data-testid="reserve-date-input"
+              min={days[0].iso}
+              value={selectedDate}
+              onChange={(e) => {
+                if (e.target.value) {
+                  selectDay(e.target.value)
+                  setShowPicker(false)
+                }
+              }}
+            />
+          )}
+
+          {/* Tira de días (responsiva: 5 en móvil, 7 en escritorio, sin scroll) */}
+          <div className="mb-stack-md flex gap-2" data-testid="reserve-days">
+            {days.map((d, i) => {
               const active = selectedDate === d.iso
               return (
                 <button
@@ -276,7 +316,9 @@ export function ReserveFlowPage() {
                   data-testid="date-card"
                   data-date={d.iso}
                   onClick={() => selectDay(d.iso)}
-                  className={`flex min-w-[3.5rem] shrink-0 flex-col items-center rounded-xl border px-3 py-2 transition-colors ${
+                  className={`min-w-0 flex-1 flex-col items-center rounded-xl border px-1 py-2 transition-colors ${
+                    i >= 5 ? 'hidden sm:flex' : 'flex'
+                  } ${
                     active
                       ? 'border-transparent bg-primary-container text-on-primary'
                       : 'border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary-container'
@@ -319,6 +361,19 @@ export function ReserveFlowPage() {
       {step === 'guest-info' && (
         <form className="card flex flex-col gap-stack-md max-w-md" onSubmit={submitGuestBooking}>
           <BackButton to="select-datetime" />
+
+          {/* Resumen de la reserva que se está haciendo */}
+          <div className="rounded-xl bg-surface-container-low p-stack-md" data-testid="reserve-summary">
+            <p className="flex items-center gap-2 font-bold">
+              <span className="material-symbols-outlined text-[20px] text-primary">event_available</span>
+              {selectedService?.name ?? 'Reserva'}
+            </p>
+            <p className="mt-1 text-sm text-on-surface-variant first-letter:uppercase">
+              {selectedStaff ? `con ${selectedStaff.name}` : ''}
+              {booking.slotStart ? ` · ${formatDateTime(booking.slotStart)}` : ''}
+            </p>
+          </div>
+
           <div className="field">
             <label className="field-label" htmlFor="reserve-guest-name">Nombre</label>
             <input id="reserve-guest-name" type="text" className="field-input" data-testid="reserve-guest-name"
