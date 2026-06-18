@@ -36,6 +36,10 @@ public class ReservationsController(BookingService booking, ReservationManagemen
         {
             return BadRequest(new { error = "invalid_guest_contact", message = ex.Message });
         }
+        catch (SelfBookingNotAllowedException ex)
+        {
+            return BadRequest(new { error = "self_booking_not_allowed", message = ex.Message });
+        }
         catch (SlotUnavailableException ex)
         {
             return Conflict(new { error = "slot_unavailable", message = ex.Message });

@@ -10,8 +10,9 @@ namespace Slotify.Domain.Services;
 /// es configurable (businesses.slot_interval_minutes; por defecto, la duración del
 /// servicio). Schema/algoritmo: docs/design/reservations-core.md (Anexo A).
 ///
-/// NOTA: los tiempos se calculan en UTC combinando fecha + hora del negocio. La
-/// gestión de la zona horaria del negocio (businesses.timezone) es una mejora futura.
+/// NOTA: el horario del negocio se interpreta como hora local de su zona
+/// (businesses.timezone, IANA) y se convierte a UTC para los slots. Esto respeta el
+/// horario de verano/invierno (DST) automáticamente.
 /// </summary>
 public class AvailabilityService(
     IBusinessRepository businesses,
@@ -56,10 +57,15 @@ public class AvailabilityService(
 
         var occupied = await reservations.ListByStaffOnDateAsync(staffId, date, ct);
 
+        // El horario se interpreta como hora local del negocio (su zona IANA) y se
+        // convierte a UTC. ConvertTimeToUtc respeta DST (verano/invierno) automáticamente.
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(business.Timezone);
+
         var slots = new List<AvailableSlot>();
         for (var m = openMinutes; m + duration <= closeMinutes; m += step)
         {
-            var start = new DateTime(date.Year, date.Month, date.Day, m / 60, m % 60, 0, DateTimeKind.Utc);
+            var localStart = new DateTime(date.Year, date.Month, date.Day, m / 60, m % 60, 0, DateTimeKind.Unspecified);
+            var start = TimeZoneInfo.ConvertTimeToUtc(localStart, tz);
             var end = start.AddMinutes(duration);
 
             var overlaps = occupied.Any(o => o.StartTime < end && o.EndTime > start);

@@ -227,6 +227,8 @@ Obtener slots disponibles para un servicio.
 }
 ```
 
+> **Zona horaria:** el horario del negocio se interpreta como hora local de su zona (`businesses.timezone`, IANA; por defecto `Europe/Madrid`) y los slots se devuelven en UTC. La conversión respeta el horario de verano/invierno (DST): p. ej. una apertura a las 09:00 sale a las 07:00 UTC en verano (CEST) y a las 08:00 UTC en invierno (CET).
+
 **Tests:**
 - ✓ Excluir horas cerradas
 - ✓ Excluir slots ocupados
@@ -271,6 +273,7 @@ Crear reserva (guest o logged).
 **Errores:**
 - `404 service_not_found` / `404 staff_not_found` el servicio o el trabajador no existen en ese negocio
 - `400 invalid_guest_contact` invitado sin nombre, o sin exactamente uno de teléfono/email
+- `400 self_booking_not_allowed` un usuario autenticado no puede reservarse a sí mismo como trabajador asignado (sí puede crear reservas de invitado para clientes)
 - `409 slot_unavailable` el hueco solapa con otra reserva del mismo staff (garantía dura: exclusion constraint en BD)
 - `409 limit_reached` el plan Freemium del negocio alcanzó su tope de reservas del mes natural (Free=100/mes; Premium ilimitado). Mejora a Premium para más.
 
