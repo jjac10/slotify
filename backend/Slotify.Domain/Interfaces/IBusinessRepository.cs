@@ -18,4 +18,11 @@ public interface IBusinessRepository
 
     /// <summary>Lista los negocios de un owner.</summary>
     Task<IReadOnlyList<Business>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Listado público de negocios activos para que un cliente busque dónde reservar.
+    /// Si <paramref name="query"/> trae texto, filtra por nombre (contiene, sin distinguir
+    /// mayúsculas). Ordenado por nombre.
+    /// </summary>
+    Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, CancellationToken ct = default);
 }

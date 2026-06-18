@@ -24,4 +24,17 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
             .Where(b => b.OwnerId == ownerId && b.Status == "active")
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, CancellationToken ct = default)
+    {
+        var q = db.Businesses.AsNoTracking().Where(b => b.Status == "active");
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var term = query.Trim();
+            q = q.Where(b => EF.Functions.ILike(b.Name, $"%{term}%"));
+        }
+
+        return await q.OrderBy(b => b.Name).ToListAsync(ct);
+    }
 }
