@@ -8,6 +8,9 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      screens: {
+        xs: '400px',
+      },
       colors: {
         primary: '#630ed4',
         'primary-container': '#7c3aed',
