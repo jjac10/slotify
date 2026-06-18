@@ -41,6 +41,9 @@ public interface IReservationRepository
     /// <summary>Reservas de un usuario registrado ("mis reservas"), ordenadas por inicio.</summary>
     Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>Reservas no canceladas de unos invitados (ver "mis reservas" por teléfono/email).</summary>
+    Task<IReadOnlyList<Reservation>> ListByGuestIdsAsync(IReadOnlyCollection<Guid> guestIds, CancellationToken ct = default);
+
     /// <summary>
     /// Cuenta las reservas no canceladas de un negocio. Ventana temporal opcional por
     /// inicio: <paramref name="fromUtc"/> inclusivo, <paramref name="toUtc"/> exclusivo

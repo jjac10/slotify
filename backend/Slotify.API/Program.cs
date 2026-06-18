@@ -47,6 +47,7 @@ builder.Services.AddScoped<ServiceService>();
 builder.Services.AddScoped<StaffService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<ReservationManagementService>();
+builder.Services.AddScoped<GuestReservationLookupService>();
 builder.Services.AddScoped<BusinessScheduleService>();
 builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<DashboardService>();

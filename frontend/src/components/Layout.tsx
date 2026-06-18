@@ -18,9 +18,7 @@ export function Layout() {
 
   const items: NavItem[] = [
     { to: '/explorar', label: 'Explorar', icon: 'explore' },
-    ...(authenticated
-      ? [{ to: '/mis-reservas', label: 'Reservas', icon: 'event', testid: 'nav-my-reservations' }]
-      : []),
+    { to: '/mis-reservas', label: 'Reservas', icon: 'event', testid: 'nav-my-reservations' },
     ...(isOwner
       ? [
           { to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' },

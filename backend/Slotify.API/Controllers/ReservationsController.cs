@@ -9,7 +9,10 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("reservations")]
-public class ReservationsController(BookingService booking, ReservationManagementService management) : ApiControllerBase
+public class ReservationsController(
+    BookingService booking,
+    ReservationManagementService management,
+    GuestReservationLookupService guestLookup) : ApiControllerBase
 {
     /// <summary>Crea una reserva (invitado o usuario logueado).</summary>
     [HttpPost]
@@ -64,6 +67,12 @@ public class ReservationsController(BookingService booking, ReservationManagemen
     [Authorize]
     public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListMine(CancellationToken ct)
         => Ok(await management.ListMineAsync(CurrentUserId, ct));
+
+    /// <summary>Reservas de un invitado por su teléfono o email (sin cuenta). Público.</summary>
+    [HttpGet("lookup")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> Lookup([FromQuery] string? contact, CancellationToken ct)
+        => Ok(await guestLookup.LookupAsync(contact, ct));
 
     /// <summary>Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.</summary>
     [HttpGet("/businesses/{businessId:guid}/reservations")]

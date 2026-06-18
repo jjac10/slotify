@@ -100,6 +100,13 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
             .OrderBy(r => r.StartTime)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Reservation>> ListByGuestIdsAsync(IReadOnlyCollection<Guid> guestIds, CancellationToken ct = default)
+        => await db.Reservations.AsNoTracking()
+            .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
+            .Where(r => r.GuestId != null && guestIds.Contains(r.GuestId.Value) && r.Status != "cancelled")
+            .OrderBy(r => r.StartTime)
+            .ToListAsync(ct);
+
     public Task<int> CountByBusinessAsync(Guid businessId, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct = default)
     {
         var query = db.Reservations.AsNoTracking()

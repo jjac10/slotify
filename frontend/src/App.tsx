@@ -23,6 +23,8 @@ export function App() {
       <Route element={<Layout />}>
         <Route path="explorar" element={<ExplorePage />} />
         <Route path="reservar" element={<ReserveFlowPage />} />
+        {/* Público: logueado ve sus reservas; invitado busca por teléfono/email */}
+        <Route path="mis-reservas" element={<MyReservationsPage />} />
 
         {/* Solo invitados (si hay sesión, fuera) */}
         <Route element={<GuestRoute />}>
@@ -33,7 +35,6 @@ export function App() {
         {/* Requieren sesión */}
         <Route element={<ProtectedRoute />}>
           <Route path="inicio" element={<MiSlotifyPage />} />
-          <Route path="mis-reservas" element={<MyReservationsPage />} />
           <Route path="mi-negocio" element={<MyBusinessPage />} />
           <Route path="horario" element={<BusinessHoursPage />} />
           <Route path="agenda" element={<OwnerAgendaPage />} />

@@ -20,6 +20,12 @@ public class GuestRepository(SlotifyDbContext db) : IGuestRepository
             ((phoneHash != null && g.PhoneHash == phoneHash) ||
              (emailHash != null && g.EmailHash == emailHash)), ct);
 
+    public async Task<IReadOnlyList<Guid>> FindIdsByContactHashAsync(string hash, CancellationToken ct = default)
+        => await db.Guests.AsNoTracking()
+            .Where(g => g.PhoneHash == hash || g.EmailHash == hash)
+            .Select(g => g.Id)
+            .ToListAsync(ct);
+
     public Task<int> LinkToUserByHashAsync(Guid userId, string? phoneHash, string? emailHash, CancellationToken ct = default)
         => db.Guests
             .Where(g => g.UserId == null &&
