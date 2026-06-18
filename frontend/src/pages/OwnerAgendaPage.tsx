@@ -67,9 +67,12 @@ export function OwnerAgendaPage() {
                 <span className="material-symbols-outlined">person</span>
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold">{formatDateTime(reservation.startTime)}</p>
-                <p className="text-sm text-on-surface-variant">
-                  {reservation.guestId ? 'Invitado' : 'Cliente registrado'}
+                <p className="truncate font-semibold">
+                  {reservation.serviceName ?? 'Reserva'}
+                  {reservation.staffName ? ` · ${reservation.staffName}` : ''}
+                </p>
+                <p className="truncate text-sm text-on-surface-variant">
+                  {formatDateTime(reservation.startTime)} · {reservation.guestId ? 'Invitado' : 'Cliente'}
                 </p>
               </div>
               <StatusPill status={reservation.status} />

@@ -35,7 +35,9 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
             r.StartTime < end && r.EndTime > start, ct);
 
     public Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => db.Reservations.FirstOrDefaultAsync(r => r.Id == id, ct);
+        => db.Reservations
+            .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
 
     public async Task UpdateAsync(Reservation reservation, CancellationToken ct = default)
     {
@@ -75,6 +77,7 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
         Guid businessId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
     {
         var query = db.Reservations.AsNoTracking()
+            .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
             .Where(r => r.BusinessId == businessId && r.Status != "cancelled");
 
         if (staffId is not null)
@@ -92,6 +95,7 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
 
     public async Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default)
         => await db.Reservations.AsNoTracking()
+            .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
             .Where(r => r.UserId == userId && r.Status != "cancelled")
             .OrderBy(r => r.StartTime)
             .ToListAsync(ct);
@@ -124,6 +128,7 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
     public async Task<IReadOnlyList<Reservation>> ListUpcomingByBusinessAsync(
         Guid businessId, DateTime fromUtc, int limit, CancellationToken ct = default)
         => await db.Reservations.AsNoTracking()
+            .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
             .Where(r => r.BusinessId == businessId && r.Status != "cancelled" && r.StartTime >= fromUtc)
             .OrderBy(r => r.StartTime)
             .Take(limit)

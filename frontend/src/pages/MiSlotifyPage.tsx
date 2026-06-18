@@ -79,7 +79,13 @@ export function MiSlotifyPage() {
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container/15 text-primary">
                   <span className="material-symbols-outlined">event</span>
                 </span>
-                <p className="flex-1 min-w-0 font-semibold">{formatDateTime(r.startTime)}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{r.businessName ?? 'Reserva'}</p>
+                  <p className="truncate text-sm text-on-surface-variant">
+                    {r.serviceName ? `${r.serviceName} · ` : ''}
+                    {formatDateTime(r.startTime)}
+                  </p>
+                </div>
                 <StatusPill status={r.status} />
               </li>
             ))}

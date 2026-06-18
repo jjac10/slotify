@@ -9,10 +9,14 @@ public class Reservation
     public Guid Id { get; set; }
 
     public Guid BusinessId { get; set; }
+    public Business? Business { get; set; }
+
     public Guid ServiceId { get; set; }
+    public Service? Service { get; set; }
 
     /// <summary>Quién atiende (el owner es un staff). NOT NULL.</summary>
     public Guid StaffId { get; set; }
+    public Staff? Staff { get; set; }
 
     // Cliente: exactamente uno de los dos (CHECK user_or_guest).
     public Guid? UserId { get; set; }

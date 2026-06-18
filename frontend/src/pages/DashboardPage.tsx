@@ -87,7 +87,13 @@ export function DashboardPage() {
                   <span className="w-11 h-11 rounded-full bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined">schedule</span>
                   </span>
-                  <p className="flex-1 min-w-0 font-semibold">{formatDateTime(reservation.startTime)}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">
+                      {reservation.serviceName ?? 'Reserva'}
+                      {reservation.staffName ? ` · ${reservation.staffName}` : ''}
+                    </p>
+                    <p className="truncate text-sm text-on-surface-variant">{formatDateTime(reservation.startTime)}</p>
+                  </div>
                   <StatusPill status={reservation.status} />
                 </li>
               ))}

@@ -101,6 +101,10 @@ export interface ReservationResponse {
   startTime: string
   endTime: string
   status: string
+  /** Nombres enriquecidos por el backend en los listados (null en la creación). */
+  businessName: string | null
+  serviceName: string | null
+  staffName: string | null
 }
 
 /**

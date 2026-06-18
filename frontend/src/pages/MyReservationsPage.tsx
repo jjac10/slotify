@@ -90,10 +90,10 @@ export function MyReservationsPage() {
                 <span className="material-symbols-outlined">event</span>
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-bold leading-tight">{formatDate(r.startTime)}</p>
-                <p className="flex items-center gap-1 text-sm text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[16px]">schedule</span>
-                  {formatTime(r.startTime)}
+                <p className="truncate font-bold leading-tight">{r.businessName ?? 'Reserva'}</p>
+                <p className="truncate text-sm text-on-surface-variant">
+                  {r.serviceName ? `${r.serviceName} · ` : ''}
+                  {formatDate(r.startTime)} · {formatTime(r.startTime)}
                 </p>
               </div>
               <StatusPill status={r.status} />
