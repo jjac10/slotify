@@ -11,8 +11,7 @@ import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { MyBusinessPage } from './pages/MyBusinessPage'
-import { BusinessHoursPage } from './pages/BusinessHoursPage'
+import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
 
 export function App() {
   return (
@@ -35,8 +34,10 @@ export function App() {
         {/* Requieren sesión */}
         <Route element={<ProtectedRoute />}>
           <Route path="inicio" element={<MiSlotifyPage />} />
-          <Route path="mi-negocio" element={<MyBusinessPage />} />
-          <Route path="horario" element={<BusinessHoursPage />} />
+          <Route path="configuracion" element={<BusinessSettingsPage />} />
+          {/* Compatibilidad con rutas anteriores */}
+          <Route path="mi-negocio" element={<Navigate to="/configuracion" replace />} />
+          <Route path="horario" element={<Navigate to="/configuracion" replace />} />
           <Route path="agenda" element={<OwnerAgendaPage />} />
           <Route path="panel" element={<DashboardPage />} />
         </Route>

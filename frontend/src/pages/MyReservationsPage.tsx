@@ -18,9 +18,10 @@ interface CardProps {
   r: ReservationResponse
   onCancelled?: (id: string) => void
   onReschedule?: () => void
+  contact?: string
 }
 
-function ReservationCard({ r, onCancelled, onReschedule }: CardProps) {
+function ReservationCard({ r, onCancelled, onReschedule, contact }: CardProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
   const [confirming, setConfirming] = useState(false)
@@ -30,10 +31,15 @@ function ReservationCard({ r, onCancelled, onReschedule }: CardProps) {
   async function handleCancel() {
     setCancelling(true)
     try {
-      await reservationService.cancel(r.id)
+      await reservationService.cancel(r.id, undefined, contact)
       onCancelled?.(r.id)
     } catch (err) {
-      setCancelError(getApiError(err)?.message ?? 'No se pudo cancelar.')
+      const apiErr = getApiError(err)
+      setCancelError(
+        apiErr?.error === 'window_closed'
+          ? 'No puedes cancelar con tan poca antelación — la ventana mínima ya está cerrada.'
+          : apiErr?.message ?? 'No se pudo cancelar.',
+      )
       setCancelling(false)
     }
   }
@@ -224,25 +230,43 @@ function AuthedReservations() {
 
 function GuestLookup() {
   const [contact, setContact] = useState('')
+  const [searchedContact, setSearchedContact] = useState('')
   const [results, setResults] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!contact.trim()) return
     setError(null)
     setLoading(true)
+    const normalized = contact.trim()
     try {
-      const found = await reservationService.lookupGuest(contact.trim())
-      // Orden cronológico: la cita más cercana primero.
+      const found = await reservationService.lookupGuest(normalized)
       found.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
       setResults(found)
+      setSearchedContact(normalized)
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudo buscar. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleCancelled(id: string) {
+    setResults((prev) => prev?.filter((r) => r.id !== id) ?? null)
+  }
+
+  function handleRescheduled(updated: ReservationResponse) {
+    setResults((prev) =>
+      prev?.map((r) =>
+        r.id === updated.id
+          ? { ...r, startTime: updated.startTime, endTime: updated.endTime }
+          : r,
+      ) ?? null,
+    )
+    setRescheduleTarget(null)
   }
 
   return (
@@ -286,9 +310,24 @@ function GuestLookup() {
       {results !== null && results.length > 0 && (
         <ul className="mt-stack-md flex flex-col gap-stack-sm" data-testid="guest-lookup-list">
           {results.map((r) => (
-            <ReservationCard key={r.id} r={r} />
+            <ReservationCard
+              key={r.id}
+              r={r}
+              contact={searchedContact}
+              onCancelled={handleCancelled}
+              onReschedule={() => setRescheduleTarget(r)}
+            />
           ))}
         </ul>
+      )}
+
+      {rescheduleTarget && (
+        <RescheduleModal
+          reservation={rescheduleTarget}
+          contact={searchedContact}
+          onClose={() => setRescheduleTarget(null)}
+          onRescheduled={handleRescheduled}
+        />
       )}
     </section>
   )

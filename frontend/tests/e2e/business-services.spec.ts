@@ -25,9 +25,9 @@ test('el owner ve su negocio y crea un servicio', async ({ page }) => {
   await page.getByTestId('register-business-name').fill(businessName)
   await page.getByTestId('register-submit').click()
 
-  // El owner navega a "Mi negocio"
-  await page.getByTestId('nav-my-business').click()
-  await expect(page).toHaveURL(/\/mi-negocio$/)
+  // El owner navega a Configuración
+  await page.goto('/configuracion')
+  await expect(page).toHaveURL(/\/configuracion/)
 
   // Ve el nombre de su negocio + lista de servicios vacía
   await expect(page.getByTestId('business-name')).toHaveText(businessName)
