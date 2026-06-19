@@ -143,4 +143,10 @@ export const businessService = {
     const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/cancellation-cutoff`, { hours })
     return data
   },
+
+  /** PUT /businesses/{id}/plan — cambia el plan del negocio (free|premium). Upgrade simulado en el TFM. */
+  async setPlan(businessId: string, code: string): Promise<BusinessResponse> {
+    const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/plan`, { code })
+    return data
+  },
 }
