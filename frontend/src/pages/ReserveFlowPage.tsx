@@ -82,11 +82,11 @@ export function ReserveFlowPage() {
     }
   }, [])
 
-  const loadStaff = useCallback(async (businessId: string) => {
+  const loadStaff = useCallback(async (businessId: string, serviceId?: string) => {
     setError(null)
     setLoading(true)
     try {
-      setStaff(await businessService.listStaff(businessId))
+      setStaff(await businessService.listStaff(businessId, serviceId))
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudieron cargar los trabajadores.')
     } finally {
@@ -226,8 +226,8 @@ export function ReserveFlowPage() {
                   </div>
                   <button type="button" className="btn-primary py-2 text-sm" data-testid="select-service"
                     onClick={() => {
-                      merge({ serviceId: svc.id })
-                      if (booking.businessId) loadStaff(booking.businessId)
+                      merge({ serviceId: svc.id, staffId: '' })
+                      if (booking.businessId) loadStaff(booking.businessId, svc.id)
                       setStep('select-staff')
                     }}>
                     Elegir

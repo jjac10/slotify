@@ -257,7 +257,87 @@ function roleLabel(role: string): string {
   return role === 'owner' ? 'Propietario' : 'Empleado'
 }
 
-function TeamSection({ businessId }: { businessId: string }) {
+/** Editor de qué servicios realiza un trabajador. Sin ninguno marcado = realiza todos. */
+function StaffServicesEditor({ businessId, staffId, services }: { businessId: string; staffId: string; services: ServiceResponse[] }) {
+  const [selected, setSelected] = useState<Set<string> | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    businessService.getStaffServices(businessId, staffId)
+      .then((ids) => { if (active) setSelected(new Set(ids)) })
+      .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudieron cargar los servicios.') })
+    return () => { active = false }
+  }, [businessId, staffId])
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      if (!prev) return prev
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setSaved(false)
+  }
+
+  async function handleSave() {
+    if (!selected) return
+    setSaving(true)
+    setError(null)
+    try {
+      await businessService.setStaffServices(businessId, staffId, [...selected])
+      setSaved(true)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo guardar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (error) return <p role="alert" className="alert text-xs">{error}</p>
+  if (!selected) return <p className="text-xs text-on-surface-variant">Cargando servicios…</p>
+  if (services.length === 0) return <p className="text-xs text-on-surface-variant">Crea servicios primero para poder asignarlos.</p>
+
+  return (
+    <div className="flex flex-col gap-2" data-testid="staff-services-editor">
+      <p className="text-xs text-on-surface-variant">
+        Marca los servicios que realiza. Si no marcas ninguno, podrá realizar <strong>todos</strong>.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {services.map((svc) => {
+          const on = selected.has(svc.id)
+          return (
+            <label
+              key={svc.id}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                on ? 'border-primary bg-primary-container/20 text-primary' : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-low'
+              }`}
+            >
+              <input type="checkbox" className="sr-only" checked={on} onChange={() => toggle(svc.id)} data-testid="staff-service-toggle" data-service-id={svc.id} />
+              <span className="material-symbols-outlined text-[16px]">{on ? 'check_circle' : 'radio_button_unchecked'}</span>
+              {svc.name}
+            </label>
+          )
+        })}
+      </div>
+      <div className="flex items-center gap-stack-md">
+        <button type="button" className="btn-primary !py-1.5 text-xs" onClick={handleSave} disabled={saving} data-testid="staff-services-save">
+          {saving ? 'Guardando…' : 'Guardar servicios'}
+        </button>
+        {saved && (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-secondary">
+            <span className="material-symbols-outlined text-[14px]">check_circle</span> Guardado
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TeamSection({ businessId, services }: { businessId: string; services: ServiceResponse[] | null }) {
   const [staff, setStaff] = useState<StaffMember[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -266,6 +346,7 @@ function TeamSection({ businessId }: { businessId: string }) {
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [premiumRequired, setPremiumRequired] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -317,28 +398,45 @@ function TeamSection({ businessId }: { businessId: string }) {
       {staff !== null && (
         <ul className="flex flex-col gap-2" data-testid="staff-list">
           {staff.map((member) => (
-            <li key={member.id} className="glass-card rounded-xl px-stack-md py-3 flex items-center gap-stack-md" data-testid="staff-item">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container/20 text-sm font-bold text-primary">
-                {member.name[0]?.toUpperCase() ?? '?'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate" data-testid="staff-name">{member.name}</p>
-                <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                  member.role === 'owner' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container text-on-surface-variant'
-                }`}>
-                  {roleLabel(member.role)}
+            <li key={member.id} className="glass-card rounded-xl px-stack-md py-3 flex flex-col gap-stack-sm" data-testid="staff-item">
+              <div className="flex items-center gap-stack-md">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container/20 text-sm font-bold text-primary">
+                  {member.name[0]?.toUpperCase() ?? '?'}
                 </span>
-              </div>
-              {member.role !== 'owner' && (
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate" data-testid="staff-name">{member.name}</p>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    member.role === 'owner' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container text-on-surface-variant'
+                  }`}>
+                    {roleLabel(member.role)}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleRemove(member)}
-                  className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
-                  aria-label={`Dar de baja a ${member.name}`}
-                  data-testid="staff-remove"
+                  onClick={() => setExpandedId((id) => (id === member.id ? null : member.id))}
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                  data-testid="staff-services-btn"
+                  aria-expanded={expandedId === member.id}
                 >
-                  <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                  <span className="material-symbols-outlined text-[18px]">content_cut</span>
+                  Servicios
                 </button>
+                {member.role !== 'owner' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(member)}
+                    className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
+                    aria-label={`Dar de baja a ${member.name}`}
+                    data-testid="staff-remove"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                  </button>
+                )}
+              </div>
+              {expandedId === member.id && services !== null && (
+                <div className="border-t border-outline-variant/30 pt-stack-sm">
+                  <StaffServicesEditor businessId={businessId} staffId={member.id} services={services} />
+                </div>
               )}
             </li>
           ))}
@@ -599,7 +697,7 @@ export function BusinessSettingsPage() {
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Los trabajadores de tu negocio. Los clientes eligen con quién reservar.
         </p>
-        <TeamSection businessId={businessId} />
+        <TeamSection businessId={businessId} services={services} />
       </SectionCard>
 
       {/* Horario */}
