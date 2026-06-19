@@ -10,6 +10,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Staff> Staff => Set<Staff>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<StaffServiceAssignment> StaffServices => Set<StaffServiceAssignment>();
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<BusinessHour> BusinessHours => Set<BusinessHour>();
@@ -26,6 +27,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureBusinesses(modelBuilder);
         ConfigureStaff(modelBuilder);
         ConfigureServices(modelBuilder);
+        ConfigureStaffServices(modelBuilder);
         ConfigureGuests(modelBuilder);
         ConfigureReservations(modelBuilder);
         ConfigureBusinessHours(modelBuilder);
@@ -171,6 +173,30 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(s => new { s.BusinessId, s.Status });
+        });
+    }
+
+    private static void ConfigureStaffServices(ModelBuilder mb)
+    {
+        mb.Entity<StaffServiceAssignment>(e =>
+        {
+            e.ToTable("staff_services");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(x => x.StaffId).HasColumnName("staff_id").IsRequired();
+            e.Property(x => x.ServiceId).HasColumnName("service_id").IsRequired();
+
+            e.HasOne(x => x.Staff)
+                .WithMany()
+                .HasForeignKey(x => x.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Service)
+                .WithMany()
+                .HasForeignKey(x => x.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.StaffId, x.ServiceId }).IsUnique();
         });
     }
 

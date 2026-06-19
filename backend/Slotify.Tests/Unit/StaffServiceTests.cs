@@ -16,8 +16,9 @@ public class StaffServiceTests
     private readonly Mock<IStaffRepository> _staff = new();
     private readonly Mock<IBusinessRepository> _businesses = new();
     private readonly Mock<IFreemiumLimitService> _limits = new();
+    private readonly Mock<IStaffServiceRepository> _assignments = new();
 
-    private StaffService CreateService() => new(_staff.Object, _businesses.Object, _limits.Object);
+    private StaffService CreateService() => new(_staff.Object, _businesses.Object, _limits.Object, _assignments.Object);
 
     private readonly Guid _ownerId = Guid.NewGuid();
     private readonly Guid _businessId = Guid.NewGuid();
@@ -57,6 +58,24 @@ public class StaffServiceTests
         var result = await CreateService().ListAsync(_businessId);
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithServiceId_FiltersByService()
+    {
+        var serviceId = Guid.NewGuid();
+        var staffId = Guid.NewGuid();
+        _assignments.Setup(a => a.ListStaffByServiceAsync(_businessId, serviceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Staff>
+            {
+                new() { Id = staffId, BusinessId = _businessId, Name = "Ana", Role = "employee", Status = "active" },
+            });
+
+        var result = await CreateService().ListAsync(_businessId, serviceId);
+
+        Assert.Single(result);
+        Assert.Equal(staffId, result[0].Id);
+        _staff.Verify(s => s.ListByBusinessAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ─── Alta ─────────────────────────────────────────────────────────────────

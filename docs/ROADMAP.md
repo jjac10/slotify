@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 259/259 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
+- **Tests:** 274/274 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -43,7 +43,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
 - ✅ `staff` (+ owner-as-staff) — *PR #2* · ✅ gestión CRUD de empleados (owner) — *PR #29*
 - ✅ `services` — *PR #6*
-- ⬜ `staff_services`
+- ✅ `staff_services` (N:M trabajador↔servicio, unique (staff_id, service_id), migración `Add_StaffServices`) — *PR #31*
 - ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
 - ✅ `reservations` (+ exclusion constraint gist anti-doble-booking, optimistic locking) — *PR #9*
 - ✅ `business_hours` · ✅ `business_holidays` — *PR #10*
@@ -63,6 +63,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
 - ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ⚠️ TODO: gatear tras pago real (Stripe/Paddle) + tabla `subscriptions`/`payments`
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
+- ✅ **`StaffServiceAssignmentService`** (owner): fija/lista qué servicios puede realizar cada trabajador (valida pertenencia al negocio); `StaffService.ListAsync(serviceId?)` filtra el listado público de staff por servicio — un trabajador sin asignaciones se ofrece para todos los servicios (compat. owner-as-staff y negocios de 1 trabajador) — *PR #31*
 - ✅ `DashboardService` (resumen owner-only: contadores histórico/mes, ingresos del mes, próximas reservas) — *PR #19*; `IReservationRepository.{CountByBusiness,SumRevenueByBusiness,ListUpcomingByBusiness}Async`
 - ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
@@ -86,7 +87,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ **CORS** habilitado para el frontend (orígenes en `Cors:AllowedOrigins`) — *PR #15*
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` (devuelve `businessId` del owner — *PR #19*) · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner; incluye `plan`) · ✅ `PUT /businesses/{id}/plan` (cambiar plan free/premium, owner) — *PR #30* · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
-- ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17* · ✅ `POST` (alta, owner+Freemium) · ✅ `PATCH /{staffId}` (editar) · ✅ `DELETE /{staffId}` (baja lógica; 409 si es el owner) — *PR #29*
+- ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17* · ✅ `POST` (alta, owner+Freemium) · ✅ `PATCH /{staffId}` (editar) · ✅ `DELETE /{staffId}` (baja lógica; 409 si es el owner) — *PR #29* · ✅ `GET`/`PUT /{staffId}/services` (servicios que hace; owner) · ✅ `GET /staff?serviceId=` (filtra staff por servicio) — *PR #31*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14* · ✅ `POST /reservations/{id}/confirm` (confirmar, owner/staff) · ✅ `PUT /businesses/{id}/confirmation-mode` (auto/manual, owner) — *PR #26*
@@ -152,15 +153,15 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #28 | `feature/settings-hub-and-guest-actions` | **Frontend**: hub de configuración (`/configuracion`) con Datos · Servicios · Horario · Festivos · Confirmación (toggle segmentado) · Ventana de cancelación; cancelar/reprogramar como invitado en "Mis reservas"; confirmar en Agenda. Rutas viejas → `/configuracion` |
 | #29 | `feature/staff-management` | **Backend (TDD)**: gestión de empleados (owner). `StaffService.CreateAsync` (límite Freemium → Premium para añadir), `UpdateAsync`, `DeactivateAsync` (baja lógica; el owner-staff no se puede dar de baja); `CountByBusinessAsync` solo activos; endpoints `POST`/`PATCH`/`DELETE /businesses/{id}/staff/{staffId}`. Sin migración (tabla `staff` ya existía). 249 tests verde (+16) |
 | #30 | `feature/business-plan-upgrade` | **Backend (TDD)**: plan/tier del negocio. `BusinessService.ChangePlanAsync` (owner-only) cambia `tier_id` por código ('free'\|'premium') → desbloquea límites Freemium; `BusinessResponse.Plan` (código del tier, vía `Include(Tier)`); endpoint `PUT /businesses/{id}/plan`. Upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela. Sin migración. 259 tests verde (+10). ⚠️ TODO: gatear tras pago real (Stripe) |
+| #31 | `feature/staff-services` | **Backend (TDD)**: relación N:M trabajador↔servicio. Entidad `StaffServiceAssignment` + tabla `staff_services` (migración `Add_StaffServices`, unique (staff_id, service_id)); `StaffServiceAssignmentService` (owner: fija/lista qué servicios hace cada staff, valida pertenencia al negocio); `StaffService.ListAsync(serviceId?)` filtra staff por servicio (staff sin asignaciones = hace todos); endpoints `GET`/`PUT /businesses/{id}/staff/{staffId}/services` + `GET /staff?serviceId=`. 274 tests verde (+15) |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Trabajadores + Planes** — backend de empleados (*PR #29*) y de cambio de plan (*PR #30*) ya están. Siguiente:
-1. **Frontend de plan** (owner): sección "Plan" en `/configuracion` mostrando Free/Premium + botón "Mejorar a Premium" (`PUT /businesses/{id}/plan`, upgrade simulado en el TFM).
-2. **Frontend de empleados** (owner): sección "Equipo" en `/configuracion` para alta/edición/baja vía `POST`/`PATCH`/`DELETE /businesses/{id}/staff`. Gatear el alta si el plan es Free (mostrar CTA a Premium).
-3. **`staff_services`** (many-to-many): qué servicios realiza cada trabajador; filtrar staff por servicio en el flujo de reserva.
+🎯 Backend de empleados (*PR #29*), cambio de plan (*PR #30*) y `staff_services` (*PR #31*) ya están; frontend de Equipo también. Siguiente:
+1. **Frontend `staff_services`** (owner): en la sección "Equipo", asignar servicios a cada trabajador (`GET`/`PUT /staff/{id}/services`). Y en el **flujo de reserva**, filtrar el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`).
+2. **Frontend de plan** (owner, al final): sección "Plan" en `/configuracion` mostrando Free/Premium + botón "Mejorar a Premium" (`PUT /businesses/{id}/plan`, upgrade simulado en el TFM).
 
 Otras: pago real (Stripe) para el upgrade, business profile (categoría/ubicación), RLS PostgreSQL, notificaciones, OTP para acciones de invitado (TODO seguridad de *PR #27*).
 
