@@ -45,6 +45,16 @@ export interface BusinessResponse {
   id: string
   name: string
   status: string
+  confirmationMode: string
+  cancellationCutoffHours: number
+}
+
+/** GET /businesses/{id}/holidays — festivo/día cerrado. */
+export interface BusinessHoliday {
+  id: string
+  holidayDate: string // "YYYY-MM-DD"
+  reason: string | null
+  isClosed: boolean
 }
 
 /** GET /businesses/{id}/services (público). */

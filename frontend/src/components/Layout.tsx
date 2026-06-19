@@ -22,9 +22,8 @@ export function Layout() {
     ...(isOwner
       ? [
           { to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' },
-          { to: '/mi-negocio', label: 'Negocio', icon: 'storefront', testid: 'nav-my-business' },
-          { to: '/horario', label: 'Horario', icon: 'schedule', testid: 'nav-hours' },
           { to: '/agenda', label: 'Agenda', icon: 'calendar_today', testid: 'nav-agenda' },
+          { to: '/configuracion', label: 'Configuración', icon: 'settings', testid: 'nav-settings' },
         ]
       : []),
   ]

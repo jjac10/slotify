@@ -13,14 +13,16 @@ function formatDateTime(iso: string): string {
 interface ItemProps {
   reservation: ReservationResponse
   onCancelled: (id: string) => void
+  onConfirmed: (updated: ReservationResponse) => void
   onReschedule: () => void
 }
 
-function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
+function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: ItemProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
-  const [confirming, setConfirming] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
 
   async function handleCancel() {
@@ -31,6 +33,17 @@ function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
     } catch (err) {
       setCancelError(getApiError(err)?.message ?? 'No se pudo cancelar.')
       setCancelling(false)
+    }
+  }
+
+  async function handleConfirm() {
+    setConfirming(true)
+    try {
+      const updated = await reservationService.confirm(r.id)
+      onConfirmed(updated)
+    } catch (err) {
+      setCancelError(getApiError(err)?.message ?? 'No se pudo confirmar.')
+      setConfirming(false)
     }
   }
 
@@ -52,8 +65,20 @@ function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
         <StatusPill status={r.status} />
       </div>
 
-      {canAct && !confirming && (
+      {canAct && !confirmingCancel && (
         <div className="flex gap-1 pt-1 border-t border-outline-variant/30">
+          {r.status === 'pending' && (
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={confirming}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+              data-testid="confirm-btn"
+            >
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+              {confirming ? 'Confirmando…' : 'Confirmar'}
+            </button>
+          )}
           <button
             type="button"
             onClick={onReschedule}
@@ -65,7 +90,7 @@ function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
           </button>
           <button
             type="button"
-            onClick={() => setConfirming(true)}
+            onClick={() => setConfirmingCancel(true)}
             className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/30 transition-colors"
             data-testid="cancel-btn"
           >
@@ -75,7 +100,7 @@ function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
         </div>
       )}
 
-      {confirming && (
+      {confirmingCancel && (
         <div className="flex flex-col gap-stack-sm pt-1 border-t border-outline-variant/30">
           <p className="text-sm font-medium">¿Cancelar esta reserva?</p>
           {cancelError && <p role="alert" className="alert text-xs">{cancelError}</p>}
@@ -91,7 +116,7 @@ function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
             </button>
             <button
               type="button"
-              onClick={() => { setConfirming(false); setCancelError(null) }}
+              onClick={() => { setConfirmingCancel(false); setCancelError(null) }}
               disabled={cancelling}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50 transition-colors"
             >
@@ -133,6 +158,12 @@ export function OwnerAgendaPage() {
     setReservations((prev) => prev?.filter((r) => r.id !== id) ?? null)
   }
 
+  function handleConfirmed(updated: ReservationResponse) {
+    setReservations((prev) =>
+      prev?.map((r) => (r.id === updated.id ? { ...r, status: updated.status } : r)) ?? null,
+    )
+  }
+
   function handleRescheduled(updated: ReservationResponse) {
     setReservations((prev) =>
       prev?.map((r) =>
@@ -171,6 +202,7 @@ export function OwnerAgendaPage() {
               key={r.id}
               reservation={r}
               onCancelled={handleCancelled}
+              onConfirmed={handleConfirmed}
               onReschedule={() => setRescheduleTarget(r)}
             />
           ))}

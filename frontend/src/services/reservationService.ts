@@ -37,16 +37,28 @@ export const reservationService = {
     return data
   },
 
-  /** PATCH /reservations/{id} — reprograma conservando la duración. */
-  async reschedule(id: string, startTime: string): Promise<ReservationResponse> {
-    const { data } = await api.patch<ReservationResponse>(`/reservations/${id}`, { startTime })
+  /** PATCH /reservations/{id} — reprograma conservando la duración. Si `contact` se pasa, actúa como invitado. */
+  async reschedule(id: string, startTime: string, contact?: string): Promise<ReservationResponse> {
+    const { data } = await api.patch<ReservationResponse>(`/reservations/${id}`, {
+      startTime,
+      ...(contact ? { contact } : {}),
+    })
     return data
   },
 
-  /** DELETE /reservations/{id} — cancela. */
-  async cancel(id: string, reason?: string): Promise<void> {
+  /** DELETE /reservations/{id} — cancela. Si `contact` se pasa, actúa como invitado. */
+  async cancel(id: string, reason?: string, contact?: string): Promise<void> {
+    const params: Record<string, string> = {}
+    if (reason) params.reason = reason
+    if (contact) params.contact = contact
     await api.delete(`/reservations/${id}`, {
-      params: reason ? { reason } : undefined,
+      params: Object.keys(params).length ? params : undefined,
     })
+  },
+
+  /** POST /reservations/{id}/confirm — confirma una reserva pending (owner/staff). */
+  async confirm(id: string): Promise<ReservationResponse> {
+    const { data } = await api.post<ReservationResponse>(`/reservations/${id}/confirm`)
+    return data
   },
 }

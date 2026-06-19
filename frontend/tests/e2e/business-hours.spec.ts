@@ -23,9 +23,9 @@ test('el owner configura y guarda el horario del negocio', async ({ page }) => {
   await page.getByTestId('register-business-name').fill(`Negocio ${unique()}`)
   await page.getByTestId('register-submit').click()
 
-  // Ir a Horario
-  await page.getByTestId('nav-hours').click()
-  await expect(page).toHaveURL(/\/horario$/)
+  // Ir a Configuración
+  await page.goto('/configuracion')
+  await expect(page).toHaveURL(/\/configuracion/)
   await expect(page.getByTestId('hours-form')).toBeVisible()
 
   // El lunes viene prefijado como abierto (09:00–17:00)
