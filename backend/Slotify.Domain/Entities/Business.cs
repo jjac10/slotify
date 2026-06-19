@@ -42,6 +42,13 @@ public class Business
     /// </summary>
     public string ConfirmationMode { get; set; } = "auto";
 
+    /// <summary>
+    /// Antelación mínima (en horas) con la que el cliente puede cancelar o reprogramar
+    /// su reserva. Dentro de esa ventana previa al inicio ya no puede; el owner/staff
+    /// sí. <c>0</c> → sin restricción. Configurable por el owner.
+    /// </summary>
+    public int CancellationCutoffHours { get; set; }
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 

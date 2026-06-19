@@ -55,12 +55,13 @@ public class ReservationCancelEndpointsTests(SlotifyApiFactory factory) : IClass
     }
 
     [Fact]
-    public async Task Cancel_WithoutToken_Returns401()
+    public async Task Cancel_AsGuestWithoutContact_Returns403()
     {
+        // Sin JWT y sin contacto se trata como invitado no verificado → 403 (ya no 401).
         var (businessId, serviceId, staffId, _) = await SetupAsync();
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 7, 2, 10, 0, 0, DateTimeKind.Utc), "+34900000002");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await _client.DeleteAsync($"/reservations/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.DeleteAsync($"/reservations/{id}")).StatusCode);
     }
 
     [Fact]

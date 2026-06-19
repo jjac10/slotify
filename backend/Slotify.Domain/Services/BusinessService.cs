@@ -67,4 +67,24 @@ public class BusinessService(IBusinessRepository repository)
         await repository.UpdateAsync(business, ct);
         return BusinessResponse.From(business);
     }
+
+    /// <summary>
+    /// Fija la antelación mínima (en horas) para que el cliente cancele/reprograme.
+    /// 0 = sin restricción. Solo el owner.
+    /// </summary>
+    public async Task<BusinessResponse> SetCancellationCutoffAsync(
+        Guid businessId, Guid userId, int hours, CancellationToken ct = default)
+    {
+        if (hours is < 0 or > 720) // 0 h … 30 días
+            throw new InvalidCancellationCutoffException(hours);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        business.CancellationCutoffHours = hours;
+        await repository.UpdateAsync(business, ct);
+        return BusinessResponse.From(business);
+    }
 }

@@ -93,4 +93,53 @@ public class BusinessServiceTests
 
         repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // --- Ventana de cancelación ---------------------------------------------
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(24)]
+    [InlineData(720)]
+    public async Task SetCancellationCutoffAsync_AsOwner_UpdatesHours(int hours)
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var repo = new Mock<IBusinessRepository>();
+        var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
+        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var result = await new BusinessService(repo.Object).SetCancellationCutoffAsync(businessId, ownerId, hours);
+
+        Assert.Equal(hours, business.CancellationCutoffHours);
+        Assert.Equal(hours, result.CancellationCutoffHours);
+        repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(721)]
+    public async Task SetCancellationCutoffAsync_OutOfRange_Throws_AndDoesNotUpdate(int hours)
+    {
+        var repo = new Mock<IBusinessRepository>();
+
+        await Assert.ThrowsAsync<InvalidCancellationCutoffException>(
+            () => new BusinessService(repo.Object).SetCancellationCutoffAsync(Guid.NewGuid(), Guid.NewGuid(), hours));
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetCancellationCutoffAsync_NotOwner_Throws_AndDoesNotUpdate()
+    {
+        var businessId = Guid.NewGuid();
+        var repo = new Mock<IBusinessRepository>();
+        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(
+            () => new BusinessService(repo.Object).SetCancellationCutoffAsync(businessId, Guid.NewGuid(), 24));
+
+        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
