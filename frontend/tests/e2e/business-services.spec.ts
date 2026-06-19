@@ -25,6 +25,11 @@ test('el owner ve su negocio y crea un servicio', async ({ page }) => {
   await page.getByTestId('register-business-name').fill(businessName)
   await page.getByTestId('register-submit').click()
 
+  // Esperar a que el registro complete y el owner quede autenticado (su home es el Panel)
+  // antes de recargar en /configuracion; si no, el goto corre antes de guardar el token
+  // y ProtectedRoute rebota a /login.
+  await expect(page).toHaveURL(/\/panel/)
+
   // El owner navega a Configuración
   await page.goto('/configuracion')
   await expect(page).toHaveURL(/\/configuracion/)
