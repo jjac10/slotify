@@ -64,6 +64,30 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
         }
     }
 
+    /// <summary>Cambia el plan del negocio ('free'|'premium'). Solo el owner. Upgrade simulado (TFM); en producción lo dispara la pasarela de pago.</summary>
+    [HttpPut("{id:guid}/plan")]
+    [Authorize]
+    public async Task<ActionResult<BusinessResponse>> ChangePlan(
+        Guid id, SetPlanRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await businesses.ChangePlanAsync(id, CurrentUserId, request.Code, ct));
+        }
+        catch (InvalidPlanException ex)
+        {
+            return BadRequest(new { error = "invalid_plan", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Listado/búsqueda pública de negocios activos (para que un cliente elija dónde
     /// reservar). Filtro opcional por nombre con <c>?q=</c>.

@@ -10,8 +10,10 @@ namespace Slotify.Domain.Services;
 /// owner-as-staff (role='owner'), de modo que toda reserva pueda tener staff_id
 /// no nulo. Schema/decisión: docs/DATA_MODEL.md (staff).
 /// </summary>
-public class BusinessService(IBusinessRepository repository)
+public class BusinessService(IBusinessRepository repository, ITierRepository tiers)
 {
+    private static readonly string[] ValidPlanCodes = ["free", "premium"];
+
     public async Task<Business> CreateAsync(CreateBusinessRequest request, CancellationToken ct = default)
     {
         var business = new Business
@@ -86,5 +88,27 @@ public class BusinessService(IBusinessRepository repository)
         business.CancellationCutoffHours = hours;
         await repository.UpdateAsync(business, ct);
         return BusinessResponse.From(business);
+    }
+
+    /// <summary>
+    /// Cambia el plan del negocio ('free'|'premium'). Solo el owner. En el TFM es un
+    /// upgrade simulado (sin pago); en producción lo invocará el webhook de la pasarela.
+    /// </summary>
+    public async Task<BusinessResponse> ChangePlanAsync(
+        Guid businessId, Guid userId, string code, CancellationToken ct = default)
+    {
+        if (!ValidPlanCodes.Contains(code))
+            throw new InvalidPlanException(code);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        var tier = await tiers.GetByCodeAsync(code, ct);
+        business.TierId = tier.Id;
+        await repository.UpdateAsync(business, ct);
+
+        return BusinessResponse.From(business, tier.Code);
     }
 }

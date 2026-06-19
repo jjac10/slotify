@@ -17,7 +17,7 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
     }
 
     public Task<Business?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => db.Businesses.FirstOrDefaultAsync(b => b.Id == id, ct);
+        => db.Businesses.Include(b => b.Tier).FirstOrDefaultAsync(b => b.Id == id, ct);
 
     public async Task UpdateAsync(Business business, CancellationToken ct = default)
     {
@@ -27,6 +27,7 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
 
     public async Task<IReadOnlyList<Business>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default)
         => await db.Businesses.AsNoTracking()
+            .Include(b => b.Tier)
             .Where(b => b.OwnerId == ownerId && b.Status == "active")
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
