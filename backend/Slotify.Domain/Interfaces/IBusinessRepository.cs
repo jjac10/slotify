@@ -16,6 +16,9 @@ public interface IBusinessRepository
 
     Task<Business?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Persiste cambios de un negocio ya cargado (p. ej. ajustes del owner).</summary>
+    Task UpdateAsync(Business business, CancellationToken ct = default);
+
     /// <summary>Lista los negocios de un owner.</summary>
     Task<IReadOnlyList<Business>> ListByOwnerAsync(Guid ownerId, CancellationToken ct = default);
 

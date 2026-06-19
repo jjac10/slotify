@@ -186,6 +186,78 @@ public class ReservationManagementServiceTests
             () => CreateService().RescheduleAsync(_reservationId, _ownerId, At10.AddHours(1)));
     }
 
+    // --- Confirmar (POST /confirm) -------------------------------------------
+
+    [Fact]
+    public async Task ConfirmAsync_AsOwner_SetsConfirmed_BumpsVersion_AndAudits()
+    {
+        SetupReservation(); // status pending
+        AuditLog? logged = null;
+        _audit.Setup(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()))
+            .Callback<AuditLog, CancellationToken>((a, _) => logged = a).Returns(Task.CompletedTask);
+
+        var result = await CreateService().ConfirmAsync(_reservationId, _ownerId);
+
+        Assert.Equal("confirmed", _reservation.Status);
+        Assert.Equal("confirmed", result.Status);
+        Assert.Equal(1, _reservation.Version);
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.NotNull(logged);
+        Assert.Equal("confirmed", logged!.Action);
+        Assert.Equal(_ownerId, logged.ActorId);
+        Assert.Equal("owner", logged.ActorType);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_AsStaffOfBusiness_IsAllowed()
+    {
+        SetupReservation();
+        var employeeId = Guid.NewGuid();
+        _staff.Setup(s => s.ExistsForUserAsync(employeeId, _businessId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var result = await CreateService().ConfirmAsync(_reservationId, employeeId);
+
+        Assert.Equal("confirmed", result.Status);
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_AsReservationCustomer_Throws_AndDoesNotUpdate()
+    {
+        // El cliente de la reserva NO puede confirmar: es acción del negocio.
+        var customerId = Guid.NewGuid();
+        SetupReservation(reservationUserId: customerId);
+        _staff.Setup(s => s.ExistsForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().ConfirmAsync(_reservationId, customerId));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+        _audit.Verify(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_AlreadyConfirmed_ThrowsNotPending_AndDoesNotUpdate()
+    {
+        SetupReservation();
+        _reservation.Status = "confirmed";
+
+        await Assert.ThrowsAsync<ReservationNotPendingException>(
+            () => CreateService().ConfirmAsync(_reservationId, _ownerId));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+        _audit.Verify(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_NotFound_Throws()
+    {
+        _reservations.Setup(r => r.GetByIdAsync(_reservationId, It.IsAny<CancellationToken>())).ReturnsAsync((Reservation?)null);
+
+        await Assert.ThrowsAsync<ReservationNotFoundException>(
+            () => CreateService().ConfirmAsync(_reservationId, _ownerId));
+    }
+
     // --- Listados ------------------------------------------------------------
 
     private void SetupBusiness() =>

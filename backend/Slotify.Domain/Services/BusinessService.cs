@@ -1,5 +1,6 @@
 using Slotify.Domain.DTOs;
 using Slotify.Domain.Entities;
+using Slotify.Domain.Exceptions;
 using Slotify.Domain.Interfaces;
 
 namespace Slotify.Domain.Services;
@@ -46,5 +47,24 @@ public class BusinessService(IBusinessRepository repository)
     {
         var list = await repository.SearchPublicAsync(query, ct);
         return list.Select(BusinessResponse.From).ToList();
+    }
+
+    /// <summary>
+    /// Cambia el modo de confirmación del negocio ('auto'|'manual'). Solo el owner.
+    /// </summary>
+    public async Task<BusinessResponse> SetConfirmationModeAsync(
+        Guid businessId, Guid userId, string mode, CancellationToken ct = default)
+    {
+        if (mode is not ("auto" or "manual"))
+            throw new InvalidConfirmationModeException(mode);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        business.ConfirmationMode = mode;
+        await repository.UpdateAsync(business, ct);
+        return BusinessResponse.From(business);
     }
 }

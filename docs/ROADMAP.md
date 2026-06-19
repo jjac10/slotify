@@ -38,7 +38,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 - ✅ `pricing_tiers` (+ seed free/premium) — *PR #1*
 - ✅ `users` (mínimo: identidad, type, status) — *PR #1*
-- ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1*
+- ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1* · ✅ `timezone` — *PR #—* · ✅ `confirmation_mode` (`auto`|`manual`) — *PR #26*
   - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
   - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
 - ✅ `staff` (+ owner-as-staff) — *PR #2*
@@ -71,6 +71,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
 - ✅ `CanAddReservationThisMonthAsync` (límite Freemium de reservas) — `BookingService` lanza `FreemiumLimitReachedException` → `409 limit_reached`
 - ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
+- ✅ **Confirmación de reservas** (modo `auto`|`manual` por negocio): `BookingService` fija `confirmed`/`pending` según `Business.ConfirmationMode`; `ReservationManagementService.ConfirmAsync` (owner/staff, NO el cliente; `pending`→`confirmed`, optimistic locking + audit `confirmed`); `BusinessService.SetConfirmationModeAsync` (owner-only) — *PR #26*
 - ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12* · ✅ ver reservas de invitado por teléfono/email (`GET /reservations/lookup`, blind index)
   - ⚠️ **TODO (seguridad):** el lookup de invitado debe **verificar identidad** (código por SMS al teléfono / email al correo) antes de mostrar las reservas; ahora basta con conocer el contacto. Necesario antes de producción
 - ⬜ Notificaciones (async fire & forget), reviews, waitlist
@@ -86,7 +87,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
-- ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14*
+- ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14* · ✅ `POST /reservations/{id}/confirm` (confirmar, owner/staff) · ✅ `PUT /businesses/{id}/confirmation-mode` (auto/manual, owner) — *PR #26*
 - ✅ `GET /reservations/mine` ("mis reservas") · ✅ `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) — *PR #15*
 - ✅ `GET /businesses/{id}/dashboard` (resumen owner: contadores + ingresos del mes + próximas) — *PR #19*
 - ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
@@ -143,10 +144,11 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #22 | `feature/owner-business-hours` | **Frontend**: pantalla **Horario** (owner): editor del horario semanal vía `GET/PUT /businesses/{id}/hours` (toggle abierto/cerrado + apertura/cierre por día; prefija L–V 09–17). E2e de guardado de horario |
 | #23 | `feature/freemium-reservation-limit` | Límite Freemium de reservas/mes: `IFreemiumLimitService.CanAddReservationThisMonthAsync` (reutiliza `CountByBusinessAsync`, ventana del mes UTC); `BookingService` lanza `FreemiumLimitReachedException` → `ReservationsController` mapea a `409 limit_reached`. Sin migración. TDD unit + integración |
 | #24 | `feature/visual-redesign` | **Frontend**: rediseño visual. Sistema de diseño (tokens de marca morado/cyan, tipografía, componentes) + logo **Clock & Slot**, header con estados activos + responsive, cards de auth, métricas del panel, status pills, listas como cards, wizard pulido. Sin tocar `data-testid` (e2e intactos) |
-| #25 | `feature/cancel-reschedule-ui` | **Frontend**: cancelar + reprogramar reservas. Botón "Cancelar" con confirmación inline (status pill → cancelled + desaparece) en "Mis reservas" y Agenda del owner; botón "Reprogramar" abre `RescheduleModal` (selector fecha + slots en tiempo real vía `GET /availability`). Solo para reservas `confirmed` futuras. E2e de cancelar y reprogramar |
+| #25 | `feature/cancel-reschedule-ui` | **Frontend**: cancelar + reprogramar reservas. Botón "Cancelar" con confirmación inline (status pill → cancelled + desaparece) en "Mis reservas" y Agenda del owner; botón "Reprogramar" abre `RescheduleModal` (selector fecha + slots en tiempo real vía `GET /availability`). Solo para reservas activas futuras. E2e de cancelar y reprogramar |
+| #26 | `feature/reservation-confirmation` | **Backend (TDD)**: confirmación de reservas. `Business.confirmation_mode` (`auto`\|`manual`, migración `Add_BusinessConfirmationMode`, default `auto`); `BookingService` fija el estado inicial (`confirmed`/`pending`) según el modo; `ReservationManagementService.ConfirmAsync` (owner/staff, NO el cliente; `pending`→`confirmed` + optimistic locking + audit `confirmed`); `BusinessService.SetConfirmationModeAsync` (owner-only); endpoints `POST /reservations/{id}/confirm` + `PUT /businesses/{id}/confirmation-mode`; `confirmation_mode` en `BusinessResponse`. 212 tests verde (+27) |
 
 ---
 
 ## Siguiente paso
 
-🎯 Opciones: **festivos del negocio en el front** (`GET/POST/DELETE /holidays`, endpoints ya existen) · **business profile** (categoría + lat/lng + foto → desbloquea Explorar con filtros) · **RLS PostgreSQL** (aislamiento entre negocios) · **notificaciones** (email/recordatorios).
+🎯 **Hub de configuración del negocio** (frontend): consolidar nav "Configuración" con secciones (Datos · Servicios · Horario · **Festivos** · **Confirmación** auto/manual) + UI de festivos + toggle de confirmación (consume `PUT /businesses/{id}/confirmation-mode`). Luego: **confirmar/rechazar en Agenda** (`POST /reservations/{id}/confirm`) + estado "pendiente de confirmación" para el cliente. Siguiente bloque: **trabajadores** (`staff` + `staff_services`). Otras: business profile (categoría/ubicación), RLS PostgreSQL, notificaciones.
