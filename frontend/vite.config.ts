@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      port: 5173,
-      strictPort: true,
+      port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+      strictPort: !process.env.PORT,
       // El navegador llama a /api/... (mismo origen) y Vite lo reenvía al backend,
       // replicando lo que nginx hace en producción (infra/nginx.conf). Sin CORS en dev.
       proxy: {
