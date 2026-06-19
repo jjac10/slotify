@@ -152,4 +152,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## Siguiente paso
 
-🎯 **Hub de configuración del negocio** (frontend): consolidar nav "Configuración" con secciones (Datos · Servicios · Horario · **Festivos** · **Confirmación** auto/manual) + UI de festivos + toggle de confirmación (consume `PUT /businesses/{id}/confirmation-mode`). Luego: **confirmar/rechazar en Agenda** (`POST /reservations/{id}/confirm`) + estado "pendiente de confirmación" para el cliente. Siguiente bloque: **trabajadores** (`staff` + `staff_services`). Otras: business profile (categoría/ubicación), RLS PostgreSQL, notificaciones.
+🎯 **Hub de configuración del negocio** (frontend, *PR #28*): consolidar nav "Configuración" con secciones (Datos · Servicios · Horario · **Festivos** · **Confirmación** auto/manual) + UI de festivos + toggle segmentado de confirmación (consume `PUT /businesses/{id}/confirmation-mode`) + ventana de cancelación configurable. Luego: **confirmar/rechazar en Agenda** (`POST /reservations/{id}/confirm`) + estado "pendiente de confirmación" para el cliente. Siguiente bloque: **trabajadores** (`staff` + `staff_services`). Otras: business profile (categoría/ubicación), RLS PostgreSQL, notificaciones.
+
+---
+
+## Mejoras futuras (post-MVP)
+
+- 🔮 **WebSockets para confirmaciones en tiempo real:** cuando el owner confirma una reserva desde Agenda, los clientes ven refrescada automáticamente su lista de reservas sin recargar. Implementable con SignalR o Socket.io.
