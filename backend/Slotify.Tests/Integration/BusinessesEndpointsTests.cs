@@ -133,4 +133,65 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(24));
         Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
+
+    // --- PUT /businesses/{id}/plan -------------------------------------------
+
+    [Fact]
+    public async Task NewBusiness_StartsOnFreePlan()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+
+        Assert.Equal("free", mine!.Single(b => b.Id == businessId).Plan);
+    }
+
+    [Fact]
+    public async Task ChangePlan_ToPremium_AsOwner_Returns200_AndUnblocksStaff()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        // En Free no se puede añadir empleados (el owner ocupa el único hueco).
+        var blocked = await owner.PostAsJsonAsync($"/businesses/{businessId}/staff", new CreateStaffRequest("Ana", null, null));
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+
+        // Upgrade a Premium.
+        var upgrade = await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.OK, upgrade.StatusCode);
+        var body = await upgrade.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("premium", body!.Plan);
+
+        // Persiste en el listado del owner…
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal("premium", mine!.Single(b => b.Id == businessId).Plan);
+
+        // …y ahora sí se puede añadir un empleado.
+        var allowed = await owner.PostAsJsonAsync($"/businesses/{businessId}/staff", new CreateStaffRequest("Ana", null, null));
+        Assert.Equal(HttpStatusCode.Created, allowed.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_InvalidCode_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("gold"));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_WithoutToken_Returns401()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+    }
 }

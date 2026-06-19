@@ -8,30 +8,33 @@ using Slotify.Domain.Services;
 namespace Slotify.Tests.Unit;
 
 /// <summary>
-/// Owner-as-staff: al crear un negocio, el servicio crea también su Staff
-/// role='owner' enlazado al owner. Test unitario con repositorio mockeado (ADR #2).
+/// Owner-as-staff al crear el negocio + configuración del owner (modo de
+/// confirmación, ventana de cancelación, plan/tier). Repos mockeados (ADR #2).
 /// </summary>
 public class BusinessServiceTests
 {
+    private readonly Mock<IBusinessRepository> _repo = new();
+    private readonly Mock<ITierRepository> _tiers = new();
+
+    private BusinessService CreateService() => new(_repo.Object, _tiers.Object);
+
     [Fact]
     public async Task CreateAsync_BuildsBusinessWithOwnerStaff_AndPersistsOnce()
     {
-        var repo = new Mock<IBusinessRepository>();
         Business? savedBusiness = null;
         Staff? savedStaff = null;
-        repo.Setup(r => r.AddWithOwnerStaffAsync(
+        _repo.Setup(r => r.AddWithOwnerStaffAsync(
                 It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()))
             .Callback<Business, Staff, CancellationToken>((b, s, _) => { savedBusiness = b; savedStaff = s; })
             .Returns(Task.CompletedTask);
 
-        var service = new BusinessService(repo.Object);
         var ownerId = Guid.NewGuid();
         var tierId = Guid.NewGuid();
         var request = new CreateBusinessRequest(ownerId, tierId, "Barbería Pepe", "Pepe");
 
-        var result = await service.CreateAsync(request);
+        var result = await CreateService().CreateAsync(request);
 
-        repo.Verify(r => r.AddWithOwnerStaffAsync(
+        _repo.Verify(r => r.AddWithOwnerStaffAsync(
             It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Once);
 
         Assert.NotNull(savedBusiness);
@@ -57,41 +60,37 @@ public class BusinessServiceTests
     {
         var ownerId = Guid.NewGuid();
         var businessId = Guid.NewGuid();
-        var repo = new Mock<IBusinessRepository>();
         var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz", ConfirmationMode = "auto" };
-        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
-        repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var result = await new BusinessService(repo.Object).SetConfirmationModeAsync(businessId, ownerId, mode);
+        var result = await CreateService().SetConfirmationModeAsync(businessId, ownerId, mode);
 
         Assert.Equal(mode, business.ConfirmationMode);
         Assert.Equal(mode, result.ConfirmationMode);
-        repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task SetConfirmationModeAsync_InvalidMode_Throws_AndDoesNotUpdate()
     {
-        var repo = new Mock<IBusinessRepository>();
-
         await Assert.ThrowsAsync<InvalidConfirmationModeException>(
-            () => new BusinessService(repo.Object).SetConfirmationModeAsync(Guid.NewGuid(), Guid.NewGuid(), "nope"));
+            () => CreateService().SetConfirmationModeAsync(Guid.NewGuid(), Guid.NewGuid(), "nope"));
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task SetConfirmationModeAsync_NotOwner_Throws_AndDoesNotUpdate()
     {
         var businessId = Guid.NewGuid();
-        var repo = new Mock<IBusinessRepository>();
-        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
 
         await Assert.ThrowsAsync<NotBusinessOwnerException>(
-            () => new BusinessService(repo.Object).SetConfirmationModeAsync(businessId, Guid.NewGuid(), "manual"));
+            () => CreateService().SetConfirmationModeAsync(businessId, Guid.NewGuid(), "manual"));
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // --- Ventana de cancelación ---------------------------------------------
@@ -104,16 +103,15 @@ public class BusinessServiceTests
     {
         var ownerId = Guid.NewGuid();
         var businessId = Guid.NewGuid();
-        var repo = new Mock<IBusinessRepository>();
         var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
-        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
-        repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var result = await new BusinessService(repo.Object).SetCancellationCutoffAsync(businessId, ownerId, hours);
+        var result = await CreateService().SetCancellationCutoffAsync(businessId, ownerId, hours);
 
         Assert.Equal(hours, business.CancellationCutoffHours);
         Assert.Equal(hours, result.CancellationCutoffHours);
-        repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -121,25 +119,80 @@ public class BusinessServiceTests
     [InlineData(721)]
     public async Task SetCancellationCutoffAsync_OutOfRange_Throws_AndDoesNotUpdate(int hours)
     {
-        var repo = new Mock<IBusinessRepository>();
-
         await Assert.ThrowsAsync<InvalidCancellationCutoffException>(
-            () => new BusinessService(repo.Object).SetCancellationCutoffAsync(Guid.NewGuid(), Guid.NewGuid(), hours));
+            () => CreateService().SetCancellationCutoffAsync(Guid.NewGuid(), Guid.NewGuid(), hours));
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task SetCancellationCutoffAsync_NotOwner_Throws_AndDoesNotUpdate()
     {
         var businessId = Guid.NewGuid();
-        var repo = new Mock<IBusinessRepository>();
-        repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
 
         await Assert.ThrowsAsync<NotBusinessOwnerException>(
-            () => new BusinessService(repo.Object).SetCancellationCutoffAsync(businessId, Guid.NewGuid(), 24));
+            () => CreateService().SetCancellationCutoffAsync(businessId, Guid.NewGuid(), 24));
 
-        repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // --- Plan / tier --------------------------------------------------------
+
+    [Theory]
+    [InlineData("premium")]
+    [InlineData("free")]
+    public async Task ChangePlanAsync_AsOwner_SetsTier_AndReturnsPlan(string code)
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var newTierId = Guid.NewGuid();
+        var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _tiers.Setup(t => t.GetByCodeAsync(code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PricingTier { Id = newTierId, Code = code, Name = code });
+
+        var result = await CreateService().ChangePlanAsync(businessId, ownerId, code);
+
+        Assert.Equal(newTierId, business.TierId);
+        Assert.Equal(code, result.Plan);
+        _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ChangePlanAsync_InvalidCode_Throws_AndDoesNotUpdate()
+    {
+        await Assert.ThrowsAsync<InvalidPlanException>(
+            () => CreateService().ChangePlanAsync(Guid.NewGuid(), Guid.NewGuid(), "gold"));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+        _tiers.Verify(t => t.GetByCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePlanAsync_NotOwner_Throws_AndDoesNotUpdate()
+    {
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(
+            () => CreateService().ChangePlanAsync(businessId, Guid.NewGuid(), "premium"));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePlanAsync_BusinessNotFound_Throws()
+    {
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync((Business?)null);
+
+        await Assert.ThrowsAsync<BusinessNotFoundException>(
+            () => CreateService().ChangePlanAsync(businessId, Guid.NewGuid(), "premium"));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
