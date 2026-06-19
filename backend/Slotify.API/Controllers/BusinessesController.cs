@@ -40,6 +40,30 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
         }
     }
 
+    /// <summary>Fija la antelación mínima (horas) para que el cliente cancele/reprograme. 0 = sin límite. Solo el owner.</summary>
+    [HttpPut("{id:guid}/cancellation-cutoff")]
+    [Authorize]
+    public async Task<ActionResult<BusinessResponse>> SetCancellationCutoff(
+        Guid id, SetCancellationCutoffRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await businesses.SetCancellationCutoffAsync(id, CurrentUserId, request.Hours, ct));
+        }
+        catch (InvalidCancellationCutoffException ex)
+        {
+            return BadRequest(new { error = "invalid_cancellation_cutoff", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Listado/búsqueda pública de negocios activos (para que un cliente elija dónde
     /// reservar). Filtro opcional por nombre con <c>?q=</c>.

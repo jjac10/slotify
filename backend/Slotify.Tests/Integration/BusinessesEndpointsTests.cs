@@ -100,4 +100,37 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
         Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
     }
+
+    // --- PUT /businesses/{id}/cancellation-cutoff ---------------------------
+
+    [Fact]
+    public async Task SetCancellationCutoff_AsOwner_Returns200_AndPersists()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(24));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal(24, body!.CancellationCutoffHours);
+
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal(24, mine!.Single(b => b.Id == businessId).CancellationCutoffHours);
+    }
+
+    [Fact]
+    public async Task SetCancellationCutoff_OutOfRange_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(721));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetCancellationCutoff_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(24));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
 }

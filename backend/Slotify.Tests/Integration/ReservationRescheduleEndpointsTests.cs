@@ -61,15 +61,16 @@ public class ReservationRescheduleEndpointsTests(SlotifyApiFactory factory) : IC
     }
 
     [Fact]
-    public async Task Reschedule_WithoutToken_Returns401()
+    public async Task Reschedule_AsGuestWithoutContact_Returns403()
     {
+        // Sin JWT y sin contacto se trata como invitado no verificado → 403 (ya no 401).
         var (businessId, serviceId, staffId, _) = await SetupAsync();
         var start = new DateTime(2026, 8, 2, 10, 0, 0, DateTimeKind.Utc);
         var id = await BookGuestAsync(businessId, serviceId, staffId, start, "+34900000011");
 
         var res = await _client.PatchAsJsonAsync($"/reservations/{id}", new RescheduleReservationRequest(start.AddHours(1)));
 
-        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
 
     [Fact]

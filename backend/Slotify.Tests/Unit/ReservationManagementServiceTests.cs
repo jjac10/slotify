@@ -16,16 +16,20 @@ public class ReservationManagementServiceTests
     private readonly Mock<IBusinessRepository> _businesses = new();
     private readonly Mock<IStaffRepository> _staff = new();
     private readonly Mock<IAuditLogRepository> _audit = new();
+    private readonly Mock<IBlindIndex> _blindIndex = new();
+    private readonly Mock<IGuestRepository> _guests = new();
 
     private readonly Guid _ownerId = Guid.NewGuid();
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _reservationId = Guid.NewGuid();
 
-    private static readonly DateTime At10 = new(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc);
+    // Fija el inicio bien en el futuro para que la ventana de antelación no aplique
+    // salvo en los tests que la configuran explícitamente.
+    private static readonly DateTime At10 = DateTime.UtcNow.AddDays(30);
     private Reservation _reservation = null!;
 
     private ReservationManagementService CreateService() =>
-        new(_reservations.Object, _businesses.Object, _staff.Object, _audit.Object);
+        new(_reservations.Object, _businesses.Object, _staff.Object, _audit.Object, _blindIndex.Object, _guests.Object);
 
     private void SetupReservation(Guid? reservationUserId = null)
     {
@@ -256,6 +260,108 @@ public class ReservationManagementServiceTests
 
         await Assert.ThrowsAsync<ReservationNotFoundException>(
             () => CreateService().ConfirmAsync(_reservationId, _ownerId));
+    }
+
+    // --- Ventana de antelación (cutoff) --------------------------------------
+
+    private void SetupBusinessWithCutoff(int hours) =>
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = _ownerId, TierId = Guid.NewGuid(), Name = "Biz", CancellationCutoffHours = hours });
+
+    [Fact]
+    public async Task CancelAsync_AsClientWithinCutoffWindow_Throws_AndDoesNotDelete()
+    {
+        var customerId = Guid.NewGuid();
+        SetupReservation(reservationUserId: customerId);
+        _reservation.StartTime = DateTime.UtcNow.AddHours(1); // dentro de la ventana de 24 h
+        _reservation.EndTime = _reservation.StartTime.AddMinutes(30);
+        SetupBusinessWithCutoff(24);
+
+        await Assert.ThrowsAsync<CancellationWindowClosedException>(
+            () => CreateService().CancelAsync(_reservationId, customerId, null));
+
+        _reservations.Verify(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelAsync_AsOwnerWithinCutoffWindow_IsAllowed()
+    {
+        SetupReservation();
+        _reservation.StartTime = DateTime.UtcNow.AddHours(1);
+        _reservation.EndTime = _reservation.StartTime.AddMinutes(30);
+        SetupBusinessWithCutoff(24); // el owner no está sujeto a la ventana
+
+        await CreateService().CancelAsync(_reservationId, _ownerId, null);
+
+        _reservations.Verify(r => r.DeleteAsync(_reservationId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RescheduleAsync_AsClientWithinCutoffWindow_Throws_AndDoesNotUpdate()
+    {
+        var customerId = Guid.NewGuid();
+        SetupReservation(reservationUserId: customerId);
+        _reservation.StartTime = DateTime.UtcNow.AddHours(1);
+        _reservation.EndTime = _reservation.StartTime.AddMinutes(30);
+        SetupBusinessWithCutoff(24);
+
+        await Assert.ThrowsAsync<CancellationWindowClosedException>(
+            () => CreateService().RescheduleAsync(_reservationId, customerId, _reservation.StartTime.AddDays(1)));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // --- Invitado (cancelar/reprogramar sin cuenta, por contacto) ------------
+
+    [Fact]
+    public async Task CancelAsGuestAsync_WithMatchingContact_Cancels()
+    {
+        SetupReservation(); // reserva de invitado (GuestId no nulo)
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("HASH");
+        _guests.Setup(g => g.FindIdsByContactHashAsync("HASH", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { _reservation.GuestId!.Value });
+
+        await CreateService().CancelAsGuestAsync(_reservationId, "+34600000000", null);
+
+        _reservations.Verify(r => r.DeleteAsync(_reservationId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CancelAsGuestAsync_WithWrongContact_Throws_AndDoesNotDelete()
+    {
+        SetupReservation();
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("OTHER");
+        _guests.Setup(g => g.FindIdsByContactHashAsync("OTHER", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Guid>());
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().CancelAsGuestAsync(_reservationId, "+34699999999", null));
+
+        _reservations.Verify(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelAsGuestAsync_OnUserReservation_Throws()
+    {
+        SetupReservation(reservationUserId: Guid.NewGuid()); // reserva de usuario, no de invitado
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().CancelAsGuestAsync(_reservationId, "+34600000000", null));
+    }
+
+    [Fact]
+    public async Task RescheduleAsGuestAsync_WithMatchingContact_MovesTime()
+    {
+        SetupReservation();
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("HASH");
+        _guests.Setup(g => g.FindIdsByContactHashAsync("HASH", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { _reservation.GuestId!.Value });
+        var newStart = _reservation.StartTime.AddHours(2);
+
+        var result = await CreateService().RescheduleAsGuestAsync(_reservationId, "+34600000000", newStart);
+
+        Assert.Equal(newStart, result.StartTime);
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // --- Listados ------------------------------------------------------------

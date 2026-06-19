@@ -90,14 +90,21 @@ public class ReservationsController(
         }
     }
 
-    /// <summary>Reprograma una reserva (owner del negocio, staff o el propio usuario). Conserva la duración + auditoría.</summary>
+    /// <summary>
+    /// Reprograma una reserva. Con JWT: owner, staff o el propio usuario. Sin JWT: el
+    /// invitado dueño de la reserva, verificado con su teléfono/email en <c>contact</c>.
+    /// Conserva la duración + auditoría; respeta la ventana de antelación del negocio.
+    /// </summary>
     [HttpPatch("{id:guid}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<ReservationResponse>> Reschedule(Guid id, RescheduleReservationRequest request, CancellationToken ct)
     {
         try
         {
-            var result = await management.RescheduleAsync(id, CurrentUserId, request.StartTime, ct);
+            var userId = TryGetUserId();
+            var result = userId is { } uid
+                ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
+                : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
             return Ok(result);
         }
         catch (ReservationNotFoundException ex)
@@ -107,6 +114,10 @@ public class ReservationsController(
         catch (ReservationForbiddenException ex)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (CancellationWindowClosedException ex)
+        {
+            return Conflict(new { error = "window_closed", message = ex.Message });
         }
         catch (SlotUnavailableException ex)
         {
@@ -141,14 +152,22 @@ public class ReservationsController(
         }
     }
 
-    /// <summary>Cancela una reserva (owner del negocio, staff o el propio usuario). Hard-delete + auditoría.</summary>
+    /// <summary>
+    /// Cancela una reserva (hard-delete + auditoría). Con JWT: owner, staff o el propio
+    /// usuario. Sin JWT: el invitado dueño, verificado con su teléfono/email en <c>contact</c>.
+    /// Respeta la ventana de antelación del negocio.
+    /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize]
-    public async Task<IActionResult> Cancel(Guid id, [FromQuery] string? reason, CancellationToken ct)
+    [AllowAnonymous]
+    public async Task<IActionResult> Cancel(Guid id, [FromQuery] string? reason, [FromQuery] string? contact, CancellationToken ct)
     {
         try
         {
-            await management.CancelAsync(id, CurrentUserId, reason, ct);
+            var userId = TryGetUserId();
+            if (userId is { } uid)
+                await management.CancelAsync(id, uid, reason, ct);
+            else
+                await management.CancelAsGuestAsync(id, contact, reason, ct);
             return NoContent();
         }
         catch (ReservationNotFoundException ex)
@@ -158,6 +177,10 @@ public class ReservationsController(
         catch (ReservationForbiddenException ex)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (CancellationWindowClosedException ex)
+        {
+            return Conflict(new { error = "window_closed", message = ex.Message });
         }
     }
 }
