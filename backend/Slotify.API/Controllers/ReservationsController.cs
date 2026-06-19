@@ -118,6 +118,29 @@ public class ReservationsController(
         }
     }
 
+    /// <summary>Confirma una reserva pendiente (owner del negocio o su staff). Negocios con confirmación manual.</summary>
+    [HttpPost("{id:guid}/confirm")]
+    [Authorize]
+    public async Task<ActionResult<ReservationResponse>> Confirm(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await management.ConfirmAsync(id, CurrentUserId, ct));
+        }
+        catch (ReservationNotFoundException ex)
+        {
+            return NotFound(new { error = "reservation_not_found", message = ex.Message });
+        }
+        catch (ReservationForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (ReservationNotPendingException ex)
+        {
+            return Conflict(new { error = "not_pending", message = ex.Message });
+        }
+    }
+
     /// <summary>Cancela una reserva (owner del negocio, staff o el propio usuario). Hard-delete + auditoría.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize]

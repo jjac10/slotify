@@ -95,6 +95,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(b => b.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
             e.Property(b => b.SlotIntervalMinutes).HasColumnName("slot_interval_minutes");
             e.Property(b => b.Timezone).HasColumnName("timezone").HasMaxLength(64).HasDefaultValue("Europe/Madrid");
+            e.Property(b => b.ConfirmationMode).HasColumnName("confirmation_mode").HasMaxLength(50).HasDefaultValue("auto");
             e.Property(b => b.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
             e.Property(b => b.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
             e.Property(b => b.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();

@@ -20,6 +20,7 @@ public class BookingServiceTests
     private readonly Mock<ICryptoService> _crypto = new();
     private readonly Mock<IBlindIndex> _blindIndex = new();
     private readonly Mock<IFreemiumLimitService> _limits = new();
+    private readonly Mock<IBusinessRepository> _businesses = new();
 
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _serviceId = Guid.NewGuid();
@@ -32,10 +33,18 @@ public class BookingServiceTests
         // prueban el bloqueo lo sobrescriben explícitamente.
         _limits.Setup(l => l.CanAddReservationThisMonthAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        // Por defecto el negocio existe con confirmación automática; los tests del
+        // modo manual lo sobrescriben con SetConfirmationMode.
+        SetConfirmationMode("auto");
     }
 
+    /// <summary>Configura el negocio que devuelve el repo con un modo de confirmación dado.</summary>
+    private void SetConfirmationMode(string mode) =>
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz", ConfirmationMode = mode });
+
     private BookingService CreateService() =>
-        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object);
+        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object, _businesses.Object);
 
     private void SetupValidServiceAndStaff(int duration = 30, Guid? staffUserId = null)
     {
@@ -175,6 +184,49 @@ public class BookingServiceTests
 
         _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
         _limits.Verify(l => l.CanAddReservationThisMonthAsync(_businessId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenBusinessAutoConfirms_ReservationIsConfirmed()
+    {
+        SetupValidServiceAndStaff();
+        SetConfirmationMode("auto");
+        var userId = Guid.NewGuid();
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        var request = new CreateReservationRequest(_businessId, _serviceId, _staffId, Start, null, null, null);
+        var result = await CreateService().CreateAsync(request, userId);
+
+        Assert.Equal("confirmed", saved!.Status);
+        Assert.Equal("confirmed", result.Status);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenBusinessConfirmsManually_ReservationIsPending()
+    {
+        SetupValidServiceAndStaff();
+        SetConfirmationMode("manual");
+        var userId = Guid.NewGuid();
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        var request = new CreateReservationRequest(_businessId, _serviceId, _staffId, Start, null, null, null);
+        var result = await CreateService().CreateAsync(request, userId);
+
+        Assert.Equal("pending", saved!.Status);
+        Assert.Equal("pending", result.Status);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenBusinessDoesNotExist_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync((Business?)null);
+
+        await Assert.ThrowsAsync<BusinessNotFoundException>(
+            () => CreateService().CreateAsync(GuestRequest(), userId: null));
     }
 
     [Fact]

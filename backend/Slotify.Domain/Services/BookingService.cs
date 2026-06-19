@@ -17,11 +17,15 @@ public class BookingService(
     IGuestRepository guests,
     ICryptoService crypto,
     IBlindIndex blindIndex,
-    IFreemiumLimitService limits)
+    IFreemiumLimitService limits,
+    IBusinessRepository businesses)
 {
     public async Task<ReservationResponse> CreateAsync(
         CreateReservationRequest request, Guid? userId, CancellationToken ct = default)
     {
+        var business = await businesses.GetByIdAsync(request.BusinessId, ct)
+            ?? throw new BusinessNotFoundException(request.BusinessId);
+
         var service = await services.GetByIdAsync(request.ServiceId, ct);
         if (service is null || service.BusinessId != request.BusinessId)
             throw new ServiceNotFoundException(request.ServiceId);
@@ -49,6 +53,10 @@ public class BookingService(
         if (await reservations.HasOverlapAsync(request.StaffId, startTime, endTime, ct: ct))
             throw new SlotUnavailableException();
 
+        // Modo de confirmación del negocio: 'auto' → la reserva nace confirmada;
+        // 'manual' → nace pendiente y el owner/staff la confirma luego.
+        var status = business.ConfirmationMode == "manual" ? "pending" : "confirmed";
+
         var reservation = new Reservation
         {
             Id = Guid.NewGuid(),
@@ -59,7 +67,7 @@ public class BookingService(
             GuestId = guestId,
             StartTime = startTime,
             EndTime = endTime,
-            Status = "pending",
+            Status = status,
         };
         await reservations.AddAsync(reservation, ct);
 

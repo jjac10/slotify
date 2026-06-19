@@ -40,7 +40,8 @@ public class BookingFlowIntegrationTests : IClassFixture<PostgresFixture>, IAsyn
     private BookingService NewBookingService(SlotifyDbContext db) => new(
         new ReservationRepository(db), new ServiceRepository(db), new StaffRepository(db),
         new GuestRepository(db), new AesGcmCryptoService(Crypto), new HmacBlindIndex(Crypto),
-        new FreemiumLimitService(new TierRepository(db), new StaffRepository(db), new ServiceRepository(db), new ReservationRepository(db)));
+        new FreemiumLimitService(new TierRepository(db), new StaffRepository(db), new ServiceRepository(db), new ReservationRepository(db)),
+        new BusinessRepository(db));
 
     [Fact]
     public async Task CreateAsync_GuestBooking_PersistsReservationAndGuest()

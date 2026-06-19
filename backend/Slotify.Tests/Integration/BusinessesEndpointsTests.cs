@@ -49,4 +49,55 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         Assert.Single(mine!);
         Assert.Equal("Negocio B", mine![0].Name);
     }
+
+    // --- PUT /businesses/{id}/confirmation-mode -----------------------------
+
+    private async Task<(Guid businessId, HttpClient owner)> RegisterOwnerAsync()
+    {
+        var req = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", req)).Content.ReadFromJsonAsync<AuthResult>();
+        var owner = _factory.CreateClient();
+        owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        return (auth.BusinessId!.Value, owner);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_AsOwner_Returns200_AndPersists()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("manual", body!.ConfirmationMode);
+
+        // Persiste: lo refleja el listado del owner.
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal("manual", mine!.Single(b => b.Id == businessId).ConfirmationMode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_InvalidMode_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("nope"));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_WithoutToken_Returns401()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+    }
 }

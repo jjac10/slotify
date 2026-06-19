@@ -92,6 +92,45 @@ public class ReservationManagementService(
     }
 
     /// <summary>
+    /// Confirma una reserva pendiente (negocios con confirmación manual). Solo el owner
+    /// del negocio o su staff (NO el cliente). Transición pending → confirmed, bump de
+    /// version (optimistic locking) y auditoría action='confirmed'.
+    /// </summary>
+    public async Task<ReservationResponse> ConfirmAsync(
+        Guid reservationId, Guid currentUserId, CancellationToken ct = default)
+    {
+        var reservation = await reservations.GetByIdAsync(reservationId, ct)
+            ?? throw new ReservationNotFoundException(reservationId);
+
+        // Confirmar es una acción del negocio: owner o staff, nunca el cliente.
+        var actorType = await ResolveBusinessActorOrThrowAsync(reservation.BusinessId, currentUserId, ct);
+
+        if (reservation.Status != "pending")
+            throw new ReservationNotPendingException(reservation.Status);
+
+        var oldValues = JsonSerializer.Serialize(new { reservation.Status });
+
+        reservation.Status = "confirmed";
+        reservation.Version++;
+        reservation.UpdatedAt = DateTime.UtcNow;
+
+        await reservations.UpdateAsync(reservation, ct);
+
+        await audit.AddAsync(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ReservationId = reservation.Id,
+            Action = "confirmed",
+            ActorId = currentUserId,
+            ActorType = actorType,
+            OldValues = oldValues,
+            NewValues = JsonSerializer.Serialize(new { reservation.Status }),
+        }, ct);
+
+        return ReservationResponse.From(reservation);
+    }
+
+    /// <summary>
     /// Agenda del negocio: reservas (no canceladas) ordenadas por inicio, con filtros
     /// opcionales por día y trabajador. Solo el owner del negocio o su staff.
     /// </summary>
@@ -135,6 +174,23 @@ public class ReservationManagementService(
 
         if (await staff.ExistsForUserAsync(userId, businessId, ct))
             return;
+
+        throw new ReservationForbiddenException();
+    }
+
+    /// <summary>
+    /// Devuelve el actor_type ('owner'/'employee') si el usuario gestiona el negocio;
+    /// si no, lanza 403. A diferencia de <see cref="ResolveActorTypeOrThrowAsync"/>, NO
+    /// autoriza al cliente de la reserva (confirmar es acción del negocio).
+    /// </summary>
+    private async Task<string> ResolveBusinessActorOrThrowAsync(Guid businessId, Guid userId, CancellationToken ct)
+    {
+        var business = await businesses.GetByIdAsync(businessId, ct);
+        if (business is not null && business.OwnerId == userId)
+            return "owner";
+
+        if (await staff.ExistsForUserAsync(userId, businessId, ct))
+            return "employee";
 
         throw new ReservationForbiddenException();
     }

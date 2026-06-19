@@ -35,6 +35,13 @@ public class Business
     /// </summary>
     public string Timezone { get; set; } = "Europe/Madrid";
 
+    /// <summary>
+    /// Cómo se confirman las reservas nuevas de este negocio:
+    /// <c>auto</c> → nacen 'confirmed' al instante; <c>manual</c> → nacen 'pending'
+    /// y el owner/staff las confirma. Configurable por el owner. Default 'auto'.
+    /// </summary>
+    public string ConfirmationMode { get; set; } = "auto";
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 
