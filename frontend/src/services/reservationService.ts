@@ -13,6 +13,12 @@ export const reservationService = {
     return data
   },
 
+  /** GET /reservations/lookup — reservas de un invitado por teléfono o email. */
+  async lookupGuest(contact: string): Promise<ReservationResponse[]> {
+    const { data } = await api.get<ReservationResponse[]>('/reservations/lookup', { params: { contact } })
+    return data
+  },
+
   /** POST /reservations — crea una reserva (usuario logueado o invitado). */
   async create(request: CreateReservationRequest): Promise<ReservationResponse> {
     const { data } = await api.post<ReservationResponse>('/reservations', request)

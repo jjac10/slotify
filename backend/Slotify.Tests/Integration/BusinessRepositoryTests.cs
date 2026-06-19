@@ -68,4 +68,41 @@ public class BusinessRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLif
         Assert.Equal(owner.Id, loadedOwnerStaff.UserId);
         Assert.Equal(business.Id, loadedOwnerStaff.BusinessId);
     }
+
+    [Fact]
+    public async Task SearchPublicAsync_FiltersByNameCaseInsensitive()
+    {
+        var token = Guid.NewGuid().ToString("N")[..8];
+        await SeedBusinessAsync($"Barbería {token}");
+        await SeedBusinessAsync($"Spa {token}");
+        var repo = new BusinessRepository(_db);
+
+        // Sin filtro: ambos están presentes (el token es único de este test).
+        var byToken = await repo.SearchPublicAsync(token);
+        Assert.Equal(2, byToken.Count(b => b.Name.Contains(token)));
+
+        // Filtro por nombre en MAYÚSCULAS → ILIKE insensible a mayúsculas.
+        var byName = await repo.SearchPublicAsync($"BARBERÍA {token}");
+        Assert.Single(byName.Where(b => b.Name.Contains(token)));
+        Assert.Contains(byName, b => b.Name == $"Barbería {token}");
+    }
+
+    private async Task SeedBusinessAsync(string name)
+    {
+        var owner = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = $"o-{Guid.NewGuid():N}@test.local",
+            PasswordHash = "h",
+            Name = "O",
+            Type = "owner",
+        };
+        var free = await _db.PricingTiers.AsNoTracking().SingleAsync(t => t.Code == "free");
+        _db.Users.Add(owner);
+        await _db.SaveChangesAsync();
+
+        var business = new Business { Id = Guid.NewGuid(), OwnerId = owner.Id, TierId = free.Id, Name = name };
+        var staff = new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, UserId = owner.Id, Role = "owner", Name = "O" };
+        await new BusinessRepository(_db).AddWithOwnerStaffAsync(business, staff);
+    }
 }

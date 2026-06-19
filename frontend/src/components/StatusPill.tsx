@@ -1,17 +1,12 @@
-/** Etiqueta de estado de una reserva con color semántico. */
-const LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmada',
-  cancelled: 'Cancelada',
-  'no-show': 'No-show',
-}
-
-const CLASSES: Record<string, string> = {
-  pending: 'pill-pending',
-  confirmed: 'pill-confirmed',
-  cancelled: 'pill-cancelled',
+/** Etiqueta de estado de una reserva con color semántico (Material 3). */
+const MAP: Record<string, { label: string; cls: string }> = {
+  pending: { label: 'Pendiente', cls: 'bg-secondary-container/40 text-on-secondary-container' },
+  confirmed: { label: 'Confirmada', cls: 'bg-primary-container/15 text-primary' },
+  cancelled: { label: 'Cancelada', cls: 'bg-error-container text-on-error-container' },
+  'no-show': { label: 'No-show', cls: 'bg-surface-container-high text-on-surface-variant' },
 }
 
 export function StatusPill({ status }: { status: string }) {
-  return <span className={`pill ${CLASSES[status] ?? ''}`}>{LABELS[status] ?? status}</span>
+  const s = MAP[status] ?? { label: status, cls: 'bg-surface-container-high text-on-surface-variant' }
+  return <span className={`pill ${s.cls}`}>{s.label}</span>
 }

@@ -40,4 +40,11 @@ public class BusinessService(IBusinessRepository repository)
         var list = await repository.ListByOwnerAsync(ownerId, ct);
         return list.Select(BusinessResponse.From).ToList();
     }
+
+    /// <summary>Listado/búsqueda pública de negocios (para que el cliente elija dónde reservar).</summary>
+    public async Task<IReadOnlyList<BusinessResponse>> SearchPublicAsync(string? query, CancellationToken ct = default)
+    {
+        var list = await repository.SearchPublicAsync(query, ct);
+        return list.Select(BusinessResponse.From).ToList();
+    }
 }

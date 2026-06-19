@@ -22,7 +22,7 @@ public class AvailabilityController(AvailabilityService availability) : Controll
     {
         try
         {
-            return Ok(await availability.GetSlotsAsync(businessId, serviceId, staffId, date, ct));
+            return Ok(await availability.GetSlotsAsync(businessId, serviceId, staffId, date, DateTime.UtcNow, ct));
         }
         catch (BusinessNotFoundException ex) { return NotFound(new { error = "business_not_found", message = ex.Message }); }
         catch (ServiceNotFoundException ex) { return NotFound(new { error = "service_not_found", message = ex.Message }); }

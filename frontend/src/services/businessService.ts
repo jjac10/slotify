@@ -22,6 +22,14 @@ export const businessService = {
     return data
   },
 
+  /** GET /public/businesses — listado/búsqueda pública de negocios (por nombre). */
+  async searchPublic(query?: string): Promise<BusinessResponse[]> {
+    const { data } = await api.get<BusinessResponse[]>('/public/businesses', {
+      params: query ? { q: query } : undefined,
+    })
+    return data
+  },
+
   /** GET /businesses/{id}/services — servicios de un negocio (público). */
   async listServices(businessId: string): Promise<ServiceResponse[]> {
     const { data } = await api.get<ServiceResponse[]>(`/businesses/${businessId}/services`)

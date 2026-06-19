@@ -12,7 +12,7 @@ function uniqueEmail(): string {
 
 const PASSWORD = 'SecurePass123!'
 
-test('un cliente se registra, vuelve a entrar y ve sus reservas vacías', async ({ page }) => {
+test('un cliente se registra, vuelve a entrar y ve su inicio (Mi Slotify)', async ({ page }) => {
   const email = uniqueEmail()
 
   // --- Registro (cliente) ---
@@ -23,23 +23,20 @@ test('un cliente se registra, vuelve a entrar y ve sus reservas vacías', async 
   await page.getByTestId('register-password').fill(PASSWORD)
   await page.getByTestId('register-submit').click()
 
-  // El registro autentica y lleva a "mis reservas", que está vacía.
-  await expect(page).toHaveURL(/\/mis-reservas$/)
-  await expect(page.getByTestId('my-reservations-empty')).toBeVisible()
+  // El registro autentica y lleva al home del cliente (Mi Slotify).
+  await expect(page).toHaveURL(/\/inicio$/)
   await expect(page.getByTestId('current-user')).toHaveText(email)
 
-  // --- Logout ---
+  // --- Logout (desde el menú de perfil arriba a la derecha) ---
+  await page.getByTestId('profile-button').click()
   await page.getByTestId('logout').click()
   await expect(page).toHaveURL(/\/login$/)
 
-  // --- Login con las mismas credenciales ---
+  // --- Login con las mismas credenciales → de nuevo en Mi Slotify ---
   await page.getByTestId('login-email').fill(email)
   await page.getByTestId('login-password').fill(PASSWORD)
   await page.getByTestId('login-submit').click()
-
-  // De nuevo en "mis reservas", vacía.
-  await expect(page).toHaveURL(/\/mis-reservas$/)
-  await expect(page.getByTestId('my-reservations-empty')).toBeVisible()
+  await expect(page).toHaveURL(/\/inicio$/)
 })
 
 test('login con credenciales inválidas muestra error', async ({ page }) => {

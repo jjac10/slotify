@@ -1,64 +1,156 @@
+import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Logo } from './Logo'
 
+interface NavItem {
+  to: string
+  label: string
+  icon: string
+  testid?: string
+}
+
 export function Layout() {
   const { user, status, isOwner, logout } = useAuth()
   const authenticated = status === 'authenticated'
+  const [menuOpen, setMenuOpen] = useState(false)
+  const initial = user?.email?.[0]?.toUpperCase() ?? 'U'
+
+  const items: NavItem[] = [
+    { to: '/explorar', label: 'Explorar', icon: 'explore' },
+    { to: '/mis-reservas', label: 'Reservas', icon: 'event', testid: 'nav-my-reservations' },
+    ...(isOwner
+      ? [
+          { to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' },
+          { to: '/mi-negocio', label: 'Negocio', icon: 'storefront', testid: 'nav-my-business' },
+          { to: '/horario', label: 'Horario', icon: 'schedule', testid: 'nav-hours' },
+          { to: '/agenda', label: 'Agenda', icon: 'calendar_today', testid: 'nav-agenda' },
+        ]
+      : []),
+  ]
 
   return (
-    <div>
-      <header className="app-header">
-        <Link to="/" className="brand-link" aria-label="Slotify — inicio">
+    <div className="min-h-screen bg-surface-dim/30">
+      {/* Sidebar (escritorio) — los data-testid de navegación viven aquí */}
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-56 flex-col border-r border-outline-variant/50 bg-surface px-3 py-stack-md">
+        <Link to="/" className="px-2 py-1" aria-label="Slotify — inicio">
           <Logo />
         </Link>
-        <nav className="app-nav">
-          <NavLink to="/reservar">Reservar</NavLink>
-          {authenticated && (
-            <NavLink to="/mis-reservas" data-testid="nav-my-reservations">
-              Mis reservas
+        <nav className="mt-stack-lg flex flex-1 flex-col gap-1">
+          {items.map((it) => (
+            <NavLink
+              key={it.to}
+              to={it.to}
+              data-testid={it.testid}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  isActive ? 'bg-primary-container text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-low'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={`material-symbols-outlined text-[22px] ${isActive ? 'fill' : ''}`}>{it.icon}</span>
+                  {it.label}
+                </>
+              )}
             </NavLink>
-          )}
-          {isOwner && (
-            <NavLink to="/panel" data-testid="nav-dashboard">
-              Panel
-            </NavLink>
-          )}
-          {isOwner && (
-            <NavLink to="/mi-negocio" data-testid="nav-my-business">
-              Mi negocio
-            </NavLink>
-          )}
-          {isOwner && (
-            <NavLink to="/horario" data-testid="nav-hours">
-              Horario
-            </NavLink>
-          )}
-          {isOwner && (
-            <NavLink to="/agenda" data-testid="nav-agenda">
-              Agenda
-            </NavLink>
-          )}
+          ))}
         </nav>
-        {authenticated ? (
-          <div className="app-user">
-            <span data-testid="current-user">{user?.email}</span>
-            <button type="button" className="btn-secondary" onClick={logout} data-testid="logout">
-              Salir
-            </button>
-          </div>
-        ) : (
-          <div className="app-user">
-            <NavLink to="/login">Entrar</NavLink>
-            <Link to="/register" className="btn" style={{ textDecoration: 'none' }}>
-              Registro
-            </Link>
-          </div>
-        )}
+      </aside>
+
+      {/* Top bar (logo en móvil + perfil arriba a la derecha) */}
+      <header className="sticky top-0 z-30 flex h-16 items-center px-container-mobile md:pl-[calc(14rem+1rem)] md:pr-stack-lg bg-surface/85 backdrop-blur">
+        <Link to="/" className="md:hidden" aria-label="Slotify — inicio">
+          <Logo />
+        </Link>
+        <div className="relative ml-auto">
+          {authenticated ? (
+            <>
+              <button
+                type="button"
+                data-testid="profile-button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-surface-container-low"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-container text-sm font-bold text-on-primary">
+                  {initial}
+                </span>
+                <span data-testid="current-user" className="hidden max-w-[12rem] truncate text-sm text-on-surface-variant sm:inline">
+                  {user?.email}
+                </span>
+                <span className="material-symbols-outlined text-[20px] text-on-surface-variant">expand_more</span>
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} aria-hidden />
+                  <div className="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-1 shadow-lift">
+                    <Link
+                      to={isOwner ? '/panel' : '/inicio'}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface hover:bg-surface-container-low"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">home</span>
+                      Inicio
+                    </Link>
+                    <button
+                      type="button"
+                      data-testid="logout"
+                      onClick={logout}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-on-surface hover:bg-surface-container-low"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">logout</span>
+                      Salir
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-stack-sm">
+              <NavLink to="/login" className="rounded-full px-3.5 py-1.5 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low">
+                Entrar
+              </NavLink>
+              <Link to="/register" className="btn-primary py-2 text-sm">
+                Registro
+              </Link>
+            </div>
+          )}
+        </div>
       </header>
-      <main>
-        <Outlet />
+
+      {/* Contenido */}
+      <main className="md:pl-56">
+        <div className="mx-auto max-w-md md:max-w-3xl px-container-mobile md:px-container-desktop py-stack-lg pb-28 md:pb-stack-xl">
+          <Outlet />
+        </div>
       </main>
+
+      {/* Bottom nav (móvil, sin data-testid) */}
+      {items.length > 0 && (
+        <nav className="md:hidden fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-outline-variant/50 bg-surface/95 backdrop-blur shadow-[0_-2px_12px_rgba(17,28,45,0.06)]">
+          <div className="flex h-16 items-stretch justify-around overflow-x-auto hide-scrollbar">
+            {items.map((it) => (
+              <NavLink
+                key={it.to}
+                to={it.to}
+                className={({ isActive }) =>
+                  `flex min-w-[4rem] flex-col items-center justify-center gap-0.5 px-1 transition-colors active:scale-95 ${
+                    isActive ? 'text-primary' : 'text-on-surface-variant'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className={`material-symbols-outlined text-[24px] ${isActive ? 'fill' : ''}`}>{it.icon}</span>
+                    <span className="text-[11px] font-medium">{it.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      )}
     </div>
   )
 }

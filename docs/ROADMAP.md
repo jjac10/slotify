@@ -40,6 +40,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `users` (mínimo: identidad, type, status) — *PR #1*
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1*
   - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
+  - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
 - ✅ `staff` (+ owner-as-staff) — *PR #2*
 - ✅ `services` — *PR #6*
 - ⬜ `staff_services`
@@ -70,7 +71,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
 - ✅ `CanAddReservationThisMonthAsync` (límite Freemium de reservas) — `BookingService` lanza `FreemiumLimitReachedException` → `409 limit_reached`
 - ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
-- ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12*
+- ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12* · ✅ ver reservas de invitado por teléfono/email (`GET /reservations/lookup`, blind index)
+  - ⚠️ **TODO (seguridad):** el lookup de invitado debe **verificar identidad** (código por SMS al teléfono / email al correo) antes de mostrar las reservas; ahora basta con conocer el contacto. Necesario antes de producción
 - ⬜ Notificaciones (async fire & forget), reviews, waitlist
 
 ---

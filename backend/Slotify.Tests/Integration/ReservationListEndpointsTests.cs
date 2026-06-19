@@ -96,6 +96,10 @@ public class ReservationListEndpointsTests(SlotifyApiFactory factory) : IClassFi
         Assert.Single(mine!);
         Assert.NotNull(mine![0].UserId);
         Assert.Null(mine[0].GuestId);
+        // El listado enriquece con los nombres (negocio/servicio/trabajador).
+        Assert.Equal("Barbería", mine[0].BusinessName);
+        Assert.Equal("Corte", mine[0].ServiceName);
+        Assert.Equal("Pepe", mine[0].StaffName);
     }
 
     [Fact]

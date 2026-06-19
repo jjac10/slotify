@@ -1,28 +1,48 @@
-/** Logo Clock & Slot de Slotify: reloj sobre un slot, en degradado morado→cyan. */
-export function Logo({ withWordmark = true }: { withWordmark?: boolean }) {
+/**
+ * Logo Clock & Slot de Slotify: reloj con el minutero en forma de "slot" (pastilla),
+ * en degradado morado→cyan. Sigue el mockup de /design/slotify_logo.
+ */
+export function Logo({ size = 32, withWordmark = true }: { size?: number; withWordmark?: boolean }) {
   return (
-    <span className="logo">
-      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <span className="inline-flex items-center gap-2">
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
         <defs>
-          <linearGradient id="slotify-logo" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <linearGradient id="slotify-grad" x1="6" y1="10" x2="42" y2="38" gradientUnits="userSpaceOnUse">
             <stop stopColor="#7C3AED" />
             <stop offset="1" stopColor="#06B6D4" />
           </linearGradient>
         </defs>
-        <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#slotify-logo)" />
-        {/* reloj */}
-        <circle cx="16" cy="14" r="6.6" stroke="#fff" strokeWidth="2" fill="none" />
-        <path
-          d="M16 10.5V14l2.5 1.8"
-          stroke="#fff"
+        {/* esfera */}
+        <circle cx="24" cy="24" r="18" stroke="url(#slotify-grad)" strokeWidth="3" />
+        {/* marcas de hora */}
+        <circle
+          cx="24"
+          cy="24"
+          r="15"
+          stroke="url(#slotify-grad)"
           strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeDasharray="1.5 6.35"
+          opacity="0.7"
         />
-        {/* slot reservado */}
-        <rect x="9.5" y="24" width="13" height="3" rx="1.5" fill="#fff" opacity="0.92" />
+        {/* aguja horaria */}
+        <line x1="24" y1="24" x2="15" y2="16" stroke="url(#slotify-grad)" strokeWidth="3" strokeLinecap="round" />
+        {/* minutero = slot (pastilla) */}
+        <line x1="24" y1="24" x2="36" y2="21" stroke="url(#slotify-grad)" strokeWidth="5" strokeLinecap="round" />
+        <circle cx="24" cy="24" r="2.4" fill="#fff" stroke="url(#slotify-grad)" strokeWidth="2" />
       </svg>
-      {withWordmark && <span className="logo-word">Slotify</span>}
+      {withWordmark && (
+        <span
+          className="font-display text-xl font-extrabold tracking-tight"
+          style={{
+            background: 'linear-gradient(90deg, #7C3AED, #06B6D4)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Slotify
+        </span>
+      )}
     </span>
   )
 }

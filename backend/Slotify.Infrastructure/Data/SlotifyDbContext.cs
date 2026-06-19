@@ -239,9 +239,9 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(r => r.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
             e.Property(r => r.CancelledAt).HasColumnName("cancelled_at");
 
-            e.HasOne<Business>().WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne<Service>().WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne<Staff>().WithMany().HasForeignKey(r => r.StaffId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.Business).WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Service).WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.Staff).WithMany().HasForeignKey(r => r.StaffId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne<Guest>().WithMany().HasForeignKey(r => r.GuestId).OnDelete(DeleteBehavior.SetNull);
 

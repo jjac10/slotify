@@ -16,7 +16,16 @@ public class AvailabilityEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
 {
     private readonly SlotifyApiFactory _factory = factory;
     private readonly HttpClient _client = factory.CreateClient();
-    private static readonly DateOnly Date = new(2026, 6, 22); // lunes (DayOfWeek = 1)
+    // Próximo lunes con al menos una semana de margen → siempre futuro (el endpoint
+    // descarta horas ya pasadas usando la hora actual real).
+    private static readonly DateOnly Date = NextMonday();
+
+    private static DateOnly NextMonday()
+    {
+        var d = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(7);
+        while (d.DayOfWeek != DayOfWeek.Monday) d = d.AddDays(1);
+        return d;
+    }
 
     private async Task<(Guid businessId, Guid serviceId, Guid staffId, HttpClient owner)> SetupAsync(int duration = 30)
     {
@@ -50,8 +59,12 @@ public class AvailabilityEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
             $"/businesses/{businessId}/availability?serviceId={serviceId}&staffId={staffId}&date={Date:yyyy-MM-dd}");
 
         Assert.Equal(6, slots!.Count); // 9-12, 30 min → 6 slots
-        // El horario (9:00) es hora local Europe/Madrid; en verano (CEST, UTC+2) → 07:00 UTC.
-        Assert.Equal(new DateTime(2026, 6, 22, 7, 0, 0, DateTimeKind.Utc), slots[0].Start);
+        // El horario (9:00) es hora local Europe/Madrid; se compara convertido a UTC
+        // (respeta DST según la fecha concreta).
+        var tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
+        var expectedFirst = TimeZoneInfo.ConvertTimeToUtc(
+            new DateTime(Date.Year, Date.Month, Date.Day, 9, 0, 0, DateTimeKind.Unspecified), tz);
+        Assert.Equal(expectedFirst, slots[0].Start);
     }
 
     [Fact]
@@ -76,7 +89,7 @@ public class AvailabilityEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
     public async Task Availability_ClosedDay_ReturnsEmpty()
     {
         var (businessId, serviceId, staffId, _) = await SetupAsync();
-        var sunday = new DateOnly(2026, 6, 21); // domingo, sin horario configurado
+        var sunday = Date.AddDays(-1); // domingo (sin horario configurado)
 
         var slots = await _client.GetFromJsonAsync<List<AvailableSlot>>(
             $"/businesses/{businessId}/availability?serviceId={serviceId}&staffId={staffId}&date={sunday:yyyy-MM-dd}");
