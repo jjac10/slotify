@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 185/185 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
+- **Tests:** 249/249 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -41,7 +41,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1* · ✅ `timezone` — *PR #—* · ✅ `confirmation_mode` (`auto`|`manual`) — *PR #26*
   - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
   - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
-- ✅ `staff` (+ owner-as-staff) — *PR #2*
+- ✅ `staff` (+ owner-as-staff) — *PR #2* · ✅ gestión CRUD de empleados (owner) — *PR #29*
 - ✅ `services` — *PR #6*
 - ⬜ `staff_services`
 - ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
@@ -61,7 +61,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
   - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync`
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
-- ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync`
+- ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
 - ✅ `DashboardService` (resumen owner-only: contadores histórico/mes, ingresos del mes, próximas reservas) — *PR #19*; `IReservationRepository.{CountByBusiness,SumRevenueByBusiness,ListUpcomingByBusiness}Async`
 - ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
@@ -85,7 +85,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ **CORS** habilitado para el frontend (orígenes en `Cors:AllowedOrigins`) — *PR #15*
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` (devuelve `businessId` del owner — *PR #19*) · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
 - ✅ `GET /businesses` (owner) · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
-- ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17*
+- ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17* · ✅ `POST` (alta, owner+Freemium) · ✅ `PATCH /{staffId}` (editar) · ✅ `DELETE /{staffId}` (baja lógica; 409 si es el owner) — *PR #29*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14* · ✅ `POST /reservations/{id}/confirm` (confirmar, owner/staff) · ✅ `PUT /businesses/{id}/confirmation-mode` (auto/manual, owner) — *PR #26*
@@ -147,12 +147,19 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #24 | `feature/visual-redesign` | **Frontend**: rediseño visual. Sistema de diseño (tokens de marca morado/cyan, tipografía, componentes) + logo **Clock & Slot**, header con estados activos + responsive, cards de auth, métricas del panel, status pills, listas como cards, wizard pulido. Sin tocar `data-testid` (e2e intactos) |
 | #25 | `feature/cancel-reschedule-ui` | **Frontend**: cancelar + reprogramar reservas. Botón "Cancelar" con confirmación inline (status pill → cancelled + desaparece) en "Mis reservas" y Agenda del owner; botón "Reprogramar" abre `RescheduleModal` (selector fecha + slots en tiempo real vía `GET /availability`). Solo para reservas activas futuras. E2e de cancelar y reprogramar |
 | #26 | `feature/reservation-confirmation` | **Backend (TDD)**: confirmación de reservas. `Business.confirmation_mode` (`auto`\|`manual`, migración `Add_BusinessConfirmationMode`, default `auto`); `BookingService` fija el estado inicial (`confirmed`/`pending`) según el modo; `ReservationManagementService.ConfirmAsync` (owner/staff, NO el cliente; `pending`→`confirmed` + optimistic locking + audit `confirmed`); `BusinessService.SetConfirmationModeAsync` (owner-only); endpoints `POST /reservations/{id}/confirm` + `PUT /businesses/{id}/confirmation-mode`; `confirmation_mode` en `BusinessResponse`. 212 tests verde (+27) |
+| #27 | `feature/reservation-policy` | **Backend (TDD)**: acciones de invitado + ventana de antelación. `CancelAsGuestAsync`/`RescheduleAsGuestAsync` (verificación por contacto vía blind index, `[AllowAnonymous]`); `Business.cancellation_cutoff_hours` (0=sin límite) → cliente bloqueado dentro de la ventana (owner/staff exentos) → `409 window_closed`; `BusinessService.SetCancellationCutoffAsync`. ⚠️ TODO seguridad: OTP por SMS/email antes de producción |
+| #28 | `feature/settings-hub-and-guest-actions` | **Frontend**: hub de configuración (`/configuracion`) con Datos · Servicios · Horario · Festivos · Confirmación (toggle segmentado) · Ventana de cancelación; cancelar/reprogramar como invitado en "Mis reservas"; confirmar en Agenda. Rutas viejas → `/configuracion` |
+| #29 | `feature/staff-management` | **Backend (TDD)**: gestión de empleados (owner). `StaffService.CreateAsync` (límite Freemium → Premium para añadir), `UpdateAsync`, `DeactivateAsync` (baja lógica; el owner-staff no se puede dar de baja); `CountByBusinessAsync` solo activos; endpoints `POST`/`PATCH`/`DELETE /businesses/{id}/staff/{staffId}`. Sin migración (tabla `staff` ya existía). 249 tests verde (+16) |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Hub de configuración del negocio** (frontend, *PR #28*): consolidar nav "Configuración" con secciones (Datos · Servicios · Horario · **Festivos** · **Confirmación** auto/manual) + UI de festivos + toggle segmentado de confirmación (consume `PUT /businesses/{id}/confirmation-mode`) + ventana de cancelación configurable. Luego: **confirmar/rechazar en Agenda** (`POST /reservations/{id}/confirm`) + estado "pendiente de confirmación" para el cliente. Siguiente bloque: **trabajadores** (`staff` + `staff_services`). Otras: business profile (categoría/ubicación), RLS PostgreSQL, notificaciones.
+🎯 **Trabajadores** — el backend de gestión de empleados ya está (*PR #29*). Siguiente:
+1. **Frontend de empleados** (owner): sección "Equipo" en `/configuracion` para alta/edición/baja vía `POST`/`PATCH`/`DELETE /businesses/{id}/staff`. Con aviso de que añadir empleados requiere Premium (Free solo permite al owner).
+2. **`staff_services`** (many-to-many): qué servicios realiza cada trabajador; filtrar staff por servicio en el flujo de reserva.
+
+Otras: business profile (categoría/ubicación), RLS PostgreSQL, notificaciones, OTP para acciones de invitado (TODO seguridad de *PR #27*).
 
 ---
 
