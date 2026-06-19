@@ -5,8 +5,10 @@ import type {
   BusinessHour,
   BusinessResponse,
   CreateServiceRequest,
+  CreateStaffRequest,
   DashboardResponse,
   ServiceResponse,
+  StaffMember,
 } from '../types/api'
 
 interface AvailabilityQuery {
@@ -53,11 +55,24 @@ export const businessService = {
   },
 
   /** GET /businesses/{id}/staff — trabajadores activos del negocio (público). */
-  async listStaff(businessId: string): Promise<Array<{ id: string; name: string; role: string }>> {
-    const { data } = await api.get(
-      `/businesses/${businessId}/staff`,
-    )
+  async listStaff(businessId: string): Promise<StaffMember[]> {
+    const { data } = await api.get<StaffMember[]>(`/businesses/${businessId}/staff`)
     return data
+  },
+
+  /** POST /businesses/{id}/staff — alta de empleado (solo owner; requiere Premium si Free está al límite). */
+  async createStaff(businessId: string, request: CreateStaffRequest): Promise<StaffMember> {
+    const { data } = await api.post<StaffMember>(`/businesses/${businessId}/staff`, {
+      name: request.name,
+      email: request.email || null,
+      phone: request.phone || null,
+    })
+    return data
+  },
+
+  /** DELETE /businesses/{id}/staff/{staffId} — baja lógica de un empleado (solo owner). */
+  async deactivateStaff(businessId: string, staffId: string): Promise<void> {
+    await api.delete(`/businesses/${businessId}/staff/${staffId}`)
   },
 
   /** GET /businesses/{id}/dashboard — resumen del negocio (solo owner). */
