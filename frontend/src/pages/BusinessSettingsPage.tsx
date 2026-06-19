@@ -297,7 +297,7 @@ export function BusinessSettingsPage() {
         const b = list.find((x) => x.id === businessId) ?? list[0] ?? null
         setBusiness(b)
         if (b) {
-          setCutoffHours(String(b.cancellationCutoffHours))
+          setCutoffHours(String(b.cancellationCutoffHours ?? 0))
         }
       })
       .catch((err) => { if (active) setLoadError(getApiError(err)?.message ?? 'No se pudo cargar tu negocio.') })
@@ -486,25 +486,38 @@ export function BusinessSettingsPage() {
           En modo <strong>automático</strong> las reservas se confirman al instante. En modo <strong>manual</strong> quedan pendientes hasta que las confirmes desde la Agenda.
         </p>
         {confError && <p role="alert" className="alert text-sm">{confError}</p>}
-        <div className="flex flex-wrap gap-2">
-          {(['auto', 'manual'] as const).map((m) => (
+        <div className="flex items-center gap-stack-md flex-wrap">
+          <div className="inline-flex rounded-full border border-outline-variant/50 bg-surface-container p-1 gap-1">
             <button
-              key={m}
               type="button"
-              disabled={confSaving || business?.confirmationMode === m}
-              onClick={() => handleSetMode(m)}
-              data-testid={`confirmation-mode-${m}`}
-              className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-colors disabled:opacity-60 ${
-                business?.confirmationMode === m
-                  ? 'bg-primary-container text-on-primary shadow-card'
-                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              disabled={confSaving}
+              onClick={() => handleSetMode('auto')}
+              data-testid="confirmation-mode-auto"
+              className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${
+                business?.confirmationMode !== 'manual'
+                  ? 'bg-primary text-on-primary shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              {m === 'auto' ? 'Automático' : 'Manual'}
+              Automático
             </button>
-          ))}
-          {confSaved && (
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary self-center">
+            <button
+              type="button"
+              disabled={confSaving}
+              onClick={() => handleSetMode('manual')}
+              data-testid="confirmation-mode-manual"
+              className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${
+                business?.confirmationMode === 'manual'
+                  ? 'bg-primary text-on-primary shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Manual
+            </button>
+          </div>
+          {confSaving && <span className="text-sm text-on-surface-variant">Guardando…</span>}
+          {confSaved && !confSaving && (
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary">
               <span className="material-symbols-outlined text-[16px]">check_circle</span> Guardado
             </span>
           )}
