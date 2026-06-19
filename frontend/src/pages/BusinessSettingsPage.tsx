@@ -410,6 +410,10 @@ export function BusinessSettingsPage() {
   const [cutoffSaved, setCutoffSaved] = useState(false)
   const [cutoffError, setCutoffError] = useState<string | null>(null)
 
+  // Plan
+  const [planSaving, setPlanSaving] = useState(false)
+  const [planError, setPlanError] = useState<string | null>(null)
+
   const loadServices = useCallback(async (id: string) => {
     try {
       setServices(await businessService.listServices(id))
@@ -492,6 +496,20 @@ export function BusinessSettingsPage() {
       setCutoffError(getApiError(err)?.message ?? 'No se pudo guardar.')
     } finally {
       setCutoffSaving(false)
+    }
+  }
+
+  async function handleSetPlan(code: string) {
+    if (!businessId) return
+    setPlanError(null)
+    setPlanSaving(true)
+    try {
+      const updated = await businessService.setPlan(businessId, code)
+      setBusiness((prev) => prev ? { ...prev, plan: updated.plan } : prev)
+    } catch (err) {
+      setPlanError(getApiError(err)?.message ?? 'No se pudo cambiar el plan.')
+    } finally {
+      setPlanSaving(false)
     }
   }
 
@@ -696,6 +714,62 @@ export function BusinessSettingsPage() {
             </span>
           )}
         </form>
+      </SectionCard>
+
+      {/* Plan */}
+      <SectionCard title="Plan" icon="workspace_premium">
+        <div className="flex flex-col gap-stack-md" data-testid="plan-section">
+          <p className="text-sm text-on-surface-variant -mt-stack-sm">
+            El plan Premium desbloquea trabajadores ilimitados y más.
+          </p>
+          {planError && <p role="alert" className="alert text-sm" data-testid="plan-error">{planError}</p>}
+          <div className="flex items-center gap-stack-md flex-wrap">
+            <span className="text-sm font-semibold">Plan actual:</span>
+            <span
+              data-testid="plan-current"
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold ${
+                business?.plan === 'premium'
+                  ? 'bg-primary-container/30 text-primary'
+                  : 'bg-surface-container text-on-surface-variant'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
+              {business?.plan === 'premium' ? 'Premium' : 'Free'}
+            </span>
+          </div>
+
+          {business?.plan === 'premium' ? (
+            <div className="flex items-center gap-stack-md flex-wrap">
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary">
+                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                Plan Premium activo
+              </span>
+              <button
+                type="button"
+                className="btn-secondary"
+                data-testid="plan-downgrade"
+                disabled={planSaving}
+                onClick={() => handleSetPlan('free')}
+              >
+                {planSaving ? 'Cambiando…' : 'Volver a Free'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary self-start"
+              data-testid="plan-upgrade"
+              disabled={planSaving}
+              onClick={() => handleSetPlan('premium')}
+            >
+              {planSaving ? 'Cambiando…' : 'Mejorar a Premium'}
+            </button>
+          )}
+
+          <p className="text-xs text-on-surface-variant">
+            En esta versión el cambio de plan es inmediato y sin pago (demo).
+          </p>
+        </div>
       </SectionCard>
     </section>
   )
