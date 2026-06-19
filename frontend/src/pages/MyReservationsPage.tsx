@@ -4,6 +4,7 @@ import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
+import { RescheduleModal } from '../components/RescheduleModal'
 import type { ReservationResponse } from '../types/api'
 
 function formatDate(iso: string): string {
@@ -13,20 +14,97 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
-function ReservationCard({ r }: { r: ReservationResponse }) {
+interface CardProps {
+  r: ReservationResponse
+  onCancelled?: (id: string) => void
+  onReschedule?: () => void
+}
+
+function ReservationCard({ r, onCancelled, onReschedule }: CardProps) {
+  const canAct = r.status === 'confirmed' && new Date(r.startTime).getTime() > Date.now()
+  const [confirming, setConfirming] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+
+  async function handleCancel() {
+    setCancelling(true)
+    try {
+      await reservationService.cancel(r.id)
+      onCancelled?.(r.id)
+    } catch (err) {
+      setCancelError(getApiError(err)?.message ?? 'No se pudo cancelar.')
+      setCancelling(false)
+    }
+  }
+
   return (
-    <li className="card flex items-center gap-stack-md" data-testid="reservation-item">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/15 text-primary">
-        <span className="material-symbols-outlined">event</span>
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-bold leading-tight">{r.businessName ?? 'Reserva'}</p>
-        <p className="truncate text-sm text-on-surface-variant">
-          {r.serviceName ? `${r.serviceName} · ` : ''}
-          {formatDate(r.startTime)} · {formatTime(r.startTime)}
-        </p>
+    <li className="card flex flex-col gap-stack-sm" data-testid="reservation-item">
+      <div className="flex items-center gap-stack-md">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/15 text-primary">
+          <span className="material-symbols-outlined">event</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-bold leading-tight">{r.businessName ?? 'Reserva'}</p>
+          <p className="truncate text-sm text-on-surface-variant">
+            {r.serviceName ? `${r.serviceName} · ` : ''}
+            {formatDate(r.startTime)} · {formatTime(r.startTime)}
+          </p>
+        </div>
+        <StatusPill status={r.status} />
       </div>
-      <StatusPill status={r.status} />
+
+      {canAct && (onCancelled || onReschedule) && !confirming && (
+        <div className="flex gap-1 pt-1 border-t border-outline-variant/30">
+          {onReschedule && (
+            <button
+              type="button"
+              onClick={onReschedule}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/15 transition-colors"
+              data-testid="reschedule-btn"
+            >
+              <span className="material-symbols-outlined text-[16px]">edit_calendar</span>
+              Reprogramar
+            </button>
+          )}
+          {onCancelled && (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/30 transition-colors"
+              data-testid="cancel-btn"
+            >
+              <span className="material-symbols-outlined text-[16px]">cancel</span>
+              Cancelar
+            </button>
+          )}
+        </div>
+      )}
+
+      {confirming && (
+        <div className="flex flex-col gap-stack-sm pt-1 border-t border-outline-variant/30">
+          <p className="text-sm font-medium">¿Cancelar esta reserva?</p>
+          {cancelError && <p role="alert" className="alert text-xs">{cancelError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-error text-on-error hover:brightness-105 disabled:opacity-50 transition-colors"
+              data-testid="cancel-confirm-btn"
+            >
+              {cancelling ? 'Cancelando…' : 'Sí, cancelar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirming(false); setCancelError(null) }}
+              disabled={cancelling}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50 transition-colors"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      )}
     </li>
   )
 }
@@ -43,6 +121,7 @@ function AuthedReservations() {
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('upcoming')
+  const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
 
   useEffect(() => {
     let active = true
@@ -50,9 +129,7 @@ function AuthedReservations() {
       .listMine()
       .then((data) => active && setReservations(data))
       .catch((err) => active && setError(getApiError(err)?.message ?? 'No se pudieron cargar tus reservas.'))
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   const visible = useMemo(() => {
@@ -62,6 +139,21 @@ function AuthedReservations() {
       tab === 'upcoming' ? new Date(r.startTime).getTime() >= now : new Date(r.startTime).getTime() < now,
     )
   }, [reservations, tab])
+
+  function handleCancelled(id: string) {
+    setReservations((prev) => prev?.filter((r) => r.id !== id) ?? null)
+  }
+
+  function handleRescheduled(updated: ReservationResponse) {
+    setReservations((prev) =>
+      prev?.map((r) =>
+        r.id === updated.id
+          ? { ...r, startTime: updated.startTime, endTime: updated.endTime, status: updated.status }
+          : r,
+      ) ?? null,
+    )
+    setRescheduleTarget(null)
+  }
 
   return (
     <section>
@@ -102,9 +194,22 @@ function AuthedReservations() {
       {visible !== null && visible.length > 0 && (
         <ul className="flex flex-col gap-stack-sm" data-testid="my-reservations-list">
           {visible.map((r) => (
-            <ReservationCard key={r.id} r={r} />
+            <ReservationCard
+              key={r.id}
+              r={r}
+              onCancelled={tab === 'upcoming' ? handleCancelled : undefined}
+              onReschedule={tab === 'upcoming' ? () => setRescheduleTarget(r) : undefined}
+            />
           ))}
         </ul>
+      )}
+
+      {rescheduleTarget && (
+        <RescheduleModal
+          reservation={rescheduleTarget}
+          onClose={() => setRescheduleTarget(null)}
+          onRescheduled={handleRescheduled}
+        />
       )}
     </section>
   )

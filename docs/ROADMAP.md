@@ -102,7 +102,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
-- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*) · ⬜ Vitest + RTL
+- ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
+- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*; cancelar+reprogramar — *PR #25*) · ⬜ Vitest + RTL
 
 ---
 
@@ -142,9 +143,10 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 | #22 | `feature/owner-business-hours` | **Frontend**: pantalla **Horario** (owner): editor del horario semanal vía `GET/PUT /businesses/{id}/hours` (toggle abierto/cerrado + apertura/cierre por día; prefija L–V 09–17). E2e de guardado de horario |
 | #23 | `feature/freemium-reservation-limit` | Límite Freemium de reservas/mes: `IFreemiumLimitService.CanAddReservationThisMonthAsync` (reutiliza `CountByBusinessAsync`, ventana del mes UTC); `BookingService` lanza `FreemiumLimitReachedException` → `ReservationsController` mapea a `409 limit_reached`. Sin migración. TDD unit + integración |
 | #24 | `feature/visual-redesign` | **Frontend**: rediseño visual. Sistema de diseño (tokens de marca morado/cyan, tipografía, componentes) + logo **Clock & Slot**, header con estados activos + responsive, cards de auth, métricas del panel, status pills, listas como cards, wizard pulido. Sin tocar `data-testid` (e2e intactos) |
+| #25 | `feature/cancel-reschedule-ui` | **Frontend**: cancelar + reprogramar reservas. Botón "Cancelar" con confirmación inline (status pill → cancelled + desaparece) en "Mis reservas" y Agenda del owner; botón "Reprogramar" abre `RescheduleModal` (selector fecha + slots en tiempo real vía `GET /availability`). Solo para reservas `confirmed` futuras. E2e de cancelar y reprogramar |
 
 ---
 
 ## Siguiente paso
 
-🎯 **Gestión de reservas en el front**: cancelar/reprogramar desde "Mis reservas" y agenda (endpoints `DELETE`/`PATCH /reservations/{id}` ya existen) + festivos del negocio (`/holidays`). Alternativas: **RLS de PostgreSQL** (aislamiento entre negocios + ADR) o **notificaciones** (email/recordatorios).
+🎯 Opciones: **festivos del negocio en el front** (`GET/POST/DELETE /holidays`, endpoints ya existen) · **business profile** (categoría + lat/lng + foto → desbloquea Explorar con filtros) · **RLS PostgreSQL** (aislamiento entre negocios) · **notificaciones** (email/recordatorios).

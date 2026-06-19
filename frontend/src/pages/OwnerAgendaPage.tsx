@@ -3,31 +3,120 @@ import { useAuth } from '../hooks/useAuth'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { StatusPill } from '../components/StatusPill'
+import { RescheduleModal } from '../components/RescheduleModal'
 import type { ReservationResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+interface ItemProps {
+  reservation: ReservationResponse
+  onCancelled: (id: string) => void
+  onReschedule: () => void
+}
+
+function AgendaItem({ reservation: r, onCancelled, onReschedule }: ItemProps) {
+  const canAct = r.status === 'confirmed' && new Date(r.startTime).getTime() > Date.now()
+  const [confirming, setConfirming] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+
+  async function handleCancel() {
+    setCancelling(true)
+    try {
+      await reservationService.cancel(r.id)
+      onCancelled(r.id)
+    } catch (err) {
+      setCancelError(getApiError(err)?.message ?? 'No se pudo cancelar.')
+      setCancelling(false)
+    }
+  }
+
+  return (
+    <li className="glass-card rounded-xl p-stack-md flex flex-col gap-stack-sm" data-testid="agenda-item">
+      <div className="flex items-center gap-stack-md">
+        <span className="w-11 h-11 rounded-full bg-secondary-container/40 text-on-secondary-container flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined">person</span>
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="truncate font-semibold">
+            {r.serviceName ?? 'Reserva'}
+            {r.staffName ? ` · ${r.staffName}` : ''}
+          </p>
+          <p className="truncate text-sm text-on-surface-variant">
+            {formatDateTime(r.startTime)} · {r.guestId ? 'Invitado' : 'Cliente'}
+          </p>
+        </div>
+        <StatusPill status={r.status} />
+      </div>
+
+      {canAct && !confirming && (
+        <div className="flex gap-1 pt-1 border-t border-outline-variant/30">
+          <button
+            type="button"
+            onClick={onReschedule}
+            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/15 transition-colors"
+            data-testid="reschedule-btn"
+          >
+            <span className="material-symbols-outlined text-[16px]">edit_calendar</span>
+            Reprogramar
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/30 transition-colors"
+            data-testid="cancel-btn"
+          >
+            <span className="material-symbols-outlined text-[16px]">cancel</span>
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {confirming && (
+        <div className="flex flex-col gap-stack-sm pt-1 border-t border-outline-variant/30">
+          <p className="text-sm font-medium">¿Cancelar esta reserva?</p>
+          {cancelError && <p role="alert" className="alert text-xs">{cancelError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-error text-on-error hover:brightness-105 disabled:opacity-50 transition-colors"
+              data-testid="cancel-confirm-btn"
+            >
+              {cancelling ? 'Cancelando…' : 'Sí, cancelar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirming(false); setCancelError(null) }}
+              disabled={cancelling}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50 transition-colors"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      )}
+    </li>
+  )
+}
+
 export function OwnerAgendaPage() {
   const { businessId, isOwner } = useAuth()
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
 
   useEffect(() => {
     if (!businessId) return
     let active = true
     reservationService
       .listForBusiness(businessId)
-      .then((data) => {
-        if (active) setReservations(data)
-      })
-      .catch((err) => {
-        if (active) setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.')
-      })
-    return () => {
-      active = false
-    }
+      .then((data) => { if (active) setReservations(data) })
+      .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.') })
+    return () => { active = false }
   }, [businessId])
 
   if (!isOwner || !businessId) {
@@ -37,6 +126,21 @@ export function OwnerAgendaPage() {
         <p className="text-on-surface-variant">Esta sección es solo para propietarios de un negocio.</p>
       </section>
     )
+  }
+
+  function handleCancelled(id: string) {
+    setReservations((prev) => prev?.filter((r) => r.id !== id) ?? null)
+  }
+
+  function handleRescheduled(updated: ReservationResponse) {
+    setReservations((prev) =>
+      prev?.map((r) =>
+        r.id === updated.id
+          ? { ...r, startTime: updated.startTime, endTime: updated.endTime, status: updated.status }
+          : r,
+      ) ?? null,
+    )
+    setRescheduleTarget(null)
   }
 
   return (
@@ -61,24 +165,23 @@ export function OwnerAgendaPage() {
 
       {reservations !== null && reservations.length > 0 && (
         <ul className="flex flex-col gap-stack-sm" data-testid="agenda-list">
-          {reservations.map((reservation) => (
-            <li key={reservation.id} className="glass-card rounded-xl p-stack-md flex items-center gap-stack-md" data-testid="agenda-item">
-              <span className="w-11 h-11 rounded-full bg-secondary-container/40 text-on-secondary-container flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined">person</span>
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="truncate font-semibold">
-                  {reservation.serviceName ?? 'Reserva'}
-                  {reservation.staffName ? ` · ${reservation.staffName}` : ''}
-                </p>
-                <p className="truncate text-sm text-on-surface-variant">
-                  {formatDateTime(reservation.startTime)} · {reservation.guestId ? 'Invitado' : 'Cliente'}
-                </p>
-              </div>
-              <StatusPill status={reservation.status} />
-            </li>
+          {reservations.map((r) => (
+            <AgendaItem
+              key={r.id}
+              reservation={r}
+              onCancelled={handleCancelled}
+              onReschedule={() => setRescheduleTarget(r)}
+            />
           ))}
         </ul>
+      )}
+
+      {rescheduleTarget && (
+        <RescheduleModal
+          reservation={rescheduleTarget}
+          onClose={() => setRescheduleTarget(null)}
+          onRescheduled={handleRescheduled}
+        />
       )}
     </section>
   )
