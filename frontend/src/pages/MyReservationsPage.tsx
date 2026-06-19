@@ -21,7 +21,8 @@ interface CardProps {
 }
 
 function ReservationCard({ r, onCancelled, onReschedule }: CardProps) {
-  const canAct = r.status === 'confirmed' && new Date(r.startTime).getTime() > Date.now()
+  const isActive = r.status === 'pending' || r.status === 'confirmed'
+  const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
   const [confirming, setConfirming] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
