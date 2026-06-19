@@ -13,11 +13,19 @@ namespace Slotify.Domain.Services;
 public class StaffService(
     IStaffRepository staff,
     IBusinessRepository businesses,
-    IFreemiumLimitService limits)
+    IFreemiumLimitService limits,
+    IStaffServiceRepository assignments)
 {
-    public async Task<IReadOnlyList<StaffResponse>> ListAsync(Guid businessId, CancellationToken ct = default)
+    /// <summary>
+    /// Trabajadores activos del negocio. Si se indica <paramref name="serviceId"/>,
+    /// solo los que pueden realizar ese servicio (un staff sin asignaciones puede todos).
+    /// </summary>
+    public async Task<IReadOnlyList<StaffResponse>> ListAsync(
+        Guid businessId, Guid? serviceId = null, CancellationToken ct = default)
     {
-        var list = await staff.ListByBusinessAsync(businessId, ct);
+        var list = serviceId is { } id
+            ? await assignments.ListStaffByServiceAsync(businessId, id, ct)
+            : await staff.ListByBusinessAsync(businessId, ct);
         return list.Select(StaffResponse.From).ToList();
     }
 
