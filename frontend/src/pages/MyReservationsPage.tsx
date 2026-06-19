@@ -136,9 +136,15 @@ function AuthedReservations() {
   const visible = useMemo(() => {
     if (!reservations) return null
     const now = Date.now()
-    return reservations.filter((r) =>
-      tab === 'upcoming' ? new Date(r.startTime).getTime() >= now : new Date(r.startTime).getTime() < now,
-    )
+    return reservations
+      .filter((r) =>
+        tab === 'upcoming' ? new Date(r.startTime).getTime() >= now : new Date(r.startTime).getTime() < now,
+      )
+      // Próximas: la cita más cercana primero; pasadas: la más reciente primero.
+      .sort((a, b) => {
+        const diff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        return tab === 'upcoming' ? diff : -diff
+      })
   }, [reservations, tab])
 
   function handleCancelled(id: string) {
@@ -228,7 +234,10 @@ function GuestLookup() {
     setError(null)
     setLoading(true)
     try {
-      setResults(await reservationService.lookupGuest(contact.trim()))
+      const found = await reservationService.lookupGuest(contact.trim())
+      // Orden cronológico: la cita más cercana primero.
+      found.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      setResults(found)
     } catch (err) {
       setError(getApiError(err)?.message ?? 'No se pudo buscar. Inténtalo de nuevo.')
     } finally {
