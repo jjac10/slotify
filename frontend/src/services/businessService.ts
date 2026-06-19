@@ -54,9 +54,15 @@ export const businessService = {
     return data
   },
 
-  /** GET /businesses/{id}/staff — trabajadores activos del negocio (público). */
-  async listStaff(businessId: string): Promise<StaffMember[]> {
-    const { data } = await api.get<StaffMember[]>(`/businesses/${businessId}/staff`)
+  /**
+   * GET /businesses/{id}/staff — trabajadores activos del negocio (público).
+   * Con `serviceId` filtra a los que pueden realizar ese servicio (un trabajador
+   * sin servicios asignados se considera capaz de todos).
+   */
+  async listStaff(businessId: string, serviceId?: string): Promise<StaffMember[]> {
+    const { data } = await api.get<StaffMember[]>(`/businesses/${businessId}/staff`, {
+      params: serviceId ? { serviceId } : undefined,
+    })
     return data
   },
 
@@ -73,6 +79,18 @@ export const businessService = {
   /** DELETE /businesses/{id}/staff/{staffId} — baja lógica de un empleado (solo owner). */
   async deactivateStaff(businessId: string, staffId: string): Promise<void> {
     await api.delete(`/businesses/${businessId}/staff/${staffId}`)
+  },
+
+  /** GET /businesses/{id}/staff/{staffId}/services — ids de servicios que hace el trabajador (solo owner). */
+  async getStaffServices(businessId: string, staffId: string): Promise<string[]> {
+    const { data } = await api.get<string[]>(`/businesses/${businessId}/staff/${staffId}/services`)
+    return data
+  },
+
+  /** PUT /businesses/{id}/staff/{staffId}/services — fija los servicios del trabajador (vacío = todos; solo owner). */
+  async setStaffServices(businessId: string, staffId: string, serviceIds: string[]): Promise<string[]> {
+    const { data } = await api.put<string[]>(`/businesses/${businessId}/staff/${staffId}/services`, { serviceIds })
+    return data
   },
 
   /** GET /businesses/{id}/dashboard — resumen del negocio (solo owner). */

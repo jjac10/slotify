@@ -107,6 +107,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
 - ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
+- ✅ **Hub de configuración** `/configuracion` (Datos · Servicios · **Equipo** · Horario · Festivos · Confirmación · Ventana de cancelación · Plan): gestión de empleados (alta/baja, aviso Premium en Free), toggle de confirmación, ventana de cancelación — *PR settings/team*
+- ✅ **`staff_services` (UI)**: asignar servicios a cada trabajador en "Equipo" (editor de chips, vacío = todos); el wizard de reserva filtra el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`) — *PR staff-services-ui*
 - ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*; cancelar+reprogramar — *PR #25*) · ⬜ Vitest + RTL
 
 ---
@@ -159,14 +161,17 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## Siguiente paso
 
-🎯 Backend de empleados (*PR #29*), cambio de plan (*PR #30*) y `staff_services` (*PR #31*) ya están; frontend de Equipo también. Siguiente:
-1. **Frontend `staff_services`** (owner): en la sección "Equipo", asignar servicios a cada trabajador (`GET`/`PUT /staff/{id}/services`). Y en el **flujo de reserva**, filtrar el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`).
-2. **Frontend de plan** (owner, al final): sección "Plan" en `/configuracion` mostrando Free/Premium + botón "Mejorar a Premium" (`PUT /businesses/{id}/plan`, upgrade simulado en el TFM).
+🎯 Backend y frontend de empleados, plan y `staff_services` ya están (incluido el frontend de Plan y el de asignación de servicios). Siguientes candidatos:
+1. **Plan solo-calendario** (ver Mejoras futuras): tipo de negocio en el que el cliente NO reserva online; solo ve el negocio y llama, y el owner apunta la reserva en su calendario/agenda manualmente.
+2. **Notificaciones** (email/SMS de confirmación) y **OTP** para acciones de invitado (TODO seguridad de *PR #27*).
+3. **Business profile** (categoría/ubicación) → "negocios cercanos" y filtro por categoría en Explorar.
 
-Otras: pago real (Stripe) para el upgrade, business profile (categoría/ubicación), RLS PostgreSQL, notificaciones, OTP para acciones de invitado (TODO seguridad de *PR #27*).
+Otras: pago real (Stripe) para el upgrade, RLS PostgreSQL, Vitest + RTL.
 
 ---
 
 ## Mejoras futuras (post-MVP)
 
 - 🔮 **WebSockets para confirmaciones en tiempo real:** cuando el owner confirma una reserva desde Agenda, los clientes ven refrescada automáticamente su lista de reservas sin recargar. Implementable con SignalR o Socket.io.
+- 🔮 **Plan "solo calendario" (owner):** un tipo de negocio que NO acepta reservas online. El cliente ve la ficha del negocio y llama por teléfono; el owner apunta la reserva manualmente en su agenda. Requiere un `booking_mode` (`online` | `calendar_only`) en `businesses` y ocultar el flujo de reserva público para esos negocios.
+- 🔮 **Rol superadmin (alta controlada):** un único superadmin (el dueño de la plataforma) da de alta a los owners y sus negocios, en vez de registro abierto. Pensado para un despliegue local/pueblo donde se quiere control total del onboarding. Requiere `role=superadmin` + panel de alta de owners; el registro público de owners se desactivaría o quedaría sujeto a aprobación.
