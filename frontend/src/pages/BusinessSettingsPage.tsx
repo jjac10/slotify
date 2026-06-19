@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
-import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse } from '../types/api'
+import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -251,6 +251,136 @@ function HolidaysSection({ businessId }: { businessId: string }) {
   )
 }
 
+// ─── Equipo (trabajadores) ───────────────────────────────────────────────────
+
+function roleLabel(role: string): string {
+  return role === 'owner' ? 'Propietario' : 'Empleado'
+}
+
+function TeamSection({ businessId }: { businessId: string }) {
+  const [staff, setStaff] = useState<StaffMember[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [premiumRequired, setPremiumRequired] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      setStaff(await businessService.listStaff(businessId))
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo cargar el equipo.')
+    }
+  }, [businessId])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setAddError(null)
+    setPremiumRequired(false)
+    setAdding(true)
+    try {
+      await businessService.createStaff(businessId, { name: name.trim(), email: email.trim() || null, phone: phone.trim() || null })
+      setName(''); setEmail(''); setPhone('')
+      await load()
+    } catch (err) {
+      const apiErr = getApiError(err)
+      if (apiErr?.error === 'limit_reached') {
+        setPremiumRequired(true)
+      } else {
+        setAddError(apiErr?.message ?? 'No se pudo añadir el empleado.')
+      }
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function handleRemove(member: StaffMember) {
+    if (!window.confirm(`¿Dar de baja a ${member.name}?`)) return
+    try {
+      await businessService.deactivateStaff(businessId, member.id)
+      setStaff((prev) => prev?.filter((s) => s.id !== member.id) ?? null)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo dar de baja.')
+    }
+  }
+
+  if (error) return <p role="alert" className="alert" data-testid="staff-error">{error}</p>
+
+  return (
+    <div className="flex flex-col gap-stack-md">
+      {staff === null && <p className="text-sm text-on-surface-variant">Cargando…</p>}
+      {staff !== null && (
+        <ul className="flex flex-col gap-2" data-testid="staff-list">
+          {staff.map((member) => (
+            <li key={member.id} className="glass-card rounded-xl px-stack-md py-3 flex items-center gap-stack-md" data-testid="staff-item">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container/20 text-sm font-bold text-primary">
+                {member.name[0]?.toUpperCase() ?? '?'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate" data-testid="staff-name">{member.name}</p>
+                <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  member.role === 'owner' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container text-on-surface-variant'
+                }`}>
+                  {roleLabel(member.role)}
+                </span>
+              </div>
+              {member.role !== 'owner' && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(member)}
+                  className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
+                  aria-label={`Dar de baja a ${member.name}`}
+                  data-testid="staff-remove"
+                >
+                  <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={handleAdd} className="flex flex-col gap-stack-sm border-t border-outline-variant/30 pt-stack-md" data-testid="create-staff-form">
+        <p className="text-sm font-semibold">Añadir empleado</p>
+        {addError && <p role="alert" className="alert text-xs" data-testid="create-staff-error">{addError}</p>}
+        {premiumRequired && (
+          <div className="rounded-xl border border-primary/30 bg-primary-container/10 px-stack-md py-3 text-sm" data-testid="staff-premium-required">
+            <p className="font-semibold text-primary">Añadir empleados requiere el plan Premium</p>
+            <p className="text-on-surface-variant text-xs mt-1">
+              El plan Free incluye solo al propietario. Podrás mejorar a Premium desde la sección «Plan» (próximamente).
+            </p>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 items-end">
+          <div className="field !gap-1 flex-1 min-w-40">
+            <label className="field-label text-xs" htmlFor="staff-name">Nombre</label>
+            <input id="staff-name" type="text" className="field-input !py-2" data-testid="staff-name-input"
+              value={name} onChange={(e) => setName(e.target.value)} placeholder="Ana García" required />
+          </div>
+          <div className="field !gap-1 min-w-40">
+            <label className="field-label text-xs" htmlFor="staff-email">Email (opcional)</label>
+            <input id="staff-email" type="email" className="field-input !py-2" data-testid="staff-email-input"
+              value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@negocio.com" />
+          </div>
+          <div className="field !gap-1 min-w-36">
+            <label className="field-label text-xs" htmlFor="staff-phone">Teléfono (opcional)</label>
+            <input id="staff-phone" type="tel" className="field-input !py-2" data-testid="staff-phone-input"
+              value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+34 600 000 000" />
+          </div>
+          <button type="submit" className="btn-primary !py-2 text-sm" data-testid="create-staff-submit" disabled={adding}>
+            {adding ? 'Añadiendo…' : 'Añadir'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export function BusinessSettingsPage() {
@@ -462,6 +592,14 @@ export function BusinessSettingsPage() {
             </button>
           </form>
         </div>
+      </SectionCard>
+
+      {/* Equipo */}
+      <SectionCard title="Equipo" icon="group">
+        <p className="text-sm text-on-surface-variant -mt-stack-sm">
+          Los trabajadores de tu negocio. Los clientes eligen con quién reservar.
+        </p>
+        <TeamSection businessId={businessId} />
       </SectionCard>
 
       {/* Horario */}

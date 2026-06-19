@@ -47,6 +47,26 @@ export interface BusinessResponse {
   status: string
   confirmationMode: string
   cancellationCutoffHours: number
+  /** Código del plan/tier: 'free' | 'premium' (null si la consulta no lo cargó). */
+  plan: string | null
+}
+
+/** GET /businesses/{id}/staff — trabajador del negocio (no expone email/teléfono). */
+export interface StaffMember {
+  id: string
+  businessId: string
+  name: string
+  /** 'owner' | 'employee'. */
+  role: string
+  /** 'active' | 'inactive'. */
+  status: string
+}
+
+/** POST /businesses/{id}/staff — alta de empleado (solo owner). */
+export interface CreateStaffRequest {
+  name: string
+  email?: string | null
+  phone?: string | null
 }
 
 /** GET /businesses/{id}/holidays — festivo/día cerrado. */
