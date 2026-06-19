@@ -7,6 +7,11 @@ namespace Slotify.Domain.Services;
 /// Permite a un invitado (sin cuenta) ver sus reservas por teléfono o email: normaliza
 /// el contacto, calcula el blind index (igual que al reservar) y busca los guests que
 /// coinciden y sus reservas. No expone datos de otros invitados.
+///
+/// TODO (seguridad/privacidad): ahora basta con conocer el teléfono/email para ver sus
+/// reservas. Antes de producción hay que **verificar la identidad**: enviar un código por
+/// SMS al teléfono (o email al correo) y exigirlo para devolver las reservas. Sin esa
+/// verificación, cualquiera que sepa tu número podría ver tus citas.
 /// </summary>
 public class GuestReservationLookupService(
     IReservationRepository reservations,

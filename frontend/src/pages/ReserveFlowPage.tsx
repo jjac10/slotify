@@ -54,9 +54,12 @@ export function ReserveFlowPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Próximos 7 días, empezando hoy.
+  const todayIso = useMemo(() => isoDate(new Date()), [])
+  const [anchorDate, setAnchorDate] = useState(todayIso)
+
+  // 7 días a partir del día ancla (hoy por defecto; se mueve al elegir en "Ver todo").
   const days = useMemo(() => {
-    const base = new Date()
+    const base = new Date(`${anchorDate}T00:00:00`)
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i)
       return {
@@ -65,7 +68,7 @@ export function ReserveFlowPage() {
         day: d.getDate(),
       }
     })
-  }, [])
+  }, [anchorDate])
 
   const loadServices = useCallback(async (businessId: string) => {
     setError(null)
@@ -294,10 +297,11 @@ export function ReserveFlowPage() {
               type="date"
               className="field-input mb-stack-md"
               data-testid="reserve-date-input"
-              min={days[0].iso}
+              min={todayIso}
               value={selectedDate}
               onChange={(e) => {
                 if (e.target.value) {
+                  setAnchorDate(e.target.value)
                   selectDay(e.target.value)
                   setShowPicker(false)
                 }
