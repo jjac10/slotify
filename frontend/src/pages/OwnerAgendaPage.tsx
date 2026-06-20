@@ -4,6 +4,7 @@ import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
+import { NewReservationModal } from '../components/NewReservationModal'
 import type { ReservationResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
@@ -134,6 +135,15 @@ export function OwnerAgendaPage() {
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  function loadReservations() {
+    if (!businessId) return
+    reservationService
+      .listForBusiness(businessId)
+      .then(setReservations)
+      .catch((err) => setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.'))
+  }
 
   useEffect(() => {
     if (!businessId) return
@@ -177,8 +187,16 @@ export function OwnerAgendaPage() {
 
   return (
     <section>
-      <h1>Agenda del negocio</h1>
-      <p className="text-on-surface-variant mb-stack-md">Todas las reservas de tu negocio.</p>
+      <div className="flex items-start justify-between gap-stack-md mb-stack-md">
+        <div>
+          <h1>Agenda del negocio</h1>
+          <p className="text-on-surface-variant">Todas las reservas de tu negocio.</p>
+        </div>
+        <button type="button" onClick={() => setCreating(true)} className="btn-primary shrink-0 inline-flex items-center gap-1" data-testid="new-reservation-btn">
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          Nueva reserva
+        </button>
+      </div>
 
       {error && (
         <p role="alert" className="alert" data-testid="agenda-error">
@@ -214,6 +232,14 @@ export function OwnerAgendaPage() {
           reservation={rescheduleTarget}
           onClose={() => setRescheduleTarget(null)}
           onRescheduled={handleRescheduled}
+        />
+      )}
+
+      {creating && (
+        <NewReservationModal
+          businessId={businessId}
+          onClose={() => setCreating(false)}
+          onCreated={() => { setCreating(false); loadReservations() }}
         />
       )}
     </section>

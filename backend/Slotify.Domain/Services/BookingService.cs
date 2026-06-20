@@ -18,7 +18,8 @@ public class BookingService(
     ICryptoService crypto,
     IBlindIndex blindIndex,
     IFreemiumLimitService limits,
-    IBusinessRepository businesses)
+    IBusinessRepository businesses,
+    IAuthRepository users)
 {
     public async Task<ReservationResponse> CreateAsync(
         CreateReservationRequest request, Guid? userId, CancellationToken ct = default)
@@ -34,9 +35,16 @@ public class BookingService(
         if (worker is null || worker.BusinessId != request.BusinessId)
             throw new StaffNotFoundException(request.StaffId);
 
+        // ¿Reserva para un invitado? Si llegan datos de invitado, la reserva es para un
+        // cliente aunque la petición esté autenticada: así el owner/staff crea reservas
+        // para clientes desde su agenda (recepción). Sin datos de invitado ni sesión, inválida.
+        var bookingForGuest = !string.IsNullOrWhiteSpace(request.GuestName);
+        if (!bookingForGuest && userId is null)
+            throw new InvalidGuestContactException();
+
         // Un usuario logueado no puede reservar consigo mismo como trabajador asignado
-        // (un owner/staff sí puede seguir creando reservas de invitado para clientes).
-        if (userId is not null && worker.UserId == userId)
+        // (sí puede crear reservas de invitado para clientes, p. ej. el owner en su agenda).
+        if (!bookingForGuest && userId is not null && worker.UserId == userId)
             throw new SelfBookingNotAllowedException();
 
         // Límite Freemium: nº de reservas/mes del plan (ADR #9). NULL = ilimitado.
@@ -47,8 +55,21 @@ public class BookingService(
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 
         Guid? guestId = null;
-        if (userId is null)
-            guestId = (await ResolveGuestAsync(request, ct)).Id;
+        Guid? reservationUserId = userId;
+        if (bookingForGuest)
+        {
+            // La reserva es para un cliente, no para quien hace la petición (p. ej. el owner).
+            reservationUserId = null;
+
+            var (normalizedEmail, normalizedPhone) = NormalizeGuestContact(request);
+            // Si el cliente ya tiene cuenta (mismo teléfono/email), la reserva se vincula
+            // a su cuenta y le aparece en "Mis reservas"; si no, se crea como invitado.
+            var existingUser = await users.FindActiveUserByContactAsync(normalizedEmail, normalizedPhone, ct);
+            if (existingUser is not null)
+                reservationUserId = existingUser.Id;
+            else
+                guestId = (await ResolveGuestAsync(request, normalizedEmail, normalizedPhone, ct)).Id;
+        }
 
         if (await reservations.HasOverlapAsync(request.StaffId, startTime, endTime, ct: ct))
             throw new SlotUnavailableException();
@@ -63,7 +84,7 @@ public class BookingService(
             BusinessId = request.BusinessId,
             ServiceId = request.ServiceId,
             StaffId = request.StaffId,
-            UserId = userId,
+            UserId = reservationUserId,
             GuestId = guestId,
             StartTime = startTime,
             EndTime = endTime,
@@ -81,8 +102,8 @@ public class BookingService(
         return reservation is null ? null : ReservationResponse.From(reservation);
     }
 
-    /// <summary>Busca el guest por blind index (dedupe) o lo crea cifrado.</summary>
-    private async Task<Guest> ResolveGuestAsync(CreateReservationRequest request, CancellationToken ct)
+    /// <summary>Valida el contacto del invitado (nombre + exactamente uno de teléfono/email) y lo normaliza.</summary>
+    private static (string? email, string? phone) NormalizeGuestContact(CreateReservationRequest request)
     {
         var hasPhone = !string.IsNullOrWhiteSpace(request.GuestPhone);
         var hasEmail = !string.IsNullOrWhiteSpace(request.GuestEmail);
@@ -91,20 +112,26 @@ public class BookingService(
         if (string.IsNullOrWhiteSpace(request.GuestName) || hasPhone == hasEmail)
             throw new InvalidGuestContactException();
 
+        return hasPhone
+            ? (null, ContactNormalizer.NormalizePhone(request.GuestPhone!))
+            : (ContactNormalizer.NormalizeEmail(request.GuestEmail!), null);
+    }
+
+    /// <summary>Busca el guest por blind index (dedupe) o lo crea cifrado, con el contacto ya normalizado.</summary>
+    private async Task<Guest> ResolveGuestAsync(CreateReservationRequest request, string? normalizedEmail, string? normalizedPhone, CancellationToken ct)
+    {
         string? phoneHash = null, emailHash = null;
         string? phoneEncrypted = null, emailEncrypted = null;
 
-        if (hasPhone)
+        if (normalizedPhone is not null)
         {
-            var normalized = ContactNormalizer.NormalizePhone(request.GuestPhone!);
-            phoneHash = blindIndex.Compute(normalized);
-            phoneEncrypted = crypto.Encrypt(normalized);
+            phoneHash = blindIndex.Compute(normalizedPhone);
+            phoneEncrypted = crypto.Encrypt(normalizedPhone);
         }
         else
         {
-            var normalized = ContactNormalizer.NormalizeEmail(request.GuestEmail!);
-            emailHash = blindIndex.Compute(normalized);
-            emailEncrypted = crypto.Encrypt(normalized);
+            emailHash = blindIndex.Compute(normalizedEmail!);
+            emailEncrypted = crypto.Encrypt(normalizedEmail!);
         }
 
         var existing = await guests.FindByHashAsync(request.BusinessId, phoneHash, emailHash, ct);
