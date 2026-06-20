@@ -46,10 +46,18 @@ public class AvailabilityService(
         if (dayHours is null || dayHours.IsClosed || dayHours.OpeningTime is null || dayHours.ClosingTime is null)
             return [];
 
-        // Festivo cerrado ese día → sin slots.
-        var dayHolidays = await holidays.ListByBusinessAsync(businessId, ct);
-        if (dayHolidays.Any(h => h.HolidayDate == date && h.IsClosed))
+        // Festivos que cubren este día (un día suelto o un rango).
+        var coveringHolidays = (await holidays.ListByBusinessAsync(businessId, ct))
+            .Where(h => h.IsClosed && h.HolidayDate <= date && date <= (h.EndDate ?? h.HolidayDate))
+            .ToList();
+        // Alguno cierra el día completo (sin franja horaria) → sin slots.
+        if (coveringHolidays.Any(h => h.StartTime is null || h.EndTime is null))
             return [];
+        // Franjas horarias cerradas ese día (cierre parcial), en minutos locales.
+        var closedWindows = coveringHolidays
+            .Select(h => (start: h.StartTime!.Value.Hour * 60 + h.StartTime.Value.Minute,
+                          end: h.EndTime!.Value.Hour * 60 + h.EndTime.Value.Minute))
+            .ToList();
 
         var duration = service.DurationMinutes;
         var step = business.SlotIntervalMinutes ?? duration;
@@ -68,6 +76,10 @@ public class AvailabilityService(
         var slots = new List<AvailableSlot>();
         for (var m = openMinutes; m + duration <= closeMinutes; m += step)
         {
+            // Cierre parcial por festivo: descartar slots que solapen una franja cerrada.
+            if (closedWindows.Any(w => m < w.end && m + duration > w.start))
+                continue;
+
             var localStart = new DateTime(date.Year, date.Month, date.Day, m / 60, m % 60, 0, DateTimeKind.Unspecified);
             var start = TimeZoneInfo.ConvertTimeToUtc(localStart, tz);
             var end = start.AddMinutes(duration);

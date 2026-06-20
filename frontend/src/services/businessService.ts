@@ -4,6 +4,7 @@ import type {
   BusinessHoliday,
   BusinessHour,
   BusinessResponse,
+  CreateHolidayRequest,
   CreateServiceRequest,
   CreateStaffRequest,
   DashboardResponse,
@@ -128,12 +129,15 @@ export const businessService = {
     return data
   },
 
-  /** POST /businesses/{id}/holidays — añade un día festivo/cerrado. */
-  async addHoliday(businessId: string, holidayDate: string, reason?: string): Promise<BusinessHoliday> {
+  /** POST /businesses/{id}/holidays — añade un festivo/cierre (día, rango y/o franja horaria). */
+  async addHoliday(businessId: string, request: CreateHolidayRequest): Promise<BusinessHoliday> {
     const { data } = await api.post<BusinessHoliday>(`/businesses/${businessId}/holidays`, {
-      holidayDate,
-      reason: reason || null,
-      isClosed: true,
+      holidayDate: request.holidayDate,
+      reason: request.reason ?? null,
+      isClosed: request.isClosed ?? true,
+      endDate: request.endDate ?? null,
+      startTime: request.startTime ?? null,
+      endTime: request.endTime ?? null,
     })
     return data
   },

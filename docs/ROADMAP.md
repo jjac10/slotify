@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 287/287 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
+- **Tests:** 294/294 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -46,7 +46,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `staff_services` (N:M trabajador↔servicio, unique (staff_id, service_id), migración `Add_StaffServices`) — *PR #31*
 - ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
 - ✅ `reservations` (+ exclusion constraint gist anti-doble-booking, optimistic locking) — *PR #9*
-- ✅ `business_hours` · ✅ `business_holidays` — *PR #10*
+- ✅ `business_hours` · ✅ `business_holidays` (+ `end_date` rango de días, `start_time`/`end_time` cierre parcial — migración `Add_HolidayRangeAndHours`) — *PR #10 / holiday-ranges*
 - ✅ `refresh_tokens` — *PR #5* · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
 - ✅ `audit_logs` (reservation_id SET NULL: sobrevive al hard-delete) — *PR #13* · ⬜ `notification_logs` · ⬜ `waitlists` · ⬜ `reviews`
 - 🔮 `payments` (esqueleto documentado, no MVP)
@@ -70,7 +70,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ⬜ reset password (password_reset_tokens)
 - ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9* · ✅ **reserva manual del owner/staff para un cliente** (datos de invitado aunque la petición esté autenticada → no es self-booking); si el contacto (teléfono/email normalizado) coincide con una cuenta existente, la reserva se **vincula a esa cuenta** (aparece en su "Mis reservas"); si no, se crea como invitado — *PR owner-manual-booking*. ⚠️ El match por teléfono usa normalización básica (espacios); E.164 completa es mejora futura
 - ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
-- ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11* · ⬜ timezone por negocio, anti-huecos avanzado
+- ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11*; ✅ los festivos pueden ser un **rango de días** y/o un **cierre parcial por horas** (resta solo esa franja de los huecos del día) — *PR holiday-ranges* · ⬜ timezone por negocio
 - ✅ `CanAddReservationThisMonthAsync` (límite Freemium de reservas) — `BookingService` lanza `FreemiumLimitReachedException` → `409 limit_reached`
 - ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
 - ✅ **Confirmación de reservas** (modo `auto`|`manual` por negocio): `BookingService` fija `confirmed`/`pending` según `Business.ConfirmationMode`; `ReservationManagementService.ConfirmAsync` (owner/staff, NO el cliente; `pending`→`confirmed`, optimistic locking + audit `confirmed`); `BusinessService.SetConfirmationModeAsync` (owner-only) — *PR #26*
