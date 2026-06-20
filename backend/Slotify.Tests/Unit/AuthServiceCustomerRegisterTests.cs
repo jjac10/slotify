@@ -52,7 +52,7 @@ public class AuthServiceCustomerRegisterTests
         Assert.Equal("refresh-token", result.RefreshToken);
         // No debe crear negocio ni owner-staff.
         _auth.Verify(a => a.RegisterOwnerAsync(
-            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<IEnumerable<BusinessHour>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

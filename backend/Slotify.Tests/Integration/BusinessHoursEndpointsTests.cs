@@ -27,6 +27,25 @@ public class BusinessHoursEndpointsTests(SlotifyApiFactory factory) : IClassFixt
     });
 
     [Fact]
+    public async Task NewBusiness_HasDefaultWeeklyHours()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+
+        var list = await _client.GetFromJsonAsync<List<BusinessHourResponse>>($"/businesses/{businessId}/hours");
+
+        Assert.Equal(7, list!.Count);
+        foreach (var weekday in new[] { 1, 2, 3, 4, 5 })
+        {
+            var row = list.Single(h => h.DayOfWeek == weekday);
+            Assert.False(row.IsClosed);
+            Assert.Equal(new TimeOnly(9, 0), row.OpeningTime);
+            Assert.Equal(new TimeOnly(17, 0), row.ClosingTime);
+        }
+        Assert.True(list.Single(h => h.DayOfWeek == 6).IsClosed); // sábado
+        Assert.True(list.Single(h => h.DayOfWeek == 0).IsClosed); // domingo
+    }
+
+    [Fact]
     public async Task SetHours_AsOwner_Returns200_AndGetReturnsThem()
     {
         var (businessId, owner) = await RegisterOwnerAsync();

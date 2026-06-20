@@ -23,11 +23,12 @@ public class AuthRepository(SlotifyDbContext db) : IAuthRepository
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task RegisterOwnerAsync(User user, Business business, Staff ownerStaff, CancellationToken ct = default)
+    public async Task RegisterOwnerAsync(User user, Business business, Staff ownerStaff, IEnumerable<BusinessHour> hours, CancellationToken ct = default)
     {
         db.Users.Add(user);
         db.Businesses.Add(business);
         db.Staff.Add(ownerStaff);
+        db.BusinessHours.AddRange(hours);
         // Un único SaveChanges => transacción atómica.
         await db.SaveChangesAsync(ct);
     }

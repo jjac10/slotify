@@ -94,9 +94,33 @@ public class AuthService(
             Name = request.Name,
         };
 
-        await auth.RegisterOwnerAsync(user, business, ownerStaff, ct);
+        await auth.RegisterOwnerAsync(user, business, ownerStaff, DefaultWeeklyHours(business.Id), ct);
 
         return await IssueResultAsync(user, business.Id, ct);
+    }
+
+    /// <summary>
+    /// Horario semanal por defecto al crear un negocio: L–V abierto 09:00–17:00,
+    /// sábado y domingo cerrados. El owner puede ajustarlo después. Así el negocio
+    /// tiene disponibilidad desde el primer momento, sin un paso manual previo.
+    /// </summary>
+    private static IReadOnlyList<BusinessHour> DefaultWeeklyHours(Guid businessId)
+    {
+        var opening = new TimeOnly(9, 0);
+        var closing = new TimeOnly(17, 0);
+        return Enumerable.Range(0, 7).Select(day =>
+        {
+            var weekday = day is >= 1 and <= 5; // 0=domingo … 6=sábado
+            return new BusinessHour
+            {
+                Id = Guid.NewGuid(),
+                BusinessId = businessId,
+                DayOfWeek = day,
+                IsClosed = !weekday,
+                OpeningTime = weekday ? opening : null,
+                ClosingTime = weekday ? closing : null,
+            };
+        }).ToList();
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)

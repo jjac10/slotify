@@ -49,17 +49,32 @@ public class AuthServiceRegisterTests
         User? savedUser = null;
         Business? savedBusiness = null;
         Staff? savedStaff = null;
+        List<BusinessHour>? savedHours = null;
         _auth.Setup(a => a.RegisterOwnerAsync(
-                It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()))
-            .Callback<User, Business, Staff, CancellationToken>((u, b, s, _) =>
-                { savedUser = u; savedBusiness = b; savedStaff = s; })
+                It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<IEnumerable<BusinessHour>>(), It.IsAny<CancellationToken>()))
+            .Callback<User, Business, Staff, IEnumerable<BusinessHour>, CancellationToken>((u, b, s, h, _) =>
+                { savedUser = u; savedBusiness = b; savedStaff = s; savedHours = h.ToList(); })
             .Returns(Task.CompletedTask);
 
         var request = new RegisterOwnerRequest("owner@example.com", "SecurePass123!", "Pepe", "Barbería Pepe");
         var result = await CreateService().RegisterOwnerAsync(request);
 
         _auth.Verify(a => a.RegisterOwnerAsync(
-            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<IEnumerable<BusinessHour>>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        // Horario por defecto: L–V abierto 09:00–17:00, S/D cerrado (una fila por día).
+        Assert.NotNull(savedHours);
+        Assert.Equal(7, savedHours!.Count);
+        Assert.All(savedHours, h => Assert.Equal(savedBusiness!.Id, h.BusinessId));
+        foreach (var weekday in new[] { 1, 2, 3, 4, 5 })
+        {
+            var row = savedHours.Single(h => h.DayOfWeek == weekday);
+            Assert.False(row.IsClosed);
+            Assert.Equal(new TimeOnly(9, 0), row.OpeningTime);
+            Assert.Equal(new TimeOnly(17, 0), row.ClosingTime);
+        }
+        foreach (var weekend in new[] { 0, 6 })
+            Assert.True(savedHours.Single(h => h.DayOfWeek == weekend).IsClosed);
 
         Assert.NotNull(savedUser);
         Assert.Equal("owner@example.com", savedUser!.Email);
@@ -95,7 +110,7 @@ public class AuthServiceRegisterTests
         await Assert.ThrowsAsync<WeakPasswordException>(() => CreateService().RegisterOwnerAsync(request));
 
         _auth.Verify(a => a.RegisterOwnerAsync(
-            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<IEnumerable<BusinessHour>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -109,6 +124,6 @@ public class AuthServiceRegisterTests
         await Assert.ThrowsAsync<EmailAlreadyExistsException>(() => CreateService().RegisterOwnerAsync(request));
 
         _auth.Verify(a => a.RegisterOwnerAsync(
-            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<User>(), It.IsAny<Business>(), It.IsAny<Staff>(), It.IsAny<IEnumerable<BusinessHour>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
