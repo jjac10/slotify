@@ -15,7 +15,8 @@ public interface IAuthRepository
     Task AddUserAsync(User user, CancellationToken ct = default);
 
     /// <summary>
-    /// Persiste atómicamente el alta de un propietario: user + negocio + owner-staff.
+    /// Persiste atómicamente el alta de un propietario: user + negocio + owner-staff
+    /// + su horario semanal por defecto.
     /// </summary>
-    Task RegisterOwnerAsync(User user, Business business, Staff ownerStaff, CancellationToken ct = default);
+    Task RegisterOwnerAsync(User user, Business business, Staff ownerStaff, IEnumerable<BusinessHour> hours, CancellationToken ct = default);
 }

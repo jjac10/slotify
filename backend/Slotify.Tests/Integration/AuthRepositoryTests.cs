@@ -33,9 +33,13 @@ public class AuthRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLifetim
         var user = new User { Id = Guid.NewGuid(), Email = email, PasswordHash = "h", Name = "Pepe", Type = "owner" };
         var business = new Business { Id = Guid.NewGuid(), OwnerId = user.Id, TierId = free.Id, Name = "Barbería Pepe" };
         var staff = new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, UserId = user.Id, Role = "owner", Name = "Pepe" };
+        var hours = new[]
+        {
+            new BusinessHour { Id = Guid.NewGuid(), BusinessId = business.Id, DayOfWeek = 1, IsClosed = false, OpeningTime = new TimeOnly(9, 0), ClosingTime = new TimeOnly(17, 0) },
+        };
 
         var repo = new AuthRepository(_db);
-        await repo.RegisterOwnerAsync(user, business, staff);
+        await repo.RegisterOwnerAsync(user, business, staff, hours);
 
         Assert.True(await repo.EmailExistsAsync(email));
         var loaded = await repo.GetByEmailAsync(email);
@@ -45,6 +49,7 @@ public class AuthRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLifetim
         await using var verify = _fixture.CreateContext();
         Assert.True(await verify.Businesses.AnyAsync(b => b.Id == business.Id));
         Assert.True(await verify.Staff.AnyAsync(s => s.BusinessId == business.Id && s.Role == "owner"));
+        Assert.True(await verify.BusinessHours.AnyAsync(h => h.BusinessId == business.Id)); // horario sembrado
     }
 
     [Fact]
