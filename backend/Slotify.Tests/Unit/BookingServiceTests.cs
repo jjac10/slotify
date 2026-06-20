@@ -21,6 +21,7 @@ public class BookingServiceTests
     private readonly Mock<IBlindIndex> _blindIndex = new();
     private readonly Mock<IFreemiumLimitService> _limits = new();
     private readonly Mock<IBusinessRepository> _businesses = new();
+    private readonly Mock<IAuthRepository> _users = new();
 
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _serviceId = Guid.NewGuid();
@@ -44,7 +45,7 @@ public class BookingServiceTests
             .ReturnsAsync(new Business { Id = _businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz", ConfirmationMode = mode });
 
     private BookingService CreateService() =>
-        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object, _businesses.Object);
+        new(_reservations.Object, _services.Object, _staff.Object, _guests.Object, _crypto.Object, _blindIndex.Object, _limits.Object, _businesses.Object, _users.Object);
 
     private void SetupValidServiceAndStaff(int duration = 30, Guid? staffUserId = null)
     {
@@ -239,6 +240,49 @@ public class BookingServiceTests
         await Assert.ThrowsAsync<SelfBookingNotAllowedException>(
             () => CreateService().CreateAsync(request, userId));
         _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_BookForClientWithAccount_LinksReservationToTheirAccount()
+    {
+        var clientUserId = Guid.NewGuid();
+        var ownerUserId = Guid.NewGuid();
+        SetupValidServiceAndStaff(staffUserId: ownerUserId);
+        // El contacto del invitado coincide con una cuenta de cliente existente.
+        _users.Setup(u => u.FindActiveUserByContactAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = clientUserId, Email = "ana@x.com", Name = "Ana", Type = "customer" });
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        // El owner crea la reserva para el cliente (datos de invitado).
+        await CreateService().CreateAsync(GuestRequest(), userId: ownerUserId);
+
+        Assert.Equal(clientUserId, saved!.UserId); // vinculada a la cuenta del cliente
+        Assert.Null(saved.GuestId);
+        _guests.Verify(g => g.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LoggedOwnerBooksForGuest_CreatesGuestReservation_NotForUser()
+    {
+        var ownerUserId = Guid.NewGuid();
+        SetupValidServiceAndStaff(staffUserId: ownerUserId); // el trabajador es el propio owner
+        _guests.Setup(g => g.FindByHashAsync(_businessId, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guest?)null);
+        _crypto.Setup(c => c.Encrypt(It.IsAny<string>())).Returns("ENC");
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("HASH");
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        // El owner (autenticado) crea una reserva para un cliente con él mismo como
+        // trabajador: NO es self-booking y la reserva es del invitado, no del owner.
+        await CreateService().CreateAsync(GuestRequest(), userId: ownerUserId);
+
+        Assert.NotNull(saved);
+        Assert.Null(saved!.UserId);       // reserva de invitado, no del owner
+        Assert.NotNull(saved.GuestId);
     }
 
     [Fact]

@@ -15,6 +15,13 @@ public interface IAuthRepository
     Task AddUserAsync(User user, CancellationToken ct = default);
 
     /// <summary>
+    /// Busca un usuario activo cuyo contacto coincida con el email (normalizado,
+    /// minúsculas) o el teléfono (normalizado) dado, para vincular a su cuenta una
+    /// reserva creada para él. Null si no existe.
+    /// </summary>
+    Task<User?> FindActiveUserByContactAsync(string? normalizedEmail, string? normalizedPhone, CancellationToken ct = default);
+
+    /// <summary>
     /// Persiste atómicamente el alta de un propietario: user + negocio + owner-staff
     /// + su horario semanal por defecto.
     /// </summary>

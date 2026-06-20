@@ -41,7 +41,7 @@ public class BookingFlowIntegrationTests : IClassFixture<PostgresFixture>, IAsyn
         new ReservationRepository(db), new ServiceRepository(db), new StaffRepository(db),
         new GuestRepository(db), new AesGcmCryptoService(Crypto), new HmacBlindIndex(Crypto),
         new FreemiumLimitService(new TierRepository(db), new StaffRepository(db), new ServiceRepository(db), new ReservationRepository(db)),
-        new BusinessRepository(db));
+        new BusinessRepository(db), new AuthRepository(db));
 
     [Fact]
     public async Task CreateAsync_GuestBooking_PersistsReservationAndGuest()
@@ -72,6 +72,26 @@ public class BookingFlowIntegrationTests : IClassFixture<PostgresFixture>, IAsyn
 
         await Assert.ThrowsAsync<SlotUnavailableException>(
             () => NewBookingService(_db).CreateAsync(second, userId: null));
+    }
+
+    [Fact]
+    public async Task CreateAsync_BookForClientWithExistingAccount_LinksToTheirAccount_NotGuest()
+    {
+        var ctx = await SeedAsync();
+        // El cliente ya tiene cuenta, registrado con su teléfono (con espacios).
+        var client = new User { Id = Guid.NewGuid(), Email = $"c-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "Cliente", Type = "customer", Phone = "+34 666 777 888" };
+        _db.Users.Add(client);
+        await _db.SaveChangesAsync();
+
+        // El owner reserva para ese cliente metiendo el mismo teléfono (sin espacios):
+        // la normalización básica (quitar espacios) hace que coincidan.
+        var request = new CreateReservationRequest(ctx.businessId, ctx.serviceId, ctx.staffId, At10, "Cliente", "+34666777888", null);
+        var result = await NewBookingService(_db).CreateAsync(request, userId: null);
+
+        await using var verify = _fixture.CreateContext();
+        var reservation = await verify.Reservations.AsNoTracking().SingleAsync(r => r.Id == result.Id);
+        Assert.Equal(client.Id, reservation.UserId); // vinculada a la cuenta del cliente
+        Assert.Null(reservation.GuestId);             // no se crea invitado
     }
 
     private async Task<(Guid businessId, Guid serviceId, Guid staffId)> SeedAsync()
