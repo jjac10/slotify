@@ -104,7 +104,7 @@ export function RescheduleModal({ reservation, onClose, onRescheduled, contact }
         )}
 
         {!loadingSlots && slots !== null && slots.length > 0 && (
-          <div className="flex flex-wrap gap-2" data-testid="reschedule-slots">
+          <div className="grid grid-cols-4 gap-2" data-testid="reschedule-slots">
             {slots.map((s) => (
               <button
                 key={s.start}
@@ -112,7 +112,7 @@ export function RescheduleModal({ reservation, onClose, onRescheduled, contact }
                 onClick={() => pickSlot(s.start)}
                 disabled={saving}
                 data-testid="reschedule-slot"
-                className="rounded-lg px-3 py-2 text-sm font-semibold bg-primary-container/20 text-primary hover:bg-primary-container/40 disabled:opacity-50 transition-colors"
+                className="rounded-lg py-2 text-sm font-semibold text-center bg-primary-container/20 text-primary hover:bg-primary-container/40 disabled:opacity-50 transition-colors"
               >
                 {formatTime(s.start)}
               </button>
