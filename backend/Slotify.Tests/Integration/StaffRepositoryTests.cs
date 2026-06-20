@@ -6,8 +6,8 @@ using Slotify.Infrastructure.Repositories;
 namespace Slotify.Tests.Integration;
 
 /// <summary>
-/// Listado de staff por negocio: solo trabajadores activos, ordenados por nombre.
-/// (Mismo criterio que <see cref="ServiceRepository"/> para servicios.)
+/// Listado de staff por negocio: solo trabajadores activos, con el owner primero
+/// y el resto por antigüedad (fecha de alta).
 /// </summary>
 public class StaffRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
@@ -27,19 +27,24 @@ public class StaffRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLifeti
     public Task DisposeAsync() => _db.DisposeAsync().AsTask();
 
     [Fact]
-    public async Task ListByBusinessAsync_ReturnsActiveStaff_OrderedByName()
+    public async Task ListByBusinessAsync_ReturnsActiveStaff_OwnerFirstThenByCreatedAt()
     {
         var business = await SeedBusinessAsync();
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        // El owner se llama "Zoe" (último alfabéticamente) y se crea el último, para
+        // probar que va primero por ser owner, no por nombre ni por antigüedad.
         _db.Staff.AddRange(
-            new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, Role = "employee", Name = "Zoe" },
-            new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, Role = "owner", Name = "Ana" });
+            new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, Role = "employee", Name = "Carlos", CreatedAt = t0.AddDays(1) },
+            new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, Role = "employee", Name = "Ana", CreatedAt = t0 },
+            new Staff { Id = Guid.NewGuid(), BusinessId = business.Id, Role = "owner", Name = "Zoe", CreatedAt = t0.AddDays(2) });
         await _db.SaveChangesAsync();
 
         var list = await _repo.ListByBusinessAsync(business.Id);
 
-        Assert.Equal(2, list.Count);
-        Assert.Equal("Ana", list[0].Name);
-        Assert.Equal("Zoe", list[1].Name);
+        Assert.Equal(3, list.Count);
+        Assert.Equal("Zoe", list[0].Name);    // owner primero
+        Assert.Equal("Ana", list[1].Name);    // luego por antigüedad
+        Assert.Equal("Carlos", list[2].Name);
     }
 
     [Fact]

@@ -587,6 +587,7 @@ export function BusinessSettingsPage() {
 
   const [business, setBusiness] = useState<BusinessResponse | null>(null)
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
+  const [staffCount, setStaffCount] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   // Servicios — form
@@ -597,6 +598,7 @@ export function BusinessSettingsPage() {
   const [svcColor, setSvcColor] = useState('#7C3AED')
   const [svcSaving, setSvcSaving] = useState(false)
   const [svcFormError, setSvcFormError] = useState<string | null>(null)
+  const [svcFormOpen, setSvcFormOpen] = useState(false)
 
   // Confirmación
   const [confSaving, setConfSaving] = useState(false)
@@ -635,6 +637,9 @@ export function BusinessSettingsPage() {
       })
       .catch((err) => { if (active) setLoadError(getApiError(err)?.message ?? 'No se pudo cargar tu negocio.') })
     loadServices(businessId)
+    businessService.listStaff(businessId)
+      .then((s) => { if (active) setStaffCount(s.length) })
+      .catch(() => { /* el aviso de límites es informativo; si falla, se omite */ })
     return () => { active = false }
   }, [businessId, loadServices])
 
@@ -652,6 +657,7 @@ export function BusinessSettingsPage() {
         color: svcColor || null,
       })
       setSvcName(''); setSvcDuration('30'); setSvcPrice(''); setSvcDescription(''); setSvcColor('#7C3AED')
+      setSvcFormOpen(false)
       await loadServices(businessId)
     } catch (err) {
       const apiErr = getApiError(err)
@@ -765,7 +771,21 @@ export function BusinessSettingsPage() {
         )}
 
         <div className="border-t border-outline-variant/30 pt-stack-md mt-stack-sm">
-          <p className="text-sm font-semibold mb-stack-md">Nuevo servicio</p>
+          {!svcFormOpen ? (
+            <button type="button" onClick={() => { setSvcFormError(null); setSvcFormOpen(true) }}
+              className="inline-flex items-center gap-1.5 btn-primary self-start" data-testid="new-service-toggle">
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Nuevo servicio
+            </button>
+          ) : (
+          <>
+          <div className="flex items-center justify-between mb-stack-md">
+            <p className="text-sm font-semibold">Nuevo servicio</p>
+            <button type="button" onClick={() => setSvcFormOpen(false)}
+              className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" aria-label="Cerrar">
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
           <form onSubmit={handleCreateService} data-testid="create-service-form" className="flex flex-col gap-stack-md">
             {svcFormError && <p role="alert" className="alert" data-testid="create-service-error">{svcFormError}</p>}
             <div className="field">
@@ -799,6 +819,8 @@ export function BusinessSettingsPage() {
               {svcSaving ? 'Creando…' : 'Crear servicio'}
             </button>
           </form>
+          </>
+          )}
         </div>
       </SectionCard>
 
@@ -954,6 +976,16 @@ export function BusinessSettingsPage() {
             >
               {planSaving ? 'Cambiando…' : 'Mejorar a Premium'}
             </button>
+          )}
+
+          {business?.plan !== 'premium' && ((services?.length ?? 0) > 5 || (staffCount ?? 0) > 1) && (
+            <div className="rounded-xl border border-outline-variant bg-surface-container px-stack-md py-3 text-sm" data-testid="plan-over-limit">
+              <p className="font-semibold text-on-surface">Estás por encima de los límites del plan Free</p>
+              <p className="text-on-surface-variant text-xs mt-1">
+                El plan Free incluye 1 trabajador y 5 servicios. Lo que ya tienes seguirá funcionando con normalidad,
+                pero no podrás añadir más hasta que te ajustes o vuelvas a Premium.
+              </p>
+            </div>
           )}
 
           <p className="text-xs text-on-surface-variant">

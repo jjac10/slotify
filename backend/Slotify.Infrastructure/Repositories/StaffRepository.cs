@@ -32,6 +32,7 @@ public class StaffRepository(SlotifyDbContext db) : IStaffRepository
     public async Task<IReadOnlyList<Staff>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
         => await db.Staff.AsNoTracking()
             .Where(s => s.BusinessId == businessId && s.Status == "active")
-            .OrderBy(s => s.Name)
+            .OrderByDescending(s => s.Role == "owner") // el owner siempre primero
+            .ThenBy(s => s.CreatedAt)                   // el resto, por antigüedad
             .ToListAsync(ct);
 }
