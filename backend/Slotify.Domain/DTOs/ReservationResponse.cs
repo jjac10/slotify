@@ -19,9 +19,10 @@ public record ReservationResponse(
     string Status,
     string? BusinessName = null,
     string? ServiceName = null,
-    string? StaffName = null)
+    string? StaffName = null,
+    string? ClientName = null)
 {
     public static ReservationResponse From(Reservation r) =>
         new(r.Id, r.BusinessId, r.ServiceId, r.StaffId, r.UserId, r.GuestId, r.StartTime, r.EndTime, r.Status,
-            r.Business?.Name, r.Service?.Name, r.Staff?.Name);
+            r.Business?.Name, r.Service?.Name, r.Staff?.Name, r.Guest?.Name ?? r.User?.Name);
 }

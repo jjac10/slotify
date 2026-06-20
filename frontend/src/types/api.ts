@@ -135,6 +135,8 @@ export interface ReservationResponse {
   businessName: string | null
   serviceName: string | null
   staffName: string | null
+  /** Nombre del cliente (invitado o usuario); enriquecido en la agenda del negocio. */
+  clientName: string | null
 }
 
 /**

@@ -55,6 +55,8 @@ public class ReservationListEndpointsTests(SlotifyApiFactory factory) : IClassFi
         var onlyDay = await owner.GetFromJsonAsync<List<ReservationResponse>>(
             $"/businesses/{businessId}/reservations?date=2026-09-01");
         Assert.Single(onlyDay!);
+        // La agenda enriquece con el nombre del cliente (aquí, el invitado).
+        Assert.Equal("Juan", onlyDay![0].ClientName);
     }
 
     [Fact]
