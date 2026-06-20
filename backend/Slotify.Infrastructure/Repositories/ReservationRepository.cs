@@ -78,6 +78,7 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
     {
         var query = db.Reservations.AsNoTracking()
             .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
+            .Include(r => r.Guest).Include(r => r.User)
             .Where(r => r.BusinessId == businessId && r.Status != "cancelled");
 
         if (staffId is not null)

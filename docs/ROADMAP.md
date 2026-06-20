@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 286/286 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
+- **Tests:** 287/287 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -107,7 +107,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
 - ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
-- ✅ **Reserva manual desde la Agenda** (owner): botón "Nueva reserva" → modal `NewReservationModal` (servicio → profesional filtrado por servicio → fecha → hueco → datos del cliente). El owner apunta reservas de clientes (recepción); base del futuro plan solo-calendario — *PR owner-manual-booking*
+- ✅ **Reserva manual desde la Agenda** (owner): botón "Nueva reserva" → modal `NewReservationModal` (servicio → profesional filtrado por servicio → fecha → hueco en rejilla uniforme → datos del cliente). El owner apunta reservas de clientes (recepción); base del futuro plan solo-calendario — *PR owner-manual-booking*
+- ✅ **Agenda más informativa**: cada cita muestra el nombre del cliente (invitado o usuario) y una etiqueta Invitado/Cliente; `ReservationResponse.ClientName` (vía navegaciones `Guest`/`User`) — *PR agenda-and-slots-polish*
 - ✅ **Hub de configuración** `/configuracion` (Datos · Servicios · **Equipo** · Horario · Festivos · Confirmación · Ventana de cancelación · Plan): gestión de empleados (alta/baja, aviso Premium en Free), toggle de confirmación, ventana de cancelación — *PR settings/team*
 - ✅ **`staff_services` (UI)**: asignar servicios a cada trabajador en "Equipo" (editor de chips, **todos marcados por defecto** = realiza todos); el wizard de reserva filtra el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`) — *PR staff-services-ui*
 - ✅ **Editar/eliminar servicios** en la sección Servicios del hub (edición inline + borrado con confirmación) y **horario por defecto** al registrar el negocio — *PR services-crud / default-hours*

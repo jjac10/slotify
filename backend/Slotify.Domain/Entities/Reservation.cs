@@ -20,7 +20,9 @@ public class Reservation
 
     // Cliente: exactamente uno de los dos (CHECK user_or_guest).
     public Guid? UserId { get; set; }
+    public User? User { get; set; }
     public Guid? GuestId { get; set; }
+    public Guest? Guest { get; set; }
 
     public DateTime StartTime { get; set; } // UTC
     public DateTime EndTime { get; set; }   // UTC

@@ -270,8 +270,8 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.HasOne(r => r.Business).WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(r => r.Service).WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.Staff).WithMany().HasForeignKey(r => r.StaffId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne<Guest>().WithMany().HasForeignKey(r => r.GuestId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Guest).WithMany().HasForeignKey(r => r.GuestId).OnDelete(DeleteBehavior.SetNull);
 
             e.HasIndex(r => new { r.BusinessId, r.StartTime });
             e.HasIndex(r => new { r.StaffId, r.StartTime });

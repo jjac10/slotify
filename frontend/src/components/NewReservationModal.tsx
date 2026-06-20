@@ -140,10 +140,10 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
               <p className="text-sm text-on-surface-variant">No hay huecos ese día.</p>
             )}
             {!loadingSlots && slots !== null && slots.length > 0 && (
-              <div className="flex flex-wrap gap-2" data-testid="nr-slots">
+              <div className="grid grid-cols-4 gap-2" data-testid="nr-slots">
                 {slots.map((s) => (
                   <button key={s.start} type="button" onClick={() => setSlotStart(s.start)} data-testid="nr-slot"
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                    className={`rounded-lg py-2 text-sm font-semibold text-center transition-colors ${
                       slotStart === s.start ? 'bg-primary text-on-primary' : 'bg-primary-container/20 text-primary hover:bg-primary-container/40'
                     }`}>
                     {formatTime(s.start)}

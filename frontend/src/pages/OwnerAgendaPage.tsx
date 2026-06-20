@@ -56,11 +56,18 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
         </span>
         <div className="flex-1 min-w-0">
           <p className="truncate font-semibold">
-            {r.serviceName ?? 'Reserva'}
-            {r.staffName ? ` · ${r.staffName}` : ''}
+            {r.clientName ?? 'Sin nombre'}
+            <span className={`ml-2 align-middle inline-block rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+              r.guestId ? 'bg-surface-container text-on-surface-variant' : 'bg-primary-container/30 text-primary'
+            }`}>
+              {r.guestId ? 'Invitado' : 'Cliente'}
+            </span>
           </p>
           <p className="truncate text-sm text-on-surface-variant">
-            {formatDateTime(r.startTime)} · {r.guestId ? 'Invitado' : 'Cliente'}
+            {r.serviceName ?? 'Reserva'}{r.staffName ? ` · ${r.staffName}` : ''}
+          </p>
+          <p className="truncate text-xs text-on-surface-variant">
+            {formatDateTime(r.startTime)}
           </p>
         </div>
         <StatusPill status={r.status} />
