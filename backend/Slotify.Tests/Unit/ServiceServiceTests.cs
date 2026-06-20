@@ -92,4 +92,71 @@ public class ServiceServiceTests
         Assert.Single(result);
         Assert.Equal("Corte", result[0].Name);
     }
+
+    // --- Editar ---------------------------------------------------------------
+
+    private readonly Guid _serviceId = Guid.NewGuid();
+
+    private Service ActiveService() =>
+        new() { Id = _serviceId, BusinessId = _businessId, Name = "Corte", DurationMinutes = 30, Status = "active" };
+
+    private static UpdateServiceRequest UpdateReq() => new("Corte premium", "Con lavado", 45, 20m, "#000000");
+
+    [Fact]
+    public async Task UpdateAsync_AsOwner_UpdatesService()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+        _services.Setup(s => s.GetByIdAsync(_serviceId, It.IsAny<CancellationToken>())).ReturnsAsync(ActiveService());
+
+        var result = await CreateService().UpdateAsync(_businessId, _serviceId, _ownerId, UpdateReq());
+
+        _services.Verify(s => s.UpdateAsync(It.Is<Service>(x =>
+            x.Id == _serviceId && x.Name == "Corte premium" && x.DurationMinutes == 45 && x.Price == 20m), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal("Corte premium", result.Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenNotOwner_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(
+            () => CreateService().UpdateAsync(_businessId, _serviceId, Guid.NewGuid(), UpdateReq()));
+        _services.Verify(s => s.UpdateAsync(It.IsAny<Service>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenServiceNotInBusiness_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+        _services.Setup(s => s.GetByIdAsync(_serviceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Service { Id = _serviceId, BusinessId = Guid.NewGuid(), Name = "Ajeno", DurationMinutes = 30, Status = "active" });
+
+        await Assert.ThrowsAsync<ServiceNotFoundException>(
+            () => CreateService().UpdateAsync(_businessId, _serviceId, _ownerId, UpdateReq()));
+        _services.Verify(s => s.UpdateAsync(It.IsAny<Service>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // --- Eliminar (archivar) --------------------------------------------------
+
+    [Fact]
+    public async Task DeleteAsync_AsOwner_ArchivesService()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+        _services.Setup(s => s.GetByIdAsync(_serviceId, It.IsAny<CancellationToken>())).ReturnsAsync(ActiveService());
+
+        await CreateService().DeleteAsync(_businessId, _serviceId, _ownerId);
+
+        _services.Verify(s => s.UpdateAsync(It.Is<Service>(x => x.Id == _serviceId && x.Status == "archived"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenNotOwner_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(
+            () => CreateService().DeleteAsync(_businessId, _serviceId, Guid.NewGuid()));
+        _services.Verify(s => s.UpdateAsync(It.IsAny<Service>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

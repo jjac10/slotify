@@ -14,6 +14,12 @@ public class ServiceRepository(SlotifyDbContext db) : IServiceRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateAsync(Service service, CancellationToken ct = default)
+    {
+        db.Services.Update(service);
+        await db.SaveChangesAsync(ct);
+    }
+
     public Task<Service?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Services.FirstOrDefaultAsync(s => s.Id == id, ct);
 

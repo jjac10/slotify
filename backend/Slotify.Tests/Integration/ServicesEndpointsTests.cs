@@ -83,6 +83,67 @@ public class ServicesEndpointsTests(SlotifyApiFactory factory) : IClassFixture<S
         Assert.Equal(HttpStatusCode.Conflict, sixth.StatusCode);
     }
 
+    private async Task<Guid> CreateServiceAsync(HttpClient owner, Guid businessId, string name = "Corte")
+    {
+        var svc = await (await owner.PostAsJsonAsync($"/businesses/{businessId}/services", Service(name)))
+            .Content.ReadFromJsonAsync<ServiceResponse>();
+        return svc!.Id;
+    }
+
+    [Fact]
+    public async Task UpdateService_AsOwner_Returns200_AndReflectedInList()
+    {
+        var (businessId, token) = await RegisterOwnerAsync();
+        var owner = Authorized(token);
+        var serviceId = await CreateServiceAsync(owner, businessId, "Corte");
+
+        var update = await owner.PutAsJsonAsync($"/businesses/{businessId}/services/{serviceId}",
+            new UpdateServiceRequest("Corte premium", "Con lavado", 45, 20m, "#000000"));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+
+        var list = await _client.GetFromJsonAsync<List<ServiceResponse>>($"/businesses/{businessId}/services");
+        var svc = list!.Single(s => s.Id == serviceId);
+        Assert.Equal("Corte premium", svc.Name);
+        Assert.Equal(45, svc.DurationMinutes);
+    }
+
+    [Fact]
+    public async Task DeleteService_AsOwner_Returns204_AndDisappearsFromList()
+    {
+        var (businessId, token) = await RegisterOwnerAsync();
+        var owner = Authorized(token);
+        var serviceId = await CreateServiceAsync(owner, businessId, "Corte");
+
+        var delete = await owner.DeleteAsync($"/businesses/{businessId}/services/{serviceId}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        var list = await _client.GetFromJsonAsync<List<ServiceResponse>>($"/businesses/{businessId}/services");
+        Assert.DoesNotContain(list!, s => s.Id == serviceId);
+    }
+
+    [Fact]
+    public async Task UpdateService_NotOwner_Returns403()
+    {
+        var (businessId, token) = await RegisterOwnerAsync();
+        var serviceId = await CreateServiceAsync(Authorized(token), businessId);
+        var (_, otherToken) = await RegisterOwnerAsync();
+
+        var res = await Authorized(otherToken).PutAsJsonAsync($"/businesses/{businessId}/services/{serviceId}",
+            new UpdateServiceRequest("Hack", null, 30, null, null));
+
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteService_Unknown_Returns404()
+    {
+        var (businessId, token) = await RegisterOwnerAsync();
+
+        var res = await Authorized(token).DeleteAsync($"/businesses/{businessId}/services/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
     [Fact]
     public async Task ListServices_IsPublic_Returns200()
     {

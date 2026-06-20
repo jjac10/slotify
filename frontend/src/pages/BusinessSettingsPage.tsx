@@ -267,10 +267,14 @@ function StaffServicesEditor({ businessId, staffId, services }: { businessId: st
   useEffect(() => {
     let active = true
     businessService.getStaffServices(businessId, staffId)
-      .then((ids) => { if (active) setSelected(new Set(ids)) })
+      .then((ids) => {
+        if (!active) return
+        // Sin asignaciones = realiza todos: marcamos todos por defecto.
+        setSelected(new Set(ids.length > 0 ? ids : services.map((s) => s.id)))
+      })
       .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudieron cargar los servicios.') })
     return () => { active = false }
-  }, [businessId, staffId])
+  }, [businessId, staffId, services])
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -334,6 +338,103 @@ function StaffServicesEditor({ businessId, staffId, services }: { businessId: st
         )}
       </div>
     </div>
+  )
+}
+
+/** Una fila de servicio con edición inline y borrado. */
+function ServiceRow({ businessId, service, onChanged }: { businessId: string; service: ServiceResponse; onChanged: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(service.name)
+  const [duration, setDuration] = useState(String(service.durationMinutes))
+  const [price, setPrice] = useState(service.price === null ? '' : String(service.price))
+  const [description, setDescription] = useState(service.description ?? '')
+  const [color, setColor] = useState(service.color ?? '#7C3AED')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      await businessService.updateService(businessId, service.id, {
+        name: name.trim(),
+        description: description.trim() || null,
+        durationMinutes: Number(duration),
+        price: price.trim() === '' ? null : Number(price),
+        color: color || null,
+      })
+      setEditing(false)
+      onChanged()
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo guardar el servicio.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`¿Eliminar el servicio «${service.name}»?`)) return
+    try {
+      await businessService.deleteService(businessId, service.id)
+      onChanged()
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo eliminar.')
+    }
+  }
+
+  if (editing) {
+    return (
+      <li className="glass-card rounded-xl p-stack-md" data-testid="service-item">
+        <form onSubmit={handleSave} className="flex flex-col gap-stack-sm" data-testid="edit-service-form">
+          {error && <p role="alert" className="alert text-xs">{error}</p>}
+          <input type="text" className="field-input !py-2" data-testid="edit-service-name"
+            value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" required />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="number" className="field-input !py-2" data-testid="edit-service-duration" aria-label="Duración (min)"
+              value={duration} onChange={(e) => setDuration(e.target.value)} min={5} step={5} required />
+            <input type="number" className="field-input !py-2" data-testid="edit-service-price" aria-label="Precio (€)"
+              value={price} onChange={(e) => setPrice(e.target.value)} min={0} step="0.01" placeholder="€ (vacío = gratis)" />
+          </div>
+          <input type="text" className="field-input !py-2" data-testid="edit-service-description"
+            value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción (opcional)" />
+          <div className="flex items-center gap-2">
+            <input type="color" className="h-9 w-12 rounded-lg border border-outline-variant bg-surface-container-lowest p-1" data-testid="edit-service-color"
+              value={color} onChange={(e) => setColor(e.target.value)} aria-label="Color" />
+            <button type="submit" className="btn-primary !py-1.5 text-sm" data-testid="edit-service-save" disabled={saving}>
+              {saving ? 'Guardando…' : 'Guardar'}
+            </button>
+            <button type="button" className="text-sm font-semibold text-on-surface-variant hover:underline" onClick={() => setEditing(false)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </li>
+    )
+  }
+
+  return (
+    <li className="glass-card rounded-xl p-stack-md flex items-center gap-stack-md" data-testid="service-item">
+      <span className="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ background: service.color ?? '#cbd5e1' }} aria-hidden />
+      <div className="flex-1 min-w-0">
+        <strong className="font-semibold text-sm">{service.name}</strong>
+        <p className="text-xs text-on-surface-variant">
+          {service.durationMinutes} min · {formatPrice(service.price)}
+          {service.description ? ` · ${service.description}` : ''}
+        </p>
+        {error && <p role="alert" className="text-xs text-error mt-1">{error}</p>}
+      </div>
+      <button type="button" onClick={() => setEditing(true)}
+        className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"
+        aria-label={`Editar ${service.name}`} data-testid="edit-service-btn">
+        <span className="material-symbols-outlined text-[18px]">edit</span>
+      </button>
+      <button type="button" onClick={handleDelete}
+        className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
+        aria-label={`Eliminar ${service.name}`} data-testid="delete-service-btn">
+        <span className="material-symbols-outlined text-[18px]">delete</span>
+      </button>
+    </li>
   )
 }
 
@@ -658,16 +759,7 @@ export function BusinessSettingsPage() {
         {services !== null && services.length > 0 && (
           <ul className="flex flex-col gap-2" data-testid="services-list">
             {services.map((svc) => (
-              <li key={svc.id} className="glass-card rounded-xl p-stack-md flex items-center gap-stack-md" data-testid="service-item">
-                <span className="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ background: svc.color ?? '#cbd5e1' }} aria-hidden />
-                <div className="flex-1 min-w-0">
-                  <strong className="font-semibold text-sm">{svc.name}</strong>
-                  <p className="text-xs text-on-surface-variant">
-                    {svc.durationMinutes} min · {formatPrice(svc.price)}
-                    {svc.description ? ` · ${svc.description}` : ''}
-                  </p>
-                </div>
-              </li>
+              <ServiceRow key={svc.id} businessId={businessId} service={svc} onChanged={() => loadServices(businessId)} />
             ))}
           </ul>
         )}
