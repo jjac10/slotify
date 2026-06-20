@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
+import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from './GuestContactInput'
 import type { AvailableSlot, ServiceResponse, StaffMember } from '../types/api'
 
 interface Props {
@@ -34,7 +35,7 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
   const [slotStart, setSlotStart] = useState('')
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [guestName, setGuestName] = useState('')
-  const [contactMode, setContactMode] = useState<'phone' | 'email'>('phone')
+  const [contactMode, setContactMode] = useState<ContactMode>('phone')
   const [phoneLocal, setPhoneLocal] = useState('') // dígitos sin prefijo; el país aporta el +34
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
@@ -67,8 +68,7 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
     return () => { active = false }
   }, [serviceId, staffId, date, businessId])
 
-  const contactFilled = contactMode === 'phone' ? phoneLocal.trim() : email.trim()
-  const canSubmit = Boolean(serviceId && staffId && slotStart && guestName.trim() && contactFilled) && !saving
+  const canSubmit = Boolean(serviceId && staffId && slotStart && guestName.trim()) && isContactValid(contactMode, phoneLocal, email) && !saving
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -81,9 +81,7 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
         staffId,
         startTime: slotStart,
         guestName: guestName.trim(),
-        ...(contactMode === 'phone'
-          ? { guestPhone: `+34${phoneLocal.replace(/\D/g, '')}` }
-          : { guestEmail: email.trim() }),
+        ...buildGuestContact(contactMode, phoneLocal, email),
       })
       onCreated()
     } catch (err) {
@@ -165,32 +163,12 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
               <input id="nr-guest-name" type="text" className="field-input" data-testid="nr-guest-name"
                 value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Nombre y apellidos" />
             </div>
-            <div className="field">
-              <label className="field-label">Contacto</label>
-              <div className="inline-flex rounded-full border border-outline-variant/50 bg-surface-container p-1 gap-1 mb-2 self-start">
-                {(['phone', 'email'] as const).map((m) => (
-                  <button key={m} type="button" onClick={() => setContactMode(m)}
-                    className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
-                      contactMode === m ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
-                    }`}>
-                    {m === 'phone' ? 'Teléfono' : 'Email'}
-                  </button>
-                ))}
-              </div>
-              {contactMode === 'phone' ? (
-                <div className="flex gap-2">
-                  <select className="field-input w-28 shrink-0" data-testid="nr-country" aria-label="País" disabled>
-                    <option value="ES">🇪🇸 +34</option>
-                  </select>
-                  <input type="tel" inputMode="numeric" className="field-input flex-1" data-testid="nr-contact"
-                    value={phoneLocal} onChange={(e) => setPhoneLocal(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                    placeholder="600 000 000" />
-                </div>
-              ) : (
-                <input type="email" className="field-input" data-testid="nr-contact"
-                  value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" />
-              )}
-            </div>
+            <GuestContactInput
+              mode={contactMode} onModeChange={setContactMode}
+              phoneLocal={phoneLocal} onPhoneChange={setPhoneLocal}
+              email={email} onEmailChange={setEmail}
+              testidPrefix="nr-contact"
+            />
           </>
         )}
 

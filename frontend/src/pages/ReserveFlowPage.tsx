@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
+import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
 import type { ServiceResponse, AvailableSlot } from '../types/api'
 import { useAuth } from '../hooks/useAuth'
 
@@ -53,6 +54,11 @@ export function ReserveFlowPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Contacto del invitado (último paso). Teléfono 🇪🇸 +34 o email, validados.
+  const [contactMode, setContactMode] = useState<ContactMode>('phone')
+  const [phoneLocal, setPhoneLocal] = useState('')
+  const [email, setEmail] = useState('')
 
   const todayIso = useMemo(() => isoDate(new Date()), [])
   const [anchorDate, setAnchorDate] = useState(todayIso)
@@ -140,6 +146,10 @@ export function ReserveFlowPage() {
   async function submitGuestBooking(e: FormEvent) {
     e.preventDefault()
     if (!booking.businessId || !booking.serviceId || !booking.staffId || !booking.slotStart) return
+    if (!isContactValid(contactMode, phoneLocal, email)) {
+      setError(contactMode === 'phone' ? 'Introduce un teléfono válido (9 dígitos).' : 'Introduce un email válido.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
@@ -149,8 +159,7 @@ export function ReserveFlowPage() {
         staffId: booking.staffId,
         startTime: booking.slotStart,
         guestName: booking.guestName,
-        guestPhone: booking.guestPhone || undefined,
-        guestEmail: booking.guestEmail || undefined,
+        ...buildGuestContact(contactMode, phoneLocal, email),
       })
       setStep('confirmed')
     } catch (err) {
@@ -383,17 +392,14 @@ export function ReserveFlowPage() {
             <input id="reserve-guest-name" type="text" className="field-input" data-testid="reserve-guest-name"
               value={booking.guestName ?? ''} onChange={(e) => merge({ guestName: e.target.value })} required />
           </div>
-          <div className="field">
-            <label className="field-label" htmlFor="reserve-guest-phone">Teléfono</label>
-            <input id="reserve-guest-phone" type="tel" className="field-input" data-testid="reserve-guest-phone"
-              value={booking.guestPhone ?? ''} onChange={(e) => merge({ guestPhone: e.target.value })} />
-          </div>
-          <div className="field">
-            <label className="field-label" htmlFor="reserve-guest-email">Email</label>
-            <input id="reserve-guest-email" type="email" className="field-input" data-testid="reserve-guest-email"
-              value={booking.guestEmail ?? ''} onChange={(e) => merge({ guestEmail: e.target.value })} />
-          </div>
-          <button type="submit" className="btn-primary" data-testid="reserve-confirm-booking" disabled={loading}>
+          <GuestContactInput
+            mode={contactMode} onModeChange={setContactMode}
+            phoneLocal={phoneLocal} onPhoneChange={setPhoneLocal}
+            email={email} onEmailChange={setEmail}
+            testidPrefix="reserve-guest"
+          />
+          <button type="submit" className="btn-primary" data-testid="reserve-confirm-booking"
+            disabled={loading || !booking.guestName?.trim() || !isContactValid(contactMode, phoneLocal, email)}>
             {loading ? 'Creando reserva…' : 'Confirmar reserva'}
           </button>
         </form>
