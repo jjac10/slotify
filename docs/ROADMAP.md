@@ -10,7 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
-- **Tests:** 274/274 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
+- **Tests:** 283/283 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
 
@@ -60,7 +60,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `FreemiumLimitService` (data-driven, ADR #9): `CanAddStaffAsync` — *PR #3*, `CanAddServiceAsync` — *PR #6*
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
   - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync`
-- ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync`
+- ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync` · ✅ **editar/eliminar servicios** (owner): `UpdateAsync` + `DeleteAsync` (archivado lógico `status='archived'` para conservar el histórico de reservas; libera hueco del plan)
 - ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ⚠️ TODO: gatear tras pago real (Stripe/Paddle) + tabla `subscriptions`/`payments`
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
 - ✅ **`StaffServiceAssignmentService`** (owner): fija/lista qué servicios puede realizar cada trabajador (valida pertenencia al negocio); `StaffService.ListAsync(serviceId?)` filtra el listado público de staff por servicio — un trabajador sin asignaciones se ofrece para todos los servicios (compat. owner-as-staff y negocios de 1 trabajador) — *PR #31*
@@ -86,7 +86,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `Slotify.API`: `Program.cs`, DI (DbContext + repos + servicios), OpenAPI/Scalar, JWT, migraciones al arranque
 - ✅ **CORS** habilitado para el frontend (orígenes en `Cors:AllowedOrigins`) — *PR #15*
 - ✅ `POST /auth/register` (customer) · ✅ `POST /auth/register-owner` (owner+negocio) — *PR #8* · ✅ `POST /auth/login` (devuelve `businessId` del owner — *PR #19*) · ✅ `POST /auth/refresh` · ✅ `GET /auth/me` (protegido)
-- ✅ `GET /businesses` (owner; incluye `plan`) · ✅ `PUT /businesses/{id}/plan` (cambiar plan free/premium, owner) — *PR #30* · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST /businesses/{id}/services` (owner) — *PR #6*
+- ✅ `GET /businesses` (owner; incluye `plan`) · ✅ `PUT /businesses/{id}/plan` (cambiar plan free/premium, owner) — *PR #30* · ✅ `GET /businesses/{id}/services` (público) · ✅ `POST` · ✅ `PUT`/`DELETE /businesses/{id}/services/{serviceId}` (editar/eliminar, owner) — *PR #6*
 - ✅ `GET /businesses/{id}/staff` (público: elegir con quién reservar) — *PR #17* · ✅ `POST` (alta, owner+Freemium) · ✅ `PATCH /{staffId}` (editar) · ✅ `DELETE /{staffId}` (baja lógica; 409 si es el owner) — *PR #29* · ✅ `GET`/`PUT /{staffId}/services` (servicios que hace; owner) · ✅ `GET /staff?serviceId=` (filtra staff por servicio) — *PR #31*
 - ✅ `GET/PUT /businesses/{id}/hours` · ✅ `GET/POST/DELETE /businesses/{id}/holidays` (owner) — *PR #10*
 - ✅ `GET /businesses/{id}/availability` (público) — *PR #11*
@@ -108,7 +108,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
 - ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
 - ✅ **Hub de configuración** `/configuracion` (Datos · Servicios · **Equipo** · Horario · Festivos · Confirmación · Ventana de cancelación · Plan): gestión de empleados (alta/baja, aviso Premium en Free), toggle de confirmación, ventana de cancelación — *PR settings/team*
-- ✅ **`staff_services` (UI)**: asignar servicios a cada trabajador en "Equipo" (editor de chips, vacío = todos); el wizard de reserva filtra el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`) — *PR staff-services-ui*
+- ✅ **`staff_services` (UI)**: asignar servicios a cada trabajador en "Equipo" (editor de chips, **todos marcados por defecto** = realiza todos); el wizard de reserva filtra el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`) — *PR staff-services-ui*
+- ✅ **Editar/eliminar servicios** en la sección Servicios del hub (edición inline + borrado con confirmación) y **horario por defecto** al registrar el negocio — *PR services-crud / default-hours*
 - ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*; cancelar+reprogramar — *PR #25*) · ⬜ Vitest + RTL
 
 ---

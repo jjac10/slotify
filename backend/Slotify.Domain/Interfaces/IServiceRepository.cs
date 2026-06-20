@@ -7,6 +7,9 @@ public interface IServiceRepository
 {
     Task AddAsync(Service service, CancellationToken ct = default);
 
+    /// <summary>Persiste cambios sobre un servicio (edición o archivado).</summary>
+    Task UpdateAsync(Service service, CancellationToken ct = default);
+
     Task<Service?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     Task<IReadOnlyList<Service>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default);

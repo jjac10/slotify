@@ -45,6 +45,17 @@ export const businessService = {
     return data
   },
 
+  /** PUT /businesses/{id}/services/{serviceId} — edita un servicio (solo owner). */
+  async updateService(businessId: string, serviceId: string, request: CreateServiceRequest): Promise<ServiceResponse> {
+    const { data } = await api.put<ServiceResponse>(`/businesses/${businessId}/services/${serviceId}`, request)
+    return data
+  },
+
+  /** DELETE /businesses/{id}/services/{serviceId} — elimina (archiva) un servicio (solo owner). */
+  async deleteService(businessId: string, serviceId: string): Promise<void> {
+    await api.delete(`/businesses/${businessId}/services/${serviceId}`)
+  },
+
   /** GET /businesses/{id}/availability — huecos libres de un servicio + trabajador. */
   async availability(businessId: string, query: AvailabilityQuery): Promise<AvailableSlot[]> {
     const { data } = await api.get<AvailableSlot[]>(
