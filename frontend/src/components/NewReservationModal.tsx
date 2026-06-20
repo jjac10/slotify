@@ -35,7 +35,8 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [contactMode, setContactMode] = useState<'phone' | 'email'>('phone')
-  const [contact, setContact] = useState('')
+  const [phoneLocal, setPhoneLocal] = useState('') // dígitos sin prefijo; el país aporta el +34
+  const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,7 +67,8 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
     return () => { active = false }
   }, [serviceId, staffId, date, businessId])
 
-  const canSubmit = Boolean(serviceId && staffId && slotStart && guestName.trim() && contact.trim()) && !saving
+  const contactFilled = contactMode === 'phone' ? phoneLocal.trim() : email.trim()
+  const canSubmit = Boolean(serviceId && staffId && slotStart && guestName.trim() && contactFilled) && !saving
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -79,7 +81,9 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
         staffId,
         startTime: slotStart,
         guestName: guestName.trim(),
-        ...(contactMode === 'phone' ? { guestPhone: contact.trim() } : { guestEmail: contact.trim() }),
+        ...(contactMode === 'phone'
+          ? { guestPhone: `+34${phoneLocal.replace(/\D/g, '')}` }
+          : { guestEmail: email.trim() }),
       })
       onCreated()
     } catch (err) {
@@ -173,9 +177,19 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
                   </button>
                 ))}
               </div>
-              <input type={contactMode === 'phone' ? 'tel' : 'email'} className="field-input" data-testid="nr-contact"
-                value={contact} onChange={(e) => setContact(e.target.value)}
-                placeholder={contactMode === 'phone' ? '+34 600 000 000' : 'cliente@email.com'} />
+              {contactMode === 'phone' ? (
+                <div className="flex gap-2">
+                  <select className="field-input w-28 shrink-0" data-testid="nr-country" aria-label="País" disabled>
+                    <option value="ES">🇪🇸 +34</option>
+                  </select>
+                  <input type="tel" inputMode="numeric" className="field-input flex-1" data-testid="nr-contact"
+                    value={phoneLocal} onChange={(e) => setPhoneLocal(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                    placeholder="600 000 000" />
+                </div>
+              ) : (
+                <input type="email" className="field-input" data-testid="nr-contact"
+                  value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" />
+              )}
             </div>
           </>
         )}

@@ -38,7 +38,8 @@ test('el owner ve su negocio y crea un servicio', async ({ page }) => {
   await expect(page.getByTestId('business-name')).toHaveText(businessName)
   await expect(page.getByTestId('services-empty')).toBeVisible()
 
-  // Crea un servicio
+  // Crea un servicio (el formulario está plegado tras un botón "Nuevo servicio")
+  await page.getByTestId('new-service-toggle').click()
   await page.getByTestId('service-name').fill('Corte de cabello')
   await page.getByTestId('service-duration').fill('30')
   await page.getByTestId('service-price').fill('25')

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
@@ -589,6 +588,7 @@ export function BusinessSettingsPage() {
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
   const [staffCount, setStaffCount] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Servicios — form
   const [svcName, setSvcName] = useState('')
@@ -744,14 +744,30 @@ export function BusinessSettingsPage() {
             <p className="text-sm text-on-surface-variant break-all">
               ID: <code className="rounded bg-surface-container px-1.5 py-0.5 text-xs" data-testid="business-id">{businessId}</code>
             </p>
-            <Link
-              to={`/reservar?businessId=${businessId}`}
-              data-testid="business-reserve-link"
-              className="mt-stack-sm inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-            >
-              Enlace de reserva
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </Link>
+            <div className="mt-stack-md">
+              <p className="text-xs font-semibold text-on-surface-variant mb-1">Enlace público para tus clientes</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <code className="flex-1 min-w-0 break-all rounded bg-surface-container px-2 py-1.5 text-xs" data-testid="business-reserve-link">
+                  {`${window.location.origin}/reservar?businessId=${businessId}`}
+                </code>
+                <button
+                  type="button"
+                  data-testid="copy-reserve-link"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(`${window.location.origin}/reservar?businessId=${businessId}`)
+                    setLinkCopied(true)
+                    setTimeout(() => setLinkCopied(false), 2000)
+                  }}
+                  className="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1 shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[16px]">{linkCopied ? 'check' : 'content_copy'}</span>
+                  {linkCopied ? 'Copiado' : 'Copiar'}
+                </button>
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                Compártelo para que tus clientes reserven online. Tú apuntas reservas desde la <strong>Agenda</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </SectionCard>
