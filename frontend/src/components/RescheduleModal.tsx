@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
+import { MonthCalendar } from './MonthCalendar'
 import type { ReservationResponse, AvailableSlot } from '../types/api'
 
 interface Props {
@@ -84,16 +85,8 @@ export function RescheduleModal({ reservation, onClose, onRescheduled, contact }
         )}
 
         <div className="field">
-          <label className="field-label" htmlFor="reschedule-date">Nueva fecha</label>
-          <input
-            id="reschedule-date"
-            type="date"
-            className="field-input"
-            data-testid="reschedule-date-input"
-            value={date}
-            min={today}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <label className="field-label">Nueva fecha</label>
+          <MonthCalendar value={date} min={today} onSelect={setDate} />
         </div>
 
         {slotsError && <p role="alert" className="alert">{slotsError}</p>}

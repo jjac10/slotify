@@ -5,6 +5,7 @@ import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
+import { MonthCalendar } from '../components/MonthCalendar'
 import type { ServiceResponse, AvailableSlot } from '../types/api'
 import { useAuth } from '../hooks/useAuth'
 
@@ -302,20 +303,17 @@ export function ReserveFlowPage() {
           </div>
 
           {showPicker && (
-            <input
-              type="date"
-              className="field-input mb-stack-md"
-              data-testid="reserve-date-input"
-              min={todayIso}
-              value={selectedDate}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setAnchorDate(e.target.value)
-                  selectDay(e.target.value)
+            <div className="mb-stack-md">
+              <MonthCalendar
+                value={selectedDate}
+                min={todayIso}
+                onSelect={(d) => {
+                  setAnchorDate(d)
+                  selectDay(d)
                   setShowPicker(false)
-                }
-              }}
-            />
+                }}
+              />
+            </div>
           )}
 
           {/* Tira de días (responsiva: 5 en móvil, 7 en escritorio, sin scroll) */}

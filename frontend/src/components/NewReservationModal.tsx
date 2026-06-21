@@ -3,6 +3,7 @@ import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from './GuestContactInput'
+import { MonthCalendar } from './MonthCalendar'
 import type { AvailableSlot, ServiceResponse, StaffMember } from '../types/api'
 
 interface Props {
@@ -129,9 +130,8 @@ export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
 
         {serviceId && staffId && (
           <div className="field">
-            <label className="field-label" htmlFor="nr-date">Fecha</label>
-            <input id="nr-date" type="date" className="field-input" data-testid="nr-date"
-              value={date} min={today} onChange={(e) => setDate(e.target.value)} />
+            <label className="field-label">Fecha</label>
+            <MonthCalendar value={date} min={today} onSelect={setDate} />
           </div>
         )}
 
