@@ -102,7 +102,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Scaffold Vite + React 19 + TS (strict) · ✅ cliente API tipado (axios, interceptor JWT) — *PR #16*
 - ✅ Auth (login/registro cliente+owner, JWT en localStorage, rutas protegidas) — *PR #16*
 - ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
-- ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*
+- ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*; ✅ **calendario mensual propio** (`MonthCalendar`: rejilla con navegación de meses, días pasados deshabilitados, día seleccionado resaltado) en lugar del input de fecha nativo — *PR month-calendar*
 - ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
