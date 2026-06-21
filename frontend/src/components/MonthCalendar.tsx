@@ -35,21 +35,21 @@ export function MonthCalendar({ value, min, onSelect }: Props) {
   ]
 
   return (
-    <div className="rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-stack-md" data-testid="month-calendar">
-      <div className="mb-stack-sm flex items-center justify-between">
+    <div className="w-full max-w-[17rem] rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-stack-sm" data-testid="month-calendar">
+      <div className="mb-1 flex items-center justify-between">
         <button type="button" onClick={() => shift(-1)} aria-label="Mes anterior"
-          className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors">
-          <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+          className="p-0.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors">
+          <span className="material-symbols-outlined text-[18px]">chevron_left</span>
         </button>
-        <span className="text-sm font-bold capitalize">{monthLabel}</span>
+        <span className="text-xs font-bold capitalize">{monthLabel}</span>
         <button type="button" onClick={() => shift(1)} aria-label="Mes siguiente"
-          className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors">
-          <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          className="p-0.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors">
+          <span className="material-symbols-outlined text-[18px]">chevron_right</span>
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center">
+      <div className="grid grid-cols-7 gap-0.5 text-center">
         {WEEKDAYS.map((w) => (
-          <span key={w} className="py-1 text-[11px] font-semibold text-on-surface-variant">{w}</span>
+          <span key={w} className="text-[10px] font-semibold text-on-surface-variant">{w}</span>
         ))}
         {cells.map((day, i) => {
           if (day === null) return <span key={`e${i}`} />
@@ -64,9 +64,9 @@ export function MonthCalendar({ value, min, onSelect }: Props) {
               data-testid="calendar-day"
               data-date={dateIso}
               onClick={() => onSelect(dateIso)}
-              className={`aspect-square rounded-lg text-sm font-semibold transition-colors ${
+              className={`h-8 rounded-md text-xs font-semibold transition-colors ${
                 selected
-                  ? 'bg-primary text-on-primary shadow-sm'
+                  ? 'bg-primary text-on-primary'
                   : disabled
                     ? 'text-on-surface-variant/30 cursor-not-allowed'
                     : 'text-on-surface hover:bg-primary-container/30'
