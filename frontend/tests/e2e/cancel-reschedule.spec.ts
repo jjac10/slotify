@@ -138,12 +138,17 @@ test('el cliente reprograma su reserva desde Mis reservas', async ({ page }) => 
   await expect(item.getByTestId('reschedule-btn')).toBeVisible()
   await item.getByTestId('reschedule-btn').click()
 
-  // El modal se abre y carga slots
-  await expect(page.getByTestId('reschedule-date-input')).toBeVisible()
+  // El modal se abre con el calendario mensual
+  await expect(page.getByTestId('month-calendar')).toBeVisible()
 
-  // Elegir un día diferente (2 días laborales en el futuro para evitar solapamiento)
+  // Elegir un día diferente (3 días laborales en el futuro para evitar solapamiento)
   const newDate = nextWeekday(3)
-  await page.getByTestId('reschedule-date-input').fill(newDate)
+  const dayBtn = page.locator(`[data-testid="calendar-day"][data-date="${newDate}"]`)
+  // El calendario abre en el mes de la reserva; si el día cae en el mes siguiente, navegar.
+  if (!(await dayBtn.isVisible())) {
+    await page.getByLabel('Mes siguiente').click()
+  }
+  await dayBtn.click()
 
   // Esperar slots disponibles
   await expect(page.getByTestId('reschedule-slots')).toBeVisible({ timeout: 10000 })
@@ -152,6 +157,6 @@ test('el cliente reprograma su reserva desde Mis reservas', async ({ page }) => 
   await page.getByTestId('reschedule-slot').first().click()
 
   // El modal se cierra y la reserva se actualiza en la lista
-  await expect(page.getByTestId('reschedule-date-input')).not.toBeVisible()
+  await expect(page.getByTestId('month-calendar')).not.toBeVisible()
   await expect(page.getByTestId('my-reservations-list')).toBeVisible()
 })
