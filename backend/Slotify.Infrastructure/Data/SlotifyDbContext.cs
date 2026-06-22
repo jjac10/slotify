@@ -101,6 +101,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(b => b.Timezone).HasColumnName("timezone").HasMaxLength(64).HasDefaultValue("Europe/Madrid");
             e.Property(b => b.ConfirmationMode).HasColumnName("confirmation_mode").HasMaxLength(50).HasDefaultValue("auto");
             e.Property(b => b.CancellationCutoffHours).HasColumnName("cancellation_cutoff_hours").HasDefaultValue(0);
+            e.Property(b => b.BookingMode).HasColumnName("booking_mode").HasMaxLength(50).HasDefaultValue("online");
             e.Property(b => b.Category).HasColumnName("category").HasMaxLength(50);
             e.Property(b => b.PhotoUrl).HasColumnName("photo_url").HasMaxLength(2048);
             e.Property(b => b.Latitude).HasColumnName("latitude");

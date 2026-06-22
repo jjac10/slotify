@@ -43,6 +43,10 @@ public class ReservationsController(
         {
             return BadRequest(new { error = "self_booking_not_allowed", message = ex.Message });
         }
+        catch (OnlineBookingDisabledException ex)
+        {
+            return Conflict(new { error = "online_booking_disabled", message = ex.Message });
+        }
         catch (SlotUnavailableException ex)
         {
             return Conflict(new { error = "slot_unavailable", message = ex.Message });

@@ -35,6 +35,16 @@ public class BookingService(
         if (worker is null || worker.BusinessId != request.BusinessId)
             throw new StaffNotFoundException(request.StaffId);
 
+        // Negocio en 'solo calendario': no acepta reservas online. Solo el owner o su
+        // staff pueden apuntar reservas (desde la Agenda); un cliente/invitado, no.
+        if (business.BookingMode == "calendar_only")
+        {
+            var isManager = userId is { } actorId
+                && (business.OwnerId == actorId || await staff.ExistsForUserAsync(actorId, business.Id, ct));
+            if (!isManager)
+                throw new OnlineBookingDisabledException();
+        }
+
         // ¿Reserva para un invitado? Si llegan datos de invitado, la reserva es para un
         // cliente aunque la petición esté autenticada: así el owner/staff crea reservas
         // para clientes desde su agenda (recepción). Sin datos de invitado ni sesión, inválida.

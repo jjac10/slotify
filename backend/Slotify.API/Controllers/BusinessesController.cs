@@ -64,6 +64,30 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
         }
     }
 
+    /// <summary>Cambia el modo de reservas ('online'|'calendar_only'). Solo el owner.</summary>
+    [HttpPut("{id:guid}/booking-mode")]
+    [Authorize]
+    public async Task<ActionResult<BusinessResponse>> SetBookingMode(
+        Guid id, SetBookingModeRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await businesses.SetBookingModeAsync(id, CurrentUserId, request.Mode, ct));
+        }
+        catch (InvalidBookingModeException ex)
+        {
+            return BadRequest(new { error = "invalid_booking_mode", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>Cambia el plan del negocio ('free'|'premium'). Solo el owner. Upgrade simulado (TFM); en producción lo dispara la pasarela de pago.</summary>
     [HttpPut("{id:guid}/plan")]
     [Authorize]

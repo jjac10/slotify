@@ -49,6 +49,14 @@ public class Business
     /// </summary>
     public int CancellationCutoffHours { get; set; }
 
+    /// <summary>
+    /// Cómo opera el negocio en cuanto a reservas:
+    /// <c>online</c> → los clientes reservan por internet (aparece en Explorar);
+    /// <c>calendar_only</c> → solo el owner/staff apunta reservas desde la Agenda
+    /// (no se ofrece reserva pública ni sale en Explorar). Configurable por el owner.
+    /// </summary>
+    public string BookingMode { get; set; } = "online";
+
     // --- Perfil público (para Explorar) ---
 
     /// <summary>Categoría del negocio (código: 'peluqueria', 'barberia', …). NULL = sin categorizar.</summary>
