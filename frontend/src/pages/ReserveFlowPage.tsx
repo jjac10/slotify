@@ -223,7 +223,11 @@ export function ReserveFlowPage() {
       {/* PASO 2 — Servicio */}
       {step === 'select-service' && (
         <div>
-          <BackButton to="enter-business" />
+          {/* Se llega aquí desde un negocio (Explorar o enlace); "Volver" lleva a Explorar,
+              no al estado vacío "elige un negocio" (que dejaba el businessId colgando en la URL). */}
+          <Link to="/explorar" className="btn-ghost -ml-2 mb-stack-sm text-sm inline-flex items-center" data-testid="reserve-back-explore">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Explorar
+          </Link>
           {services && services.length > 0 && (
             <ul className="flex flex-col gap-stack-sm" data-testid="reserve-services">
               {services.map((svc) => (

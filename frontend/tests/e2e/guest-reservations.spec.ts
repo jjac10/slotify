@@ -34,10 +34,10 @@ test('un invitado busca sus reservas por teléfono', async ({ page }) => {
   })
   if (!r.ok) throw new Error(`create-reservation failed: ${await r.text()}`)
 
-  // UI (sin login): buscar por teléfono.
+  // UI (sin login): buscar por teléfono (modo teléfono por defecto; +34 del selector + 9 dígitos).
   await page.goto('/mis-reservas')
   await expect(page.getByTestId('guest-lookup-form')).toBeVisible()
-  await page.getByTestId('guest-lookup-contact').fill(phone)
+  await page.getByTestId('guest-lookup-phone').fill(phone.slice(3))
   await page.getByTestId('guest-lookup-submit').click()
 
   await expect(page.getByTestId('guest-lookup-list')).toBeVisible()
