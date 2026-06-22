@@ -94,6 +94,26 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
     }
 
     /// <summary>
+    /// Cambia el modo de reservas del negocio ('online'|'calendar_only'). Solo el owner.
+    /// En 'calendar_only' el negocio no acepta reservas online ni sale en Explorar.
+    /// </summary>
+    public async Task<BusinessResponse> SetBookingModeAsync(
+        Guid businessId, Guid userId, string mode, CancellationToken ct = default)
+    {
+        if (mode is not ("online" or "calendar_only"))
+            throw new InvalidBookingModeException(mode);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        business.BookingMode = mode;
+        await repository.UpdateAsync(business, ct);
+        return BusinessResponse.From(business);
+    }
+
+    /// <summary>
     /// Fija la antelación mínima (en horas) para que el cliente cancele/reprograme.
     /// 0 = sin restricción. Solo el owner.
     /// </summary>

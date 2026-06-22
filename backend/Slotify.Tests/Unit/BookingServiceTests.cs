@@ -300,4 +300,58 @@ public class BookingServiceTests
         Assert.Equal(userId, saved!.UserId);
         _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    // --- Modo 'solo calendario' (calendar_only): solo owner/staff apuntan reservas ---
+
+    /// <summary>Configura el negocio en modo 'solo calendario' con un owner conocido.</summary>
+    private void SetCalendarOnlyBusiness(Guid ownerId) =>
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz", ConfirmationMode = "auto", BookingMode = "calendar_only" });
+
+    [Fact]
+    public async Task CreateAsync_CalendarOnly_GuestBooking_Throws()
+    {
+        SetCalendarOnlyBusiness(Guid.NewGuid());
+        SetupValidServiceAndStaff();
+
+        await Assert.ThrowsAsync<OnlineBookingDisabledException>(
+            () => CreateService().CreateAsync(GuestRequest(), userId: null));
+
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_CalendarOnly_RegisteredCustomerSelfBooking_Throws()
+    {
+        SetCalendarOnlyBusiness(Guid.NewGuid());
+        SetupValidServiceAndStaff(staffUserId: Guid.NewGuid());
+
+        var request = new CreateReservationRequest(_businessId, _serviceId, _staffId, Start, null, null, null);
+        await Assert.ThrowsAsync<OnlineBookingDisabledException>(
+            () => CreateService().CreateAsync(request, userId: Guid.NewGuid())); // cliente cualquiera, no owner/staff
+
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_CalendarOnly_OwnerBooksForGuest_Succeeds()
+    {
+        var ownerId = Guid.NewGuid();
+        SetCalendarOnlyBusiness(ownerId);
+        SetupValidServiceAndStaff();
+        _users.Setup(u => u.FindActiveUserByContactAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _guests.Setup(g => g.FindByHashAsync(_businessId, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guest?)null);
+        _crypto.Setup(c => c.Encrypt(It.IsAny<string>())).Returns("ENC");
+        _blindIndex.Setup(b => b.Compute(It.IsAny<string>())).Returns("HASH");
+        Reservation? saved = null;
+        _reservations.Setup(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => saved = r).Returns(Task.CompletedTask);
+
+        await CreateService().CreateAsync(GuestRequest(), userId: ownerId); // el owner apunta una reserva desde la Agenda
+
+        Assert.NotNull(saved);
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

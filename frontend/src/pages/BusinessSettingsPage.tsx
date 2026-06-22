@@ -787,6 +787,10 @@ export function BusinessSettingsPage() {
   const [confSaved, setConfSaved] = useState(false)
   const [confError, setConfError] = useState<string | null>(null)
 
+  // Modo de reservas (online | calendar_only)
+  const [bookingModeSaving, setBookingModeSaving] = useState(false)
+  const [bookingModeError, setBookingModeError] = useState<string | null>(null)
+
   // Ventana de cancelación
   const [cutoffHours, setCutoffHours] = useState('')
   const [cutoffSaving, setCutoffSaving] = useState(false)
@@ -866,6 +870,20 @@ export function BusinessSettingsPage() {
       setConfError(getApiError(err)?.message ?? 'No se pudo cambiar el modo.')
     } finally {
       setConfSaving(false)
+    }
+  }
+
+  async function handleSetBookingMode(mode: string) {
+    if (!businessId) return
+    setBookingModeError(null)
+    setBookingModeSaving(true)
+    try {
+      const updated = await businessService.setBookingMode(businessId, mode)
+      setBusiness((prev) => prev ? { ...prev, bookingMode: updated.bookingMode } : prev)
+    } catch (err) {
+      setBookingModeError(getApiError(err)?.message ?? 'No se pudo cambiar el modo de reservas.')
+    } finally {
+      setBookingModeSaving(false)
     }
   }
 
@@ -1054,6 +1072,49 @@ export function BusinessSettingsPage() {
           Los días añadidos aquí no tendrán disponibilidad para reservas.
         </p>
         <HolidaysSection businessId={businessId} />
+      </SectionCard>
+
+      {/* Modo de reservas */}
+      <SectionCard id="modo-reservas" title="Modo de reservas" icon="event_available">
+        <p className="text-sm text-on-surface-variant -mt-stack-sm">
+          En <strong>reservas online</strong> tus clientes reservan por internet y tu negocio aparece en Explorar.
+          En <strong>solo calendario</strong> usas Slotify como agenda: solo tú apuntas las reservas y el negocio no aparece en Explorar.
+        </p>
+        {bookingModeError && <p role="alert" className="alert text-sm" data-testid="booking-mode-error">{bookingModeError}</p>}
+        <div className="inline-flex rounded-full border border-outline-variant/50 bg-surface-container p-1 gap-1 self-start">
+          <button
+            type="button"
+            disabled={bookingModeSaving}
+            onClick={() => handleSetBookingMode('online')}
+            data-testid="booking-mode-online"
+            className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${
+              business?.bookingMode !== 'calendar_only'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Reservas online
+          </button>
+          <button
+            type="button"
+            disabled={bookingModeSaving}
+            onClick={() => handleSetBookingMode('calendar_only')}
+            data-testid="booking-mode-calendar-only"
+            className={`rounded-full px-5 py-2 text-sm font-bold transition-all ${
+              business?.bookingMode === 'calendar_only'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Solo calendario
+          </button>
+        </div>
+        {business?.bookingMode === 'calendar_only' && (
+          <p className="inline-flex items-center gap-1 text-xs font-semibold text-on-surface-variant" data-testid="booking-mode-calendar-only-active">
+            <span className="material-symbols-outlined text-[16px]">info</span>
+            Tus clientes no pueden reservar online; apunta las reservas desde la Agenda.
+          </p>
+        )}
       </SectionCard>
 
       {/* Confirmación */}

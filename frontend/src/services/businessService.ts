@@ -170,6 +170,12 @@ export const businessService = {
     return data
   },
 
+  /** PUT /businesses/{id}/booking-mode — cambia el modo de reservas (online|calendar_only). */
+  async setBookingMode(businessId: string, mode: string): Promise<BusinessResponse> {
+    const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/booking-mode`, { mode })
+    return data
+  },
+
   /** PUT /businesses/{id}/cancellation-cutoff — fija la ventana mínima de antelación (0 = sin límite). */
   async setCancellationCutoff(businessId: string, hours: number): Promise<BusinessResponse> {
     const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/cancellation-cutoff`, { hours })

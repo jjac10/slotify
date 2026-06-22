@@ -93,6 +93,46 @@ public class BusinessServiceTests
         _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData("online")]
+    [InlineData("calendar_only")]
+    public async Task SetBookingModeAsync_AsOwner_UpdatesMode(string mode)
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz", BookingMode = "online" };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var result = await CreateService().SetBookingModeAsync(businessId, ownerId, mode);
+
+        Assert.Equal(mode, business.BookingMode);
+        Assert.Equal(mode, result.BookingMode);
+        _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetBookingModeAsync_InvalidMode_Throws_AndDoesNotUpdate()
+    {
+        await Assert.ThrowsAsync<InvalidBookingModeException>(
+            () => CreateService().SetBookingModeAsync(Guid.NewGuid(), Guid.NewGuid(), "nope"));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetBookingModeAsync_NotOwner_Throws_AndDoesNotUpdate()
+    {
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(
+            () => CreateService().SetBookingModeAsync(businessId, Guid.NewGuid(), "calendar_only"));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     // --- Ventana de cancelación ---------------------------------------------
 
     [Theory]

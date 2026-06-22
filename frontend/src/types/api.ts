@@ -57,6 +57,8 @@ export interface BusinessResponse {
   /** Valoraciones (denormalizado). `rating` null si aún no tiene reseñas. */
   rating: number | null
   reviewCount: number
+  /** Modo de reservas: 'online' (clientes reservan) | 'calendar_only' (solo el owner apunta). */
+  bookingMode: string
 }
 
 /** GET /businesses/{id}/reviews — una reseña pública de un negocio. */
