@@ -34,8 +34,9 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
 
     public async Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default)
     {
-        // Solo negocios que aceptan reservas online (los de 'solo calendario' no salen en Explorar).
-        var q = db.Businesses.AsNoTracking().Where(b => b.Status == "active" && b.BookingMode == "online");
+        // Todos los negocios activos salen en Explorar; los de 'solo calendario' aparecen
+        // pero la UI los marca como "cita en persona" (sin reserva online).
+        var q = db.Businesses.AsNoTracking().Where(b => b.Status == "active");
 
         if (!string.IsNullOrWhiteSpace(query))
         {

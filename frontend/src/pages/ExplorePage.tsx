@@ -159,9 +159,16 @@ export function ExplorePage() {
                     <RatingStars value={b.rating} count={b.reviewCount} />
                   </div>
                 </div>
-                <Link to={`/reservar?businessId=${b.id}`} className="btn-primary py-2 text-sm shrink-0" data-testid="explore-reserve">
-                  Reservar
-                </Link>
+                {b.bookingMode === 'calendar_only' ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-2 text-xs font-semibold text-on-surface-variant shrink-0" data-testid="explore-in-person" title="Este negocio no acepta reservas online">
+                    <span className="material-symbols-outlined text-[16px]">storefront</span>
+                    Cita en persona
+                  </span>
+                ) : (
+                  <Link to={`/reservar?businessId=${b.id}`} className="btn-primary py-2 text-sm shrink-0" data-testid="explore-reserve">
+                    Reservar
+                  </Link>
+                )}
               </div>
             </li>
           ))}

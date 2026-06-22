@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Modo "solo calendario": el owner lo activa desde Configuración y su negocio deja
- * de aparecer en Explorar (no acepta reservas online). Corre contra el stack real.
+ * Modo "solo calendario": el owner lo activa desde Configuración y su negocio sigue
+ * apareciendo en Explorar pero marcado "Cita en persona" (sin botón Reservar).
+ * Corre contra el stack real.
  */
 
 function unique(): string {
@@ -11,7 +12,7 @@ function unique(): string {
 
 const PASSWORD = 'SecurePass123!'
 
-test('el owner activa "solo calendario" y su negocio desaparece de Explorar', async ({ page }) => {
+test('el owner activa "solo calendario" y en Explorar aparece como "Cita en persona"', async ({ page }) => {
   const suffix = unique()
   const email = `owner-${suffix}@slotify.test`
   const businessName = `Barberia ${suffix}`
@@ -38,8 +39,11 @@ test('el owner activa "solo calendario" y su negocio desaparece de Explorar', as
   await page.getByTestId('booking-mode-calendar-only').click()
   await expect(page.getByTestId('booking-mode-calendar-only-active')).toBeVisible()
 
-  // Ya no aparece en Explorar.
+  // Sigue en Explorar, pero como "Cita en persona" y sin botón Reservar.
   await page.goto('/explorar')
   await page.getByTestId('explore-search').fill(businessName)
-  await expect(page.getByTestId('explore-item').filter({ hasText: businessName })).toHaveCount(0)
+  const card = page.getByTestId('explore-item').filter({ hasText: businessName })
+  await expect(card).toBeVisible()
+  await expect(card.getByTestId('explore-in-person')).toBeVisible()
+  await expect(card.getByTestId('explore-reserve')).toHaveCount(0)
 })
