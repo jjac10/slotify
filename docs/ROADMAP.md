@@ -10,6 +10,7 @@
 ## Estado actual
 
 - **Fase activa:** 3 (Desarrollo incremental TDD).
+
 - **Tests:** 294/294 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
 - **Ya se puede ver en navegador:** `Slotify.API` levanta con `docker-compose up` → UI Scalar en `/scalar`, OpenAPI en `/openapi/v1.json`.
@@ -39,8 +40,8 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `pricing_tiers` (+ seed free/premium) — *PR #1*
 - ✅ `users` (mínimo: identidad, type, status) — *PR #1*
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1* · ✅ `timezone` — *PR #—* · ✅ `confirmation_mode` (`auto`|`manual`) — *PR #26* · ✅ cambio de plan (`tier_id` editable, upgrade/downgrade owner) — *PR #30*
-  - ⬜ columnas restantes (contacto, ubicación, personalización, config, social, stats)
-  - ⬜ **ubicación (lat/lng) + categoría + rating + foto** → habilita "negocios más cercanos", filtro por categoría y tarjetas ricas en Explorar/Mi Slotify (aplazado a propósito)
+  - ⬜ columnas restantes (contacto, personalización, config, social, stats)
+  - ✅ **perfil público**: `category`, `photo_url`, `latitude`, `longitude` (migración `Add_BusinessProfile`) → tarjetas con foto, filtro por categoría y "negocios cercanos" (distancia) en Explorar — *PR business-profile* · ⬜ `rating` (pendiente del sistema de reseñas)
 - ✅ `staff` (+ owner-as-staff) — *PR #2* · ✅ gestión CRUD de empleados (owner) — *PR #29*
 - ✅ `services` — *PR #6*
 - ✅ `staff_services` (N:M trabajador↔servicio, unique (staff_id, service_id), migración `Add_StaffServices`) — *PR #31*

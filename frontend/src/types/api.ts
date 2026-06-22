@@ -49,6 +49,19 @@ export interface BusinessResponse {
   cancellationCutoffHours: number
   /** Código del plan/tier: 'free' | 'premium' (null si la consulta no lo cargó). */
   plan: string | null
+  /** Perfil público (Explorar). */
+  category: string | null
+  photoUrl: string | null
+  latitude: number | null
+  longitude: number | null
+}
+
+/** PUT /businesses/{id}/profile — perfil público del negocio. */
+export interface UpdateBusinessProfileRequest {
+  category: string | null
+  photoUrl: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 /** GET /businesses/{id}/staff — trabajador del negocio (no expone email/teléfono). */

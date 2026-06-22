@@ -194,4 +194,50 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
         Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
     }
+
+    // --- PUT /businesses/{id}/profile + filtro por categoría -----------------
+
+    [Fact]
+    public async Task UpdateProfile_AsOwner_Returns200_AndReflectedInPublicSearch()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("barberia", "https://img/x.jpg", 40.4168, -3.7038));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("barberia", body!.Category);
+        Assert.Equal(40.4168, body.Latitude);
+
+        // Aparece en el listado público con su perfil.
+        var pub = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses");
+        var found = pub!.Single(b => b.Id == businessId);
+        Assert.Equal("barberia", found.Category);
+        Assert.Equal("https://img/x.jpg", found.PhotoUrl);
+
+        // Filtro por categoría.
+        var byCat = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=barberia");
+        Assert.Contains(byCat!, b => b.Id == businessId);
+        var other = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=spa");
+        Assert.DoesNotContain(other!, b => b.Id == businessId);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_InvalidCategory_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("no-existe", null, null, null));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("spa", null, null, null));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
 }

@@ -10,6 +10,7 @@ import type {
   DashboardResponse,
   ServiceResponse,
   StaffMember,
+  UpdateBusinessProfileRequest,
 } from '../types/api'
 
 interface AvailabilityQuery {
@@ -26,11 +27,20 @@ export const businessService = {
     return data
   },
 
-  /** GET /public/businesses — listado/búsqueda pública de negocios (por nombre). */
-  async searchPublic(query?: string): Promise<BusinessResponse[]> {
+  /** GET /public/businesses — listado/búsqueda pública (por nombre y/o categoría). */
+  async searchPublic(query?: string, category?: string): Promise<BusinessResponse[]> {
+    const params: Record<string, string> = {}
+    if (query) params.q = query
+    if (category) params.category = category
     const { data } = await api.get<BusinessResponse[]>('/public/businesses', {
-      params: query ? { q: query } : undefined,
+      params: Object.keys(params).length ? params : undefined,
     })
+    return data
+  },
+
+  /** PUT /businesses/{id}/profile — perfil público (categoría/foto/ubicación; solo owner). */
+  async updateProfile(businessId: string, request: UpdateBusinessProfileRequest): Promise<BusinessResponse> {
+    const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/profile`, request)
     return data
   },
 

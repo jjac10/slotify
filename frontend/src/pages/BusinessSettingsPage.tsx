@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
+import { BUSINESS_CATEGORIES } from '../constants/categories'
 import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -621,6 +622,106 @@ function TeamSection({ businessId, services }: { businessId: string; services: S
   )
 }
 
+// ─── Perfil público (Explorar) ───────────────────────────────────────────────
+
+function ProfileSection({ businessId, business, onUpdated }: { businessId: string; business: BusinessResponse | null; onUpdated: (b: BusinessResponse) => void }) {
+  const [category, setCategory] = useState('')
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [lat, setLat] = useState('')
+  const [lng, setLng] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [locating, setLocating] = useState(false)
+
+  useEffect(() => {
+    if (!business) return
+    setCategory(business.category ?? '')
+    setPhotoUrl(business.photoUrl ?? '')
+    setLat(business.latitude != null ? String(business.latitude) : '')
+    setLng(business.longitude != null ? String(business.longitude) : '')
+  }, [business])
+
+  function useMyLocation() {
+    if (!navigator.geolocation) { setError('Tu navegador no permite geolocalización.'); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setLat(pos.coords.latitude.toFixed(6)); setLng(pos.coords.longitude.toFixed(6)); setLocating(false); setSaved(false) },
+      () => { setError('No se pudo obtener tu ubicación.'); setLocating(false) },
+      { timeout: 8000 },
+    )
+  }
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await businessService.updateProfile(businessId, {
+        category: category || null,
+        photoUrl: photoUrl.trim() || null,
+        latitude: lat.trim() === '' ? null : Number(lat),
+        longitude: lng.trim() === '' ? null : Number(lng),
+      })
+      onUpdated(updated)
+      setSaved(true)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo guardar el perfil.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSave} className="flex flex-col gap-stack-md" data-testid="profile-form">
+      {error && <p role="alert" className="alert text-sm">{error}</p>}
+      <div className="field">
+        <label className="field-label" htmlFor="profile-category">Categoría</label>
+        <select id="profile-category" className="field-input" data-testid="profile-category"
+          value={category} onChange={(e) => { setCategory(e.target.value); setSaved(false) }}>
+          <option value="">Sin categoría</option>
+          {BUSINESS_CATEGORIES.map((c) => (
+            <option key={c.code} value={c.code}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-photo">Foto (URL)</label>
+        <input id="profile-photo" type="url" className="field-input" data-testid="profile-photo"
+          value={photoUrl} onChange={(e) => { setPhotoUrl(e.target.value); setSaved(false) }} placeholder="https://…/foto.jpg" />
+        {photoUrl.trim() && (
+          <img src={photoUrl} alt="Vista previa" className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+        )}
+      </div>
+      <div className="field">
+        <label className="field-label">Ubicación (para "negocios cercanos")</label>
+        <div className="flex flex-wrap items-end gap-2">
+          <input type="number" step="any" className="field-input w-36" data-testid="profile-lat" aria-label="Latitud"
+            value={lat} onChange={(e) => { setLat(e.target.value); setSaved(false) }} placeholder="Latitud" />
+          <input type="number" step="any" className="field-input w-36" data-testid="profile-lng" aria-label="Longitud"
+            value={lng} onChange={(e) => { setLng(e.target.value); setSaved(false) }} placeholder="Longitud" />
+          <button type="button" onClick={useMyLocation} disabled={locating} data-testid="profile-locate"
+            className="btn-secondary !py-2 text-sm inline-flex items-center gap-1">
+            <span className="material-symbols-outlined text-[18px]">my_location</span>
+            {locating ? 'Localizando…' : 'Usar mi ubicación'}
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center gap-stack-md">
+        <button type="submit" className="btn-primary self-start" data-testid="profile-save" disabled={saving}>
+          {saving ? 'Guardando…' : 'Guardar perfil'}
+        </button>
+        {saved && (
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary">
+            <span className="material-symbols-outlined text-[16px]">check_circle</span> Guardado
+          </span>
+        )}
+      </div>
+    </form>
+  )
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export function BusinessSettingsPage() {
@@ -812,6 +913,14 @@ export function BusinessSettingsPage() {
             </div>
           </div>
         </div>
+      </SectionCard>
+
+      {/* Perfil público */}
+      <SectionCard title="Perfil (Explorar)" icon="badge">
+        <p className="text-sm text-on-surface-variant -mt-stack-sm">
+          Cómo se ve tu negocio en Explorar: categoría, foto y ubicación (para que aparezca en "negocios cercanos").
+        </p>
+        <ProfileSection businessId={businessId} business={business} onUpdated={(b) => setBusiness(b)} />
       </SectionCard>
 
       {/* Servicios */}

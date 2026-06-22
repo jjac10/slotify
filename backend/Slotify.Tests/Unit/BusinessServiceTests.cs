@@ -195,4 +195,48 @@ public class BusinessServiceTests
 
         _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // --- Perfil público -----------------------------------------------------
+
+    [Fact]
+    public async Task UpdateProfileAsync_AsOwner_UpdatesFields()
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var result = await CreateService().UpdateProfileAsync(businessId, ownerId,
+            new UpdateBusinessProfileRequest("barberia", "https://img/x.jpg", 40.4, -3.7));
+
+        Assert.Equal("barberia", business.Category);
+        Assert.Equal("https://img/x.jpg", business.PhotoUrl);
+        Assert.Equal(40.4, business.Latitude);
+        Assert.Equal(-3.7, business.Longitude);
+        Assert.Equal("barberia", result.Category);
+        _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_InvalidCategory_Throws_AndDoesNotUpdate()
+    {
+        await Assert.ThrowsAsync<InvalidCategoryException>(() => CreateService().UpdateProfileAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new UpdateBusinessProfileRequest("no-existe", null, null, null)));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_NotOwner_Throws_AndDoesNotUpdate()
+    {
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<NotBusinessOwnerException>(() => CreateService().UpdateProfileAsync(
+            businessId, Guid.NewGuid(), new UpdateBusinessProfileRequest("spa", null, null, null)));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Slotify.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Slotify.Infrastructure.Data;
 namespace Slotify.Infrastructure.Migrations
 {
     [DbContext(typeof(SlotifyDbContext))]
-    partial class SlotifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622044840_Add_BusinessProfile")]
+    partial class Add_BusinessProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -196,14 +199,6 @@ namespace Slotify.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("business_id");
 
-                    b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date")
-                        .HasColumnName("end_date");
-
-                    b.Property<TimeOnly?>("EndTime")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("end_time");
-
                     b.Property<DateOnly>("HolidayDate")
                         .HasColumnType("date")
                         .HasColumnName("holiday_date");
@@ -218,10 +213,6 @@ namespace Slotify.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("reason");
-
-                    b.Property<TimeOnly?>("StartTime")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("start_time");
 
                     b.HasKey("Id");
 

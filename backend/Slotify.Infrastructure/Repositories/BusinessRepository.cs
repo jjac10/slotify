@@ -32,7 +32,7 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default)
     {
         var q = db.Businesses.AsNoTracking().Where(b => b.Status == "active");
 
@@ -41,6 +41,9 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
             var term = query.Trim();
             q = q.Where(b => EF.Functions.ILike(b.Name, $"%{term}%"));
         }
+
+        if (!string.IsNullOrWhiteSpace(category))
+            q = q.Where(b => b.Category == category);
 
         return await q.OrderBy(b => b.Name).ToListAsync(ct);
     }
