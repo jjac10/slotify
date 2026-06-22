@@ -14,20 +14,26 @@ public class DashboardServiceTests
 {
     private readonly Mock<IReservationRepository> _reservations = new();
     private readonly Mock<IBusinessRepository> _businesses = new();
+    private readonly Mock<IReviewRepository> _reviews = new();
 
     private readonly Guid _businessId = Guid.NewGuid();
     private readonly Guid _ownerId = Guid.NewGuid();
 
-    private DashboardService CreateService() => new(_reservations.Object, _businesses.Object);
+    private DashboardService CreateService() => new(_reservations.Object, _businesses.Object, _reviews.Object);
 
-    private void SetupBusinessOwnedBy(Guid ownerId)
+    private void SetupBusinessOwnedBy(Guid ownerId, double? rating = null, int reviewCount = 0)
         => _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Business { Id = _businessId, OwnerId = ownerId, Name = "Barbería" });
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = ownerId, Name = "Barbería", Rating = rating, ReviewCount = reviewCount });
 
     [Fact]
     public async Task GetAsync_ForOwner_AggregatesMetricsAndMapsUpcoming()
     {
-        SetupBusinessOwnedBy(_ownerId);
+        SetupBusinessOwnedBy(_ownerId, rating: 4.5, reviewCount: 10);
+        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Review>
+            {
+                new() { Id = Guid.NewGuid(), BusinessId = _businessId, UserId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), Rating = 5, Comment = "Top", CreatedAt = DateTime.UtcNow },
+            });
         var now = new DateTime(2026, 6, 17, 10, 0, 0, DateTimeKind.Utc);
         var monthStart = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthEnd = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -56,6 +62,10 @@ public class DashboardServiceTests
         Assert.Equal(175m, result.EstimatedMonthlyRevenue);
         Assert.Single(result.UpcomingReservations);
         Assert.Equal(upcomingId, result.UpcomingReservations[0].Id);
+        Assert.Equal(4.5, result.AverageRating);
+        Assert.Equal(10, result.ReviewCount);
+        Assert.Single(result.RecentReviews);
+        Assert.Equal(5, result.RecentReviews[0].Rating);
     }
 
     [Fact]

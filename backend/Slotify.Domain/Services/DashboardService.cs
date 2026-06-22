@@ -11,10 +11,14 @@ namespace Slotify.Domain.Services;
 /// </summary>
 public class DashboardService(
     IReservationRepository reservations,
-    IBusinessRepository businesses)
+    IBusinessRepository businesses,
+    IReviewRepository reviews)
 {
     /// <summary>Nº máximo de próximas reservas incluidas en el resumen.</summary>
     public const int UpcomingLimit = 5;
+
+    /// <summary>Nº máximo de reseñas recientes incluidas en el resumen.</summary>
+    public const int RecentReviewsLimit = 5;
 
     /// <param name="nowUtc">Momento de referencia (UTC) — inyectado para test determinista.</param>
     public async Task<DashboardResponse> GetAsync(
@@ -34,10 +38,16 @@ public class DashboardService(
         var revenue = await reservations.SumRevenueByBusinessAsync(businessId, monthStart, monthEnd, ct);
         var upcoming = await reservations.ListUpcomingByBusinessAsync(businessId, nowUtc, UpcomingLimit, ct);
 
+        // Reseñas: media/contador denormalizados en el negocio + las más recientes.
+        var recentReviews = await reviews.ListByBusinessAsync(businessId, ct);
+
         return new DashboardResponse(
             total,
             thisMonth,
             revenue,
-            upcoming.Select(ReservationResponse.From).ToList());
+            upcoming.Select(ReservationResponse.From).ToList(),
+            business.Rating,
+            business.ReviewCount,
+            recentReviews.Take(RecentReviewsLimit).Select(ReviewResponse.From).ToList());
     }
 }

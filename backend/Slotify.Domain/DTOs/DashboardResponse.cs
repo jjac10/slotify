@@ -9,10 +9,16 @@ namespace Slotify.Domain.DTOs;
 /// reservas del mes (los servicios gratuitos cuentan como 0). Es una estimación:
 /// el precio puede cambiar con el tiempo.</item>
 /// <item><see cref="UpcomingReservations"/>: las próximas reservas (a partir de ahora).</item>
+/// <item><see cref="AverageRating"/>: media de valoraciones (1–5), null si no hay reseñas.</item>
+/// <item><see cref="ReviewCount"/>: número de reseñas del negocio.</item>
+/// <item><see cref="RecentReviews"/>: últimas reseñas recibidas (más recientes primero).</item>
 /// </list>
 /// </summary>
 public record DashboardResponse(
     int TotalReservations,
     int ReservationsThisMonth,
     decimal EstimatedMonthlyRevenue,
-    IReadOnlyList<ReservationResponse> UpcomingReservations);
+    IReadOnlyList<ReservationResponse> UpcomingReservations,
+    double? AverageRating,
+    int ReviewCount,
+    IReadOnlyList<ReviewResponse> RecentReviews);

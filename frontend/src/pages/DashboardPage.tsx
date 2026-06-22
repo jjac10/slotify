@@ -3,10 +3,15 @@ import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { StatusPill } from '../components/StatusPill'
+import { RatingStars } from '../components/Stars'
 import type { DashboardResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function formatEuro(amount: number): string {
@@ -59,7 +64,7 @@ export function DashboardPage() {
       {dashboard !== null && (
         <>
           {/* Stats — bento grid */}
-          <div className="grid grid-cols-3 gap-stack-sm" data-testid="dashboard-metrics">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-stack-sm" data-testid="dashboard-metrics">
             <div className="card flex flex-col items-center text-center" data-testid="metric-total-reservations">
               <span className="text-xs text-on-surface-variant">Reservas</span>
               <span className="font-display text-2xl font-bold text-primary">{dashboard.totalReservations}</span>
@@ -71,6 +76,18 @@ export function DashboardPage() {
             <div className="card flex flex-col items-center text-center" data-testid="metric-monthly-revenue">
               <span className="text-xs text-on-surface-variant">Ingresos</span>
               <span className="font-display text-xl font-bold text-primary">{formatEuro(dashboard.estimatedMonthlyRevenue)}</span>
+            </div>
+            <div className="card flex flex-col items-center justify-center text-center" data-testid="metric-rating">
+              <span className="text-xs text-on-surface-variant">Valoración</span>
+              {dashboard.averageRating != null ? (
+                <span className="font-display text-2xl font-bold text-amber-500">
+                  {dashboard.averageRating.toFixed(1)}
+                  <span className="ml-0.5 text-sm font-normal text-on-surface-variant">/5</span>
+                </span>
+              ) : (
+                <span className="mt-1 text-xs text-on-surface-variant">Sin reseñas</span>
+              )}
+              <span className="text-[11px] text-on-surface-variant">{dashboard.reviewCount} reseña{dashboard.reviewCount === 1 ? '' : 's'}</span>
             </div>
           </div>
 
@@ -98,6 +115,27 @@ export function DashboardPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {dashboard.reviewCount > 0 && (
+            <>
+              <div className="mt-stack-lg mb-stack-sm flex items-center justify-between">
+                <h2 className="!mt-0 !mb-0">Reseñas recientes</h2>
+                <RatingStars value={dashboard.averageRating} count={dashboard.reviewCount} />
+              </div>
+              <ul className="flex flex-col gap-stack-sm" data-testid="dashboard-reviews-list">
+                {dashboard.recentReviews.map((review) => (
+                  <li key={review.id} className="glass-card rounded-xl p-stack-md flex flex-col gap-1" data-testid="dashboard-review-item">
+                    <div className="flex items-center justify-between gap-stack-md">
+                      <span className="font-semibold text-sm">{review.authorName ?? 'Cliente'}</span>
+                      <RatingStars value={review.rating} />
+                    </div>
+                    {review.comment && <p className="text-sm text-on-surface-variant">{review.comment}</p>}
+                    <span className="text-[11px] text-on-surface-variant">{formatDate(review.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </>
       )}
