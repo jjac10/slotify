@@ -5,6 +5,7 @@ import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
+import { ReviewModal } from '../components/ReviewModal'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
 import type { ReservationResponse } from '../types/api'
 
@@ -19,10 +20,13 @@ interface CardProps {
   r: ReservationResponse
   onCancelled?: (id: string) => void
   onReschedule?: () => void
+  /** Si se pasa, la cita es pasada y se puede valorar. */
+  onReview?: () => void
+  reviewed?: boolean
   contact?: string
 }
 
-function ReservationCard({ r, onCancelled, onReschedule, contact }: CardProps) {
+function ReservationCard({ r, onCancelled, onReschedule, onReview, reviewed, contact }: CardProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
   const [confirming, setConfirming] = useState(false)
@@ -88,6 +92,27 @@ function ReservationCard({ r, onCancelled, onReschedule, contact }: CardProps) {
         </div>
       )}
 
+      {onReview && !confirming && (
+        <div className="flex items-center gap-1 pt-1 border-t border-outline-variant/30">
+          {reviewed ? (
+            <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-secondary" data-testid="reviewed-badge">
+              <span className="material-symbols-outlined text-[16px] fill">check_circle</span>
+              ¡Gracias por tu valoración!
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onReview}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+              data-testid="review-btn"
+            >
+              <span className="material-symbols-outlined text-[16px]">star</span>
+              Valorar
+            </button>
+          )}
+        </div>
+      )}
+
       {confirming && (
         <div className="flex flex-col gap-stack-sm pt-1 border-t border-outline-variant/30">
           <p className="text-sm font-medium">¿Cancelar esta reserva?</p>
@@ -130,6 +155,8 @@ function AuthedReservations() {
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('upcoming')
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
+  const [reviewTarget, setReviewTarget] = useState<ReservationResponse | null>(null)
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let active = true
@@ -213,6 +240,8 @@ function AuthedReservations() {
               r={r}
               onCancelled={tab === 'upcoming' ? handleCancelled : undefined}
               onReschedule={tab === 'upcoming' ? () => setRescheduleTarget(r) : undefined}
+              onReview={tab === 'past' ? () => setReviewTarget(r) : undefined}
+              reviewed={reviewedIds.has(r.id)}
             />
           ))}
         </ul>
@@ -223,6 +252,17 @@ function AuthedReservations() {
           reservation={rescheduleTarget}
           onClose={() => setRescheduleTarget(null)}
           onRescheduled={handleRescheduled}
+        />
+      )}
+
+      {reviewTarget && (
+        <ReviewModal
+          reservation={reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          onReviewed={(id) => {
+            setReviewedIds((prev) => new Set(prev).add(id))
+            setReviewTarget(null)
+          }}
         />
       )}
     </section>

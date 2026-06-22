@@ -8,6 +8,7 @@ import type {
   CreateServiceRequest,
   CreateStaffRequest,
   DashboardResponse,
+  ReviewResponse,
   ServiceResponse,
   StaffMember,
   UpdateBusinessProfileRequest,
@@ -35,6 +36,12 @@ export const businessService = {
     const { data } = await api.get<BusinessResponse[]>('/public/businesses', {
       params: Object.keys(params).length ? params : undefined,
     })
+    return data
+  },
+
+  /** GET /businesses/{id}/reviews — reseñas públicas de un negocio (más recientes primero). */
+  async listReviews(businessId: string): Promise<ReviewResponse[]> {
+    const { data } = await api.get<ReviewResponse[]>(`/businesses/${businessId}/reviews`)
     return data
   },
 
