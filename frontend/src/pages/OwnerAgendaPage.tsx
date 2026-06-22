@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
@@ -7,8 +7,31 @@ import { RescheduleModal } from '../components/RescheduleModal'
 import { NewReservationModal } from '../components/NewReservationModal'
 import type { ReservationResponse } from '../types/api'
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
+const DAY_MS = 86_400_000
+
+function startOfDay(d: Date): number {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x.getTime()
+}
+
+/** Clave estable del día (para agrupar). */
+function dayKey(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+/** Cabecera del día: Hoy / Mañana / Ayer o la fecha larga. */
+function dayLabel(iso: string): string {
+  const diff = Math.round((startOfDay(new Date(iso)) - startOfDay(new Date())) / DAY_MS)
+  if (diff === 0) return 'Hoy'
+  if (diff === 1) return 'Mañana'
+  if (diff === -1) return 'Ayer'
+  return new Date(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+function timeLabel(iso: string): string {
+  return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
 interface ItemProps {
@@ -67,7 +90,7 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
             {r.serviceName ?? 'Reserva'}{r.staffName ? ` · ${r.staffName}` : ''}
           </p>
           <p className="truncate text-xs text-on-surface-variant">
-            {formatDateTime(r.startTime)}
+            {timeLabel(r.startTime)} – {timeLabel(r.endTime)}
           </p>
         </div>
         <StatusPill status={r.status} />
@@ -143,6 +166,9 @@ export function OwnerAgendaPage() {
   const [error, setError] = useState<string | null>(null)
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
   const [creating, setCreating] = useState(false)
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
+  const [staffFilter, setStaffFilter] = useState('all')
+  const [search, setSearch] = useState('')
 
   function loadReservations() {
     if (!businessId) return
@@ -161,6 +187,55 @@ export function OwnerAgendaPage() {
       .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.') })
     return () => { active = false }
   }, [businessId])
+
+  // Trabajadores presentes en la agenda (para el filtro), derivados de las reservas.
+  const staffOptions = useMemo(() => {
+    const byId = new Map<string, string>()
+    for (const r of reservations ?? []) if (r.staffId) byId.set(r.staffId, r.staffName ?? 'Trabajador')
+    return [...byId.entries()].map(([id, name]) => ({ id, name }))
+  }, [reservations])
+
+  // Resumen: reservas de hoy y de los próximos 7 días (solo futuras).
+  const summary = useMemo(() => {
+    const now = Date.now()
+    const today = startOfDay(new Date())
+    let todayCount = 0, weekCount = 0
+    for (const r of reservations ?? []) {
+      if (new Date(r.startTime).getTime() < now) continue
+      const day = startOfDay(new Date(r.startTime))
+      if (day === today) todayCount++
+      if (day < today + 7 * DAY_MS) weekCount++
+    }
+    return { todayCount, weekCount }
+  }, [reservations])
+
+  // Reservas filtradas (pestaña + trabajador + búsqueda), ordenadas y agrupadas por día.
+  const groups = useMemo(() => {
+    if (!reservations) return null
+    const now = Date.now()
+    const q = search.trim().toLowerCase()
+    const filtered = reservations
+      .filter((r) => {
+        const isPast = new Date(r.startTime).getTime() < now
+        if (tab === 'upcoming' ? isPast : !isPast) return false
+        if (staffFilter !== 'all' && r.staffId !== staffFilter) return false
+        if (q && !(r.clientName ?? '').toLowerCase().includes(q)) return false
+        return true
+      })
+      .sort((a, b) => {
+        const ta = new Date(a.startTime).getTime(), tb = new Date(b.startTime).getTime()
+        return tab === 'upcoming' ? ta - tb : tb - ta // próximas: antes primero; pasadas: recientes primero
+      })
+
+    const result: { key: string; label: string; items: ReservationResponse[] }[] = []
+    for (const r of filtered) {
+      const key = dayKey(r.startTime)
+      const last = result[result.length - 1]
+      if (last && last.key === key) last.items.push(r)
+      else result.push({ key, label: dayLabel(r.startTime), items: [r] })
+    }
+    return result
+  }, [reservations, tab, staffFilter, search])
 
   if (!isOwner || !businessId) {
     return (
@@ -197,7 +272,9 @@ export function OwnerAgendaPage() {
       <div className="flex items-start justify-between gap-stack-md mb-stack-md">
         <div>
           <h1>Agenda del negocio</h1>
-          <p className="text-on-surface-variant">Todas las reservas de tu negocio.</p>
+          <p className="text-on-surface-variant">
+            Hoy <strong className="text-on-surface">{summary.todayCount}</strong> · esta semana <strong className="text-on-surface">{summary.weekCount}</strong>
+          </p>
         </div>
         <button type="button" onClick={() => setCreating(true)} className="btn-primary shrink-0 inline-flex items-center gap-1" data-testid="new-reservation-btn">
           <span className="material-symbols-outlined text-[18px]">add</span>
@@ -211,27 +288,89 @@ export function OwnerAgendaPage() {
         </p>
       )}
 
+      {/* Pestañas Próximas / Pasadas */}
+      <div className="mb-stack-sm inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-tabs">
+        {([['upcoming', 'Próximas'], ['past', 'Pasadas']] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTab(value)}
+            data-testid={`agenda-tab-${value}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+              tab === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filtros: buscar cliente + trabajador */}
+      <div className="mb-stack-md flex gap-stack-sm flex-wrap">
+        <div className="relative flex-1 min-w-[180px]">
+          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+          <input
+            type="search"
+            data-testid="agenda-search"
+            className="field-input w-full !pl-11"
+            placeholder="Buscar cliente…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar por nombre de cliente"
+          />
+        </div>
+        {staffOptions.length > 1 && (
+          <select
+            data-testid="agenda-staff-filter"
+            className="field-input shrink-0"
+            value={staffFilter}
+            onChange={(e) => setStaffFilter(e.target.value)}
+            aria-label="Filtrar por trabajador"
+          >
+            <option value="all">Todo el equipo</option>
+            {staffOptions.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
       {reservations === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
 
-      {reservations !== null && reservations.length === 0 && (
+      {groups !== null && groups.length === 0 && (
         <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="agenda-empty">
           <span className="material-symbols-outlined text-[40px] text-on-surface-variant/50">calendar_today</span>
-          <p className="mt-stack-sm font-semibold">No hay reservas en la agenda todavía.</p>
+          <p className="mt-stack-sm font-semibold">
+            {search.trim() || staffFilter !== 'all'
+              ? 'No hay reservas que coincidan con el filtro.'
+              : tab === 'upcoming' ? 'No hay reservas próximas.' : 'No hay reservas pasadas.'}
+          </p>
         </div>
       )}
 
-      {reservations !== null && reservations.length > 0 && (
-        <ul className="flex flex-col gap-stack-sm" data-testid="agenda-list">
-          {reservations.map((r) => (
-            <AgendaItem
-              key={r.id}
-              reservation={r}
-              onCancelled={handleCancelled}
-              onConfirmed={handleConfirmed}
-              onReschedule={() => setRescheduleTarget(r)}
-            />
+      {groups !== null && groups.length > 0 && (
+        <div className="flex flex-col gap-stack-md" data-testid="agenda-list">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <div className="mb-stack-sm flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant" data-testid="agenda-day-header">
+                <span className="material-symbols-outlined text-[16px]">event</span>
+                <span className="capitalize">{g.label}</span>
+                <span className="font-semibold normal-case opacity-70">· {g.items.length}</span>
+              </div>
+              <ul className="flex flex-col gap-stack-sm">
+                {g.items.map((r) => (
+                  <AgendaItem
+                    key={r.id}
+                    reservation={r}
+                    onCancelled={handleCancelled}
+                    onConfirmed={handleConfirmed}
+                    onReschedule={() => setRescheduleTarget(r)}
+                  />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
 
       {rescheduleTarget && (
