@@ -5,6 +5,8 @@ using Slotify.Domain.Interfaces;
 
 namespace Slotify.Domain.Services;
 
+// BusinessCategories vive en Slotify.Domain
+
 /// <summary>
 /// Lógica de negocio para businesses. Al crear un negocio crea también su
 /// owner-as-staff (role='owner'), de modo que toda reserva pueda tener staff_id
@@ -44,11 +46,32 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         return list.Select(BusinessResponse.From).ToList();
     }
 
-    /// <summary>Listado/búsqueda pública de negocios (para que el cliente elija dónde reservar).</summary>
-    public async Task<IReadOnlyList<BusinessResponse>> SearchPublicAsync(string? query, CancellationToken ct = default)
+    /// <summary>Listado/búsqueda pública de negocios (nombre + categoría opcional).</summary>
+    public async Task<IReadOnlyList<BusinessResponse>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default)
     {
-        var list = await repository.SearchPublicAsync(query, ct);
+        var list = await repository.SearchPublicAsync(query, category, ct);
         return list.Select(BusinessResponse.From).ToList();
+    }
+
+    /// <summary>Actualiza el perfil público del negocio (categoría/foto/ubicación). Solo el owner.</summary>
+    public async Task<BusinessResponse> UpdateProfileAsync(
+        Guid businessId, Guid userId, UpdateBusinessProfileRequest request, CancellationToken ct = default)
+    {
+        if (request.Category is { } cat && !BusinessCategories.IsValid(cat))
+            throw new InvalidCategoryException(cat);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        business.Category = request.Category;
+        business.PhotoUrl = request.PhotoUrl;
+        business.Latitude = request.Latitude;
+        business.Longitude = request.Longitude;
+        await repository.UpdateAsync(business, ct);
+
+        return BusinessResponse.From(business);
     }
 
     /// <summary>

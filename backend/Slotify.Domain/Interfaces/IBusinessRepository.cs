@@ -27,5 +27,5 @@ public interface IBusinessRepository
     /// Si <paramref name="query"/> trae texto, filtra por nombre (contiene, sin distinguir
     /// mayúsculas). Ordenado por nombre.
     /// </summary>
-    Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, CancellationToken ct = default);
+    Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default);
 }

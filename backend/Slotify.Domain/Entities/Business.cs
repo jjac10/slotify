@@ -49,6 +49,18 @@ public class Business
     /// </summary>
     public int CancellationCutoffHours { get; set; }
 
+    // --- Perfil público (para Explorar) ---
+
+    /// <summary>Categoría del negocio (código: 'peluqueria', 'barberia', …). NULL = sin categorizar.</summary>
+    public string? Category { get; set; }
+
+    /// <summary>URL de una foto del negocio (para las tarjetas de Explorar). NULL = sin foto.</summary>
+    public string? PhotoUrl { get; set; }
+
+    /// <summary>Ubicación (para "negocios cercanos"). NULL si el owner no la ha fijado.</summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 

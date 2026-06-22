@@ -88,12 +88,37 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
         }
     }
 
+    /// <summary>Actualiza el perfil público del negocio (categoría/foto/ubicación). Solo el owner.</summary>
+    [HttpPut("{id:guid}/profile")]
+    [Authorize]
+    public async Task<ActionResult<BusinessResponse>> UpdateProfile(
+        Guid id, UpdateBusinessProfileRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await businesses.UpdateProfileAsync(id, CurrentUserId, request, ct));
+        }
+        catch (InvalidCategoryException ex)
+        {
+            return BadRequest(new { error = "invalid_category", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Listado/búsqueda pública de negocios activos (para que un cliente elija dónde
-    /// reservar). Filtro opcional por nombre con <c>?q=</c>.
+    /// reservar). Filtro opcional por nombre con <c>?q=</c> y por categoría con <c>?category=</c>.
     /// </summary>
     [HttpGet("/public/businesses")]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<BusinessResponse>>> SearchPublic([FromQuery] string? q, CancellationToken ct)
-        => Ok(await businesses.SearchPublicAsync(q, ct));
+    public async Task<ActionResult<IReadOnlyList<BusinessResponse>>> SearchPublic(
+        [FromQuery] string? q, [FromQuery] string? category, CancellationToken ct)
+        => Ok(await businesses.SearchPublicAsync(q, category, ct));
 }
