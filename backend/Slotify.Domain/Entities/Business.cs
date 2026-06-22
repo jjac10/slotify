@@ -61,6 +61,12 @@ public class Business
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
+    /// <summary>Media de valoraciones (1–5). NULL si aún no tiene reseñas. Denormalizado.</summary>
+    public double? Rating { get; set; }
+
+    /// <summary>Número de reseñas. Denormalizado.</summary>
+    public int ReviewCount { get; set; }
+
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 

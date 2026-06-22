@@ -54,6 +54,26 @@ export interface BusinessResponse {
   photoUrl: string | null
   latitude: number | null
   longitude: number | null
+  /** Valoraciones (denormalizado). `rating` null si aún no tiene reseñas. */
+  rating: number | null
+  reviewCount: number
+}
+
+/** GET /businesses/{id}/reviews — una reseña pública de un negocio. */
+export interface ReviewResponse {
+  id: string
+  businessId: string
+  reservationId: string
+  rating: number
+  comment: string | null
+  authorName: string | null
+  createdAt: string
+}
+
+/** POST /reservations/{id}/review — valora una reserva pasada propia (1–5 + comentario). */
+export interface CreateReviewRequest {
+  rating: number
+  comment?: string | null
 }
 
 /** PUT /businesses/{id}/profile — perfil público del negocio. */

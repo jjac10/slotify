@@ -1,5 +1,5 @@
 import { api } from './apiClient'
-import type { CreateReservationRequest, ReservationResponse } from '../types/api'
+import type { CreateReservationRequest, CreateReviewRequest, ReservationResponse, ReviewResponse } from '../types/api'
 
 interface BusinessReservationsQuery {
   date?: string
@@ -59,6 +59,12 @@ export const reservationService = {
   /** POST /reservations/{id}/confirm — confirma una reserva pending (owner/staff). */
   async confirm(id: string): Promise<ReservationResponse> {
     const { data } = await api.post<ReservationResponse>(`/reservations/${id}/confirm`)
+    return data
+  },
+
+  /** POST /reservations/{id}/review — valora una reserva pasada propia (1–5 + comentario). */
+  async review(id: string, request: CreateReviewRequest): Promise<ReviewResponse> {
+    const { data } = await api.post<ReviewResponse>(`/reservations/${id}/review`, request)
     return data
   },
 }

@@ -17,6 +17,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<BusinessHoliday> BusinessHolidays => Set<BusinessHoliday>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Review> Reviews => Set<Review>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureBusinessHolidays(modelBuilder);
         ConfigureAuditLogs(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
+        ConfigureReviews(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
 
@@ -103,6 +105,8 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(b => b.PhotoUrl).HasColumnName("photo_url").HasMaxLength(2048);
             e.Property(b => b.Latitude).HasColumnName("latitude");
             e.Property(b => b.Longitude).HasColumnName("longitude");
+            e.Property(b => b.Rating).HasColumnName("rating");
+            e.Property(b => b.ReviewCount).HasColumnName("review_count").HasDefaultValue(0);
             e.Property(b => b.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
             e.Property(b => b.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
             e.Property(b => b.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
@@ -201,6 +205,28 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => new { x.StaffId, x.ServiceId }).IsUnique();
+        });
+    }
+
+    private static void ConfigureReviews(ModelBuilder mb)
+    {
+        mb.Entity<Review>(e =>
+        {
+            e.ToTable("reviews", t => t.HasCheckConstraint("ck_reviews_rating", "rating >= 1 AND rating <= 5"));
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(r => r.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(r => r.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(r => r.ReservationId).HasColumnName("reservation_id").IsRequired();
+            e.Property(r => r.Rating).HasColumnName("rating").IsRequired();
+            e.Property(r => r.Comment).HasColumnName("comment").HasMaxLength(1000);
+            e.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(r => r.Business).WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(r => r.ReservationId).IsUnique(); // una reseña por reserva
+            e.HasIndex(r => r.BusinessId);
         });
     }
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES, categoryIcon, categoryLabel } from '../constants/categories'
+import { RatingStars } from '../components/Stars'
 import type { BusinessResponse } from '../types/api'
 
 interface Coords { lat: number; lng: number }
@@ -154,7 +155,9 @@ export function ExplorePage() {
               <div className="flex items-center gap-stack-md p-stack-md">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{b.name}</p>
-                  <p className="text-sm text-on-surface-variant">{categoryLabel(b.category) ?? 'Disponible para reservar'}</p>
+                  <div className="mt-0.5" data-testid="explore-rating">
+                    <RatingStars value={b.rating} count={b.reviewCount} />
+                  </div>
                 </div>
                 <Link to={`/reservar?businessId=${b.id}`} className="btn-primary py-2 text-sm shrink-0" data-testid="explore-reserve">
                   Reservar
