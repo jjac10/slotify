@@ -391,6 +391,27 @@ public class ReservationManagementServiceTests
     }
 
     [Fact]
+    public async Task ListMineAsync_IncludesGuestLinkedReservations()
+    {
+        // Reservas que hizo como invitado y se vincularon a la cuenta al registrarse.
+        var userId = Guid.NewGuid();
+        var guestId = Guid.NewGuid();
+        var direct = SampleReservation(_businessId, userId);
+        var viaGuest = SampleReservation(_businessId, null); // reserva de invitado (GuestId, sin UserId)
+        _reservations.Setup(r => r.ListByUserAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync([direct]);
+        _guests.Setup(g => g.ListIdsByUserAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync([guestId]);
+        _reservations.Setup(r => r.ListByGuestIdsAsync(
+                It.Is<IReadOnlyCollection<Guid>>(ids => ids.Contains(guestId)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([viaGuest]);
+
+        var result = await CreateService().ListMineAsync(userId);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, r => r.Id == direct.Id);
+        Assert.Contains(result, r => r.Id == viaGuest.Id);
+    }
+
+    [Fact]
     public async Task ListForBusinessAsync_AsOwner_ReturnsList()
     {
         SetupBusiness();

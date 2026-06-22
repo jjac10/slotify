@@ -10,6 +10,9 @@ public interface IGuestRepository
     /// <summary>Devuelve un guest por id (con sus contactos cifrados), o null.</summary>
     Task<Guest?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Ids de los guests vinculados a un usuario (para mostrar sus reservas de invitado sincronizadas).</summary>
+    Task<IReadOnlyList<Guid>> ListIdsByUserAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>
     /// Busca un guest del negocio cuyo phone_hash o email_hash coincida (dedupe).
     /// Devuelve null si no existe.
