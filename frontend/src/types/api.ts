@@ -208,6 +208,10 @@ export interface DashboardResponse {
   reservationsThisMonth: number
   estimatedMonthlyRevenue: number
   upcomingReservations: ReservationResponse[]
+  /** Valoraciones: media (null si no hay reseñas), nº y las más recientes. */
+  averageRating: number | null
+  reviewCount: number
+  recentReviews: ReviewResponse[]
 }
 
 /** Cuerpo de error estándar del backend. */
