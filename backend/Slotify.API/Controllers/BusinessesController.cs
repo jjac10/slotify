@@ -64,6 +64,30 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
         }
     }
 
+    /// <summary>Configura los avisos del negocio (canales email/WhatsApp + recordatorio). Solo el owner.</summary>
+    [HttpPut("{id:guid}/notification-settings")]
+    [Authorize]
+    public async Task<ActionResult<BusinessResponse>> SetNotificationSettings(
+        Guid id, SetNotificationSettingsRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await businesses.SetNotificationSettingsAsync(id, CurrentUserId, request, ct));
+        }
+        catch (InvalidNotificationSettingsException ex)
+        {
+            return BadRequest(new { error = "invalid_notification_settings", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
+
     /// <summary>Cambia el modo de reservas ('online'|'calendar_only'). Solo el owner.</summary>
     [HttpPut("{id:guid}/booking-mode")]
     [Authorize]

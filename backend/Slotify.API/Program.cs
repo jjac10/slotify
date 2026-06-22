@@ -6,8 +6,10 @@ using Slotify.Domain.Interfaces;
 using Slotify.Domain.Services;
 using Scalar.AspNetCore;
 using Slotify.Infrastructure.Data;
+using Slotify.Infrastructure.Notifications;
 using Slotify.Infrastructure.Repositories;
 using Slotify.Infrastructure.Security;
+using Slotify.API;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,8 @@ builder.Services.AddScoped<IStaffServiceRepository, StaffServiceRepository>();
 builder.Services.AddScoped<IGuestRepository, GuestRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationSender, LoggedNotificationSender>();
 builder.Services.AddScoped<IBusinessHourRepository, BusinessHourRepository>();
 builder.Services.AddScoped<IBusinessHolidayRepository, BusinessHolidayRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
@@ -51,6 +55,8 @@ builder.Services.AddScoped<StaffServiceAssignmentService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<ReservationManagementService>();
 builder.Services.AddScoped<ReviewService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHostedService<ReminderBackgroundService>();
 builder.Services.AddScoped<GuestReservationLookupService>();
 builder.Services.AddScoped<BusinessScheduleService>();
 builder.Services.AddScoped<AvailabilityService>();

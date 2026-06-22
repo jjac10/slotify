@@ -63,4 +63,11 @@ public interface IReservationRepository
     /// ordenadas por inicio ascendente y limitadas a <paramref name="limit"/>.
     /// </summary>
     Task<IReadOnlyList<Reservation>> ListUpcomingByBusinessAsync(Guid businessId, DateTime fromUtc, int limit, CancellationToken ct = default);
+
+    /// <summary>
+    /// Reservas no canceladas (pending/confirmed) cuyo inicio cae en (<paramref name="fromUtc"/>,
+    /// <paramref name="untilUtc"/>], con su negocio cargado (<see cref="Reservation.Business"/>),
+    /// para calcular los recordatorios de cita pendientes de enviar.
+    /// </summary>
+    Task<IReadOnlyList<Reservation>> ListUpcomingForReminderAsync(DateTime fromUtc, DateTime untilUtc, CancellationToken ct = default);
 }

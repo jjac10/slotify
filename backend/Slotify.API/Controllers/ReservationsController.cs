@@ -12,8 +12,13 @@ namespace Slotify.API.Controllers;
 public class ReservationsController(
     BookingService booking,
     ReservationManagementService management,
-    GuestReservationLookupService guestLookup) : ApiControllerBase
+    GuestReservationLookupService guestLookup,
+    NotificationService notifications) : ApiControllerBase
 {
+    /// <summary>Construye el contexto de notificación a partir de una reserva.</summary>
+    private static NotificationContext Ctx(ReservationResponse r) =>
+        new(r.BusinessId, r.Id, r.UserId, r.GuestId, r.StartTime);
+
     /// <summary>Crea una reserva (invitado o usuario logueado).</summary>
     [HttpPost]
     [AllowAnonymous]
@@ -25,6 +30,7 @@ public class ReservationsController(
         try
         {
             var result = await booking.CreateAsync(request, userId, ct);
+            await notifications.DispatchEventAsync(Ctx(result), "created", ct);
             return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
         catch (ServiceNotFoundException ex)
@@ -109,6 +115,7 @@ public class ReservationsController(
             var result = userId is { } uid
                 ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
                 : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
+            await notifications.DispatchEventAsync(Ctx(result), "rescheduled", ct);
             return Ok(result);
         }
         catch (ReservationNotFoundException ex)
@@ -140,7 +147,9 @@ public class ReservationsController(
     {
         try
         {
-            return Ok(await management.ConfirmAsync(id, CurrentUserId, ct));
+            var result = await management.ConfirmAsync(id, CurrentUserId, ct);
+            await notifications.DispatchEventAsync(Ctx(result), "confirmed", ct);
+            return Ok(result);
         }
         catch (ReservationNotFoundException ex)
         {
@@ -167,11 +176,17 @@ public class ReservationsController(
     {
         try
         {
+            // Capturamos los datos antes de cancelar (la cancelación hace hard-delete).
+            var snapshot = await booking.GetAsync(id, ct);
+
             var userId = TryGetUserId();
             if (userId is { } uid)
                 await management.CancelAsync(id, uid, reason, ct);
             else
                 await management.CancelAsGuestAsync(id, contact, reason, ct);
+
+            if (snapshot is not null)
+                await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
             return NoContent();
         }
         catch (ReservationNotFoundException ex)
