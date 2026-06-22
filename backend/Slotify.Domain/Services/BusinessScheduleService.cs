@@ -39,12 +39,16 @@ public class BusinessScheduleService(
         Guid businessId, Guid userId, CreateHolidayRequest request, CancellationToken ct = default)
     {
         await EnsureOwnerAsync(businessId, userId, ct);
+        ValidateHoliday(request);
 
         var holiday = new BusinessHoliday
         {
             Id = Guid.NewGuid(),
             BusinessId = businessId,
             HolidayDate = request.HolidayDate,
+            EndDate = request.EndDate,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime,
             Reason = request.Reason,
             IsClosed = request.IsClosed,
         };
@@ -69,6 +73,19 @@ public class BusinessScheduleService(
             ?? throw new BusinessNotFoundException(businessId);
         if (business.OwnerId != userId)
             throw new NotBusinessOwnerException();
+    }
+
+    private static void ValidateHoliday(CreateHolidayRequest r)
+    {
+        if (r.EndDate is { } end && end < r.HolidayDate)
+            throw new InvalidHolidayException("La fecha de fin no puede ser anterior a la de inicio.");
+
+        var hasStart = r.StartTime is not null;
+        var hasEnd = r.EndTime is not null;
+        if (hasStart != hasEnd)
+            throw new InvalidHolidayException("Para cerrar una franja horaria indica hora de inicio y de fin.");
+        if (hasStart && r.StartTime >= r.EndTime)
+            throw new InvalidHolidayException("La hora de inicio debe ser anterior a la de fin.");
     }
 
     private static void Validate(IReadOnlyList<BusinessHourInput> days)

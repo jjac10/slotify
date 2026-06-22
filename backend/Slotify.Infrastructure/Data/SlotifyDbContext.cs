@@ -312,6 +312,9 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(h => h.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
             e.Property(h => h.BusinessId).HasColumnName("business_id").IsRequired();
             e.Property(h => h.HolidayDate).HasColumnName("holiday_date").IsRequired();
+            e.Property(h => h.EndDate).HasColumnName("end_date");
+            e.Property(h => h.StartTime).HasColumnName("start_time");
+            e.Property(h => h.EndTime).HasColumnName("end_time");
             e.Property(h => h.Reason).HasColumnName("reason").HasMaxLength(255);
             e.Property(h => h.IsClosed).HasColumnName("is_closed").HasDefaultValue(true);
 
