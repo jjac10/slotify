@@ -76,10 +76,27 @@ export interface ReviewResponse {
   createdAt: string
 }
 
-/** POST /reservations/{id}/review — valora una reserva pasada propia (1–5 + comentario). */
+/** POST /reservations/{id}/review — valora el negocio de una reserva pasada propia (1–5 + comentario). */
 export interface CreateReviewRequest {
   rating: number
   comment?: string | null
+}
+
+/** PUT /reviews/{id} — edita una reseña propia. */
+export interface UpdateReviewRequest {
+  rating: number
+  comment?: string | null
+}
+
+/** GET /me/reviews — una reseña propia del cliente, con el nombre del negocio. */
+export interface MyReviewResponse {
+  id: string
+  businessId: string
+  businessName: string
+  rating: number
+  comment: string | null
+  createdAt: string
+  updatedAt: string | null
 }
 
 /** PUT /businesses/{id}/profile — perfil público del negocio. */

@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
+import { MyReviewsPage } from './pages/MyReviewsPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
@@ -34,6 +35,7 @@ export function App() {
         {/* Requieren sesión */}
         <Route element={<ProtectedRoute />}>
           <Route path="inicio" element={<MiSlotifyPage />} />
+          <Route path="mis-resenas" element={<MyReviewsPage />} />
           <Route path="configuracion" element={<BusinessSettingsPage />} />
           {/* Compatibilidad con rutas anteriores */}
           <Route path="mi-negocio" element={<Navigate to="/configuracion" replace />} />

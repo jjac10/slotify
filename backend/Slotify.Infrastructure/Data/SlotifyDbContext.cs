@@ -227,11 +227,12 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(r => r.Rating).HasColumnName("rating").IsRequired();
             e.Property(r => r.Comment).HasColumnName("comment").HasMaxLength(1000);
             e.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(r => r.UpdatedAt).HasColumnName("updated_at");
 
             e.HasOne(r => r.Business).WithMany().HasForeignKey(r => r.BusinessId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
 
-            e.HasIndex(r => r.ReservationId).IsUnique(); // una reseña por reserva
+            e.HasIndex(r => new { r.BusinessId, r.UserId }).IsUnique(); // una reseña por (negocio, usuario)
             e.HasIndex(r => r.BusinessId);
         });
     }
