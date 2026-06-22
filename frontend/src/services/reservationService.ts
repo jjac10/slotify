@@ -13,9 +13,9 @@ export const reservationService = {
     return data
   },
 
-  /** GET /reservations/lookup — reservas de un invitado por teléfono o email. */
+  /** POST /reservations/lookup — reservas de un invitado por teléfono o email (en el body, no en la URL). */
   async lookupGuest(contact: string): Promise<ReservationResponse[]> {
-    const { data } = await api.get<ReservationResponse[]>('/reservations/lookup', { params: { contact } })
+    const { data } = await api.post<ReservationResponse[]>('/reservations/lookup', { contact })
     return data
   },
 
@@ -46,13 +46,11 @@ export const reservationService = {
     return data
   },
 
-  /** DELETE /reservations/{id} — cancela. Si `contact` se pasa, actúa como invitado. */
+  /** POST /reservations/{id}/cancel — cancela (motivo/contacto en el body, no en la URL). Si `contact` se pasa, actúa como invitado. */
   async cancel(id: string, reason?: string, contact?: string): Promise<void> {
-    const params: Record<string, string> = {}
-    if (reason) params.reason = reason
-    if (contact) params.contact = contact
-    await api.delete(`/reservations/${id}`, {
-      params: Object.keys(params).length ? params : undefined,
+    await api.post(`/reservations/${id}/cancel`, {
+      ...(reason ? { reason } : {}),
+      ...(contact ? { contact } : {}),
     })
   },
 

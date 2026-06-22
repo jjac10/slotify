@@ -42,7 +42,7 @@ public class ReservationCancelEndpointsTests(SlotifyApiFactory factory) : IClass
         var (businessId, serviceId, staffId, owner) = await SetupAsync();
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc), "+34900000001");
 
-        var cancel = await owner.DeleteAsync($"/reservations/{id}?reason=no%20puedo");
+        var cancel = await owner.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest("no puedo"));
         Assert.Equal(HttpStatusCode.NoContent, cancel.StatusCode);
 
         // Hard-delete: ya no existe.
@@ -61,7 +61,7 @@ public class ReservationCancelEndpointsTests(SlotifyApiFactory factory) : IClass
         var (businessId, serviceId, staffId, _) = await SetupAsync();
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 7, 2, 10, 0, 0, DateTimeKind.Utc), "+34900000002");
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await _client.DeleteAsync($"/reservations/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest())).StatusCode);
     }
 
     [Fact]
@@ -71,6 +71,6 @@ public class ReservationCancelEndpointsTests(SlotifyApiFactory factory) : IClass
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 7, 3, 10, 0, 0, DateTimeKind.Utc), "+34900000003");
         var (_, _, _, otherOwner) = await SetupAsync();
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await otherOwner.DeleteAsync($"/reservations/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherOwner.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest())).StatusCode);
     }
 }
