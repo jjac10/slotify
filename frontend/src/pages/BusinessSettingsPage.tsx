@@ -761,6 +761,90 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
   )
 }
 
+// ─── Avisos a clientes (notificaciones) ──────────────────────────────────────
+
+function NotificationsSection({ businessId, business, onUpdated }: { businessId: string; business: BusinessResponse | null; onUpdated: (b: BusinessResponse) => void }) {
+  const [email, setEmail] = useState(true)
+  const [whatsapp, setWhatsapp] = useState(false)
+  const [reminderHours, setReminderHours] = useState('24')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!business) return
+    setEmail(business.notifyByEmail)
+    setWhatsapp(business.notifyByWhatsapp)
+    setReminderHours(String(business.reminderHoursBefore))
+  }, [business])
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      const updated = await businessService.setNotificationSettings(businessId, {
+        notifyByEmail: email,
+        notifyByWhatsapp: whatsapp,
+        reminderHoursBefore: Number(reminderHours) || 0,
+      })
+      onUpdated(updated)
+      setSaved(true)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo guardar la configuración de avisos.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSave} className="flex flex-col gap-stack-md" data-testid="notifications-form">
+      <p className="text-sm text-on-surface-variant -mt-stack-sm">
+        Avisa a tus clientes cuando su reserva se crea, se reprograma o se cancela, y envíales un recordatorio antes de la cita.
+      </p>
+      {error && <p role="alert" className="alert text-sm" data-testid="notifications-error">{error}</p>}
+
+      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+        <input type="checkbox" className="w-4 h-4 accent-primary-container" data-testid="notify-email"
+          checked={email} onChange={(e) => { setEmail(e.target.checked); setSaved(false) }} />
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">mail</span>
+        Avisos por email
+      </label>
+      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+        <input type="checkbox" className="w-4 h-4 accent-primary-container" data-testid="notify-whatsapp"
+          checked={whatsapp} onChange={(e) => { setWhatsapp(e.target.checked); setSaved(false) }} />
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">chat</span>
+        Avisos por WhatsApp
+      </label>
+
+      <div className="field !gap-1">
+        <label className="field-label text-xs" htmlFor="reminder-hours">Recordatorio: horas antes de la cita (0 = sin recordatorio)</label>
+        <div className="flex items-center gap-2">
+          <input id="reminder-hours" type="number" className="field-input w-28" data-testid="reminder-hours"
+            value={reminderHours} onChange={(e) => { setReminderHours(e.target.value); setSaved(false) }} min={0} max={168} step={1} />
+          <span className="text-sm text-on-surface-variant">horas</span>
+        </div>
+      </div>
+
+      <p className="inline-flex items-center gap-1 text-xs text-on-surface-variant">
+        <span className="material-symbols-outlined text-[16px]">info</span>
+        En esta versión los avisos se simulan y quedan registrados (demo); el envío real de email/WhatsApp se conecta sin cambiar la app.
+      </p>
+
+      <div className="flex items-center gap-stack-md">
+        <button type="submit" className="btn-primary self-start" data-testid="notifications-save" disabled={saving}>
+          {saving ? 'Guardando…' : 'Guardar avisos'}
+        </button>
+        {saved && (
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary">
+            <span className="material-symbols-outlined text-[16px]">check_circle</span> Guardado
+          </span>
+        )}
+      </div>
+    </form>
+  )
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export function BusinessSettingsPage() {
@@ -1195,6 +1279,11 @@ export function BusinessSettingsPage() {
             </span>
           )}
         </form>
+      </SectionCard>
+
+      {/* Avisos a clientes */}
+      <SectionCard id="notificaciones" title="Avisos a clientes" icon="notifications">
+        <NotificationsSection businessId={businessId} business={business} onUpdated={(b) => setBusiness(b)} />
       </SectionCard>
 
       {/* Plan */}

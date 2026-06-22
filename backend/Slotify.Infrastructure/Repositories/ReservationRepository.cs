@@ -141,4 +141,13 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
             .OrderBy(r => r.StartTime)
             .Take(limit)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Reservation>> ListUpcomingForReminderAsync(
+        DateTime fromUtc, DateTime untilUtc, CancellationToken ct = default)
+        => await db.Reservations.AsNoTracking()
+            .Include(r => r.Business)
+            .Where(r => (r.Status == "pending" || r.Status == "confirmed")
+                && r.StartTime > fromUtc && r.StartTime <= untilUtc)
+            .OrderBy(r => r.StartTime)
+            .ToListAsync(ct);
 }

@@ -14,6 +14,9 @@ public class GuestRepository(SlotifyDbContext db) : IGuestRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public Task<Guest?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Guests.FirstOrDefaultAsync(g => g.Id == id, ct);
+
     public Task<Guest?> FindByHashAsync(Guid businessId, string? phoneHash, string? emailHash, CancellationToken ct = default)
         => db.Guests.FirstOrDefaultAsync(g =>
             g.BusinessId == businessId &&

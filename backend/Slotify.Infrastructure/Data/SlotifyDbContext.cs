@@ -18,6 +18,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureAuditLogs(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         ConfigureReviews(modelBuilder);
+        ConfigureNotifications(modelBuilder);
         SeedPricingTiers(modelBuilder);
     }
 
@@ -102,6 +104,9 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(b => b.ConfirmationMode).HasColumnName("confirmation_mode").HasMaxLength(50).HasDefaultValue("auto");
             e.Property(b => b.CancellationCutoffHours).HasColumnName("cancellation_cutoff_hours").HasDefaultValue(0);
             e.Property(b => b.BookingMode).HasColumnName("booking_mode").HasMaxLength(50).HasDefaultValue("online");
+            e.Property(b => b.NotifyByEmail).HasColumnName("notify_by_email").HasDefaultValue(true);
+            e.Property(b => b.NotifyByWhatsapp).HasColumnName("notify_by_whatsapp").HasDefaultValue(false);
+            e.Property(b => b.ReminderHoursBefore).HasColumnName("reminder_hours_before").HasDefaultValue(24);
             e.Property(b => b.Category).HasColumnName("category").HasMaxLength(50);
             e.Property(b => b.PhotoUrl).HasColumnName("photo_url").HasMaxLength(2048);
             e.Property(b => b.Latitude).HasColumnName("latitude");
@@ -228,6 +233,28 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
 
             e.HasIndex(r => r.ReservationId).IsUnique(); // una reseña por reserva
             e.HasIndex(r => r.BusinessId);
+        });
+    }
+
+    private static void ConfigureNotifications(ModelBuilder mb)
+    {
+        mb.Entity<Notification>(e =>
+        {
+            e.ToTable("notifications");
+            e.HasKey(n => n.Id);
+            e.Property(n => n.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(n => n.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(n => n.ReservationId).HasColumnName("reservation_id").IsRequired();
+            e.Property(n => n.Channel).HasColumnName("channel").HasMaxLength(20).IsRequired();
+            e.Property(n => n.EventType).HasColumnName("event_type").HasMaxLength(30).IsRequired();
+            e.Property(n => n.Recipient).HasColumnName("recipient").HasMaxLength(320).IsRequired();
+            e.Property(n => n.Body).HasColumnName("body").HasMaxLength(1000).IsRequired();
+            e.Property(n => n.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("logged");
+            e.Property(n => n.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            // Búsqueda por reserva+tipo (dedupe de recordatorios).
+            e.HasIndex(n => new { n.ReservationId, n.EventType });
+            e.HasIndex(n => n.BusinessId);
         });
     }
 

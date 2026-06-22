@@ -57,6 +57,20 @@ public class Business
     /// </summary>
     public string BookingMode { get; set; } = "online";
 
+    // --- Notificaciones (avisos a clientes) ---
+
+    /// <summary>Enviar avisos al cliente por email (reserva creada/cancelada/reprogramada + recordatorio).</summary>
+    public bool NotifyByEmail { get; set; } = true;
+
+    /// <summary>Enviar avisos al cliente por WhatsApp. Por defecto desactivado.</summary>
+    public bool NotifyByWhatsapp { get; set; }
+
+    /// <summary>
+    /// Antelación (en horas) del recordatorio de la cita. <c>0</c> → sin recordatorio.
+    /// Configurable por el owner.
+    /// </summary>
+    public int ReminderHoursBefore { get; set; } = 24;
+
     // --- Perfil público (para Explorar) ---
 
     /// <summary>Categoría del negocio (código: 'peluqueria', 'barberia', …). NULL = sin categorizar.</summary>

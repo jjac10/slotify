@@ -114,6 +114,28 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
     }
 
     /// <summary>
+    /// Configura los avisos del negocio (canales email/WhatsApp + antelación del
+    /// recordatorio en horas, 0 = sin recordatorio). Solo el owner.
+    /// </summary>
+    public async Task<BusinessResponse> SetNotificationSettingsAsync(
+        Guid businessId, Guid userId, SetNotificationSettingsRequest request, CancellationToken ct = default)
+    {
+        if (request.ReminderHoursBefore is < 0 or > 168) // 0 h … 7 días
+            throw new InvalidNotificationSettingsException("La antelación del recordatorio debe estar entre 0 y 168 horas.");
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+        if (business.OwnerId != userId)
+            throw new NotBusinessOwnerException();
+
+        business.NotifyByEmail = request.NotifyByEmail;
+        business.NotifyByWhatsapp = request.NotifyByWhatsapp;
+        business.ReminderHoursBefore = request.ReminderHoursBefore;
+        await repository.UpdateAsync(business, ct);
+        return BusinessResponse.From(business);
+    }
+
+    /// <summary>
     /// Fija la antelación mínima (en horas) para que el cliente cancele/reprograme.
     /// 0 = sin restricción. Solo el owner.
     /// </summary>

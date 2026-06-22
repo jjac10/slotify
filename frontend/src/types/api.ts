@@ -59,6 +59,10 @@ export interface BusinessResponse {
   reviewCount: number
   /** Modo de reservas: 'online' (clientes reservan) | 'calendar_only' (solo el owner apunta). */
   bookingMode: string
+  /** Avisos: canales y antelación del recordatorio (horas; 0 = sin recordatorio). */
+  notifyByEmail: boolean
+  notifyByWhatsapp: boolean
+  reminderHoursBefore: number
 }
 
 /** GET /businesses/{id}/reviews — una reseña pública de un negocio. */
