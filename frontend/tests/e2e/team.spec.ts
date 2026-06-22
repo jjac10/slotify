@@ -54,6 +54,8 @@ async function loginAndOpenTeam(page: import('@playwright/test').Page, email: st
 
   await page.goto('/configuracion')
   await expect(page).toHaveURL(/\/configuracion/)
+  // Las secciones de Configuración están plegadas: desplegar "Equipo".
+  await page.getByTestId('section-toggle-equipo').click()
   await expect(page.getByTestId('staff-list')).toBeVisible()
 }
 

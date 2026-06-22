@@ -5,6 +5,7 @@ import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
+import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
 import type { ReservationResponse } from '../types/api'
 
 function formatDate(iso: string): string {
@@ -229,19 +230,24 @@ function AuthedReservations() {
 }
 
 function GuestLookup() {
-  const [contact, setContact] = useState('')
+  const [contactMode, setContactMode] = useState<ContactMode>('phone')
+  const [phoneLocal, setPhoneLocal] = useState('')
+  const [email, setEmail] = useState('')
   const [searchedContact, setSearchedContact] = useState('')
   const [results, setResults] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
 
+  const contactValid = isContactValid(contactMode, phoneLocal, email)
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!contact.trim()) return
+    if (!contactValid) { setError('Introduce un teléfono (9 dígitos) o un email válido.'); return }
     setError(null)
     setLoading(true)
-    const normalized = contact.trim()
+    const built = buildGuestContact(contactMode, phoneLocal, email)
+    const normalized = built.guestPhone ?? built.guestEmail ?? ''
     try {
       const found = await reservationService.lookupGuest(normalized)
       found.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -277,20 +283,16 @@ function GuestLookup() {
       </p>
 
       <form onSubmit={handleSubmit} className="card flex flex-col gap-stack-md max-w-md" data-testid="guest-lookup-form">
-        <div className="field">
-          <label className="field-label" htmlFor="guest-lookup-contact">Teléfono o email</label>
-          <input
-            id="guest-lookup-contact"
-            type="text"
-            className="field-input"
-            data-testid="guest-lookup-contact"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-            placeholder="+34 600 000 000 o tu@email.com"
-            required
-          />
-        </div>
-        <button type="submit" className="btn-primary self-start" data-testid="guest-lookup-submit" disabled={loading}>
+        <GuestContactInput
+          mode={contactMode}
+          onModeChange={setContactMode}
+          phoneLocal={phoneLocal}
+          onPhoneChange={setPhoneLocal}
+          email={email}
+          onEmailChange={setEmail}
+          testidPrefix="guest-lookup"
+        />
+        <button type="submit" className="btn-primary self-start" data-testid="guest-lookup-submit" disabled={loading || !contactValid}>
           {loading ? 'Buscando…' : 'Buscar mis reservas'}
         </button>
       </form>

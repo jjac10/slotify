@@ -36,6 +36,8 @@ test('el owner ve su negocio y crea un servicio', async ({ page }) => {
 
   // Ve el nombre de su negocio + lista de servicios vacía
   await expect(page.getByTestId('business-name')).toHaveText(businessName)
+  // Las secciones de Configuración están plegadas: desplegar "Servicios".
+  await page.getByTestId('section-toggle-servicios').click()
   await expect(page.getByTestId('services-empty')).toBeVisible()
 
   // Crea un servicio (el formulario está plegado tras un botón "Nuevo servicio")

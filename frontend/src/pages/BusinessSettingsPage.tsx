@@ -13,16 +13,48 @@ function formatPrice(price: number | null): string {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(price)
 }
 
-function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+/**
+ * Sección colapsable de Configuración: cabecera clicable (título + icono + chevron)
+ * que despliega/oculta su contenido. Por defecto colapsada (la pantalla queda
+ * compacta) salvo que se pase defaultOpen. El contenido se desmonta al cerrar,
+ * así que cada sección solo carga sus datos cuando se abre.
+ */
+function SectionCard({
+  id,
+  title,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  id: string
+  title: string
+  icon: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="card flex flex-col gap-stack-md">
-      <div className="flex items-center gap-stack-sm border-b border-outline-variant/30 pb-stack-md -mt-stack-sm">
+    <div className="card !p-0 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`section-toggle-${id}`}
+        aria-expanded={open}
+        className="flex w-full items-center gap-stack-sm p-stack-md text-left transition-colors hover:bg-surface-container-low"
+      >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-container/15 text-primary">
           <span className="material-symbols-outlined text-[20px]">{icon}</span>
         </span>
-        <h2 className="!mt-0 text-base font-bold">{title}</h2>
-      </div>
-      {children}
+        <h2 className="!mt-0 flex-1 text-base font-bold">{title}</h2>
+        <span className={`material-symbols-outlined text-on-surface-variant transition-transform ${open ? 'rotate-180' : ''}`}>
+          expand_more
+        </span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-stack-md border-t border-outline-variant/30 p-stack-md" data-testid={`section-body-${id}`}>
+          {children}
+        </div>
+      )}
     </div>
   )
 }
@@ -880,7 +912,7 @@ export function BusinessSettingsPage() {
       {loadError && <p role="alert" className="alert" data-testid="business-error">{loadError}</p>}
 
       {/* Datos */}
-      <SectionCard title="Datos del negocio" icon="storefront">
+      <SectionCard id="datos" title="Datos del negocio" icon="storefront" defaultOpen>
         <div className="flex items-start gap-stack-md" data-testid="business-card">
           <div className="flex-1 min-w-0">
             <h3 className="!mt-0 font-bold text-base" data-testid="business-name">{business?.name ?? '…'}</h3>
@@ -916,7 +948,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Perfil público */}
-      <SectionCard title="Perfil (Explorar)" icon="badge">
+      <SectionCard id="perfil" title="Perfil (Explorar)" icon="badge">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Cómo se ve tu negocio en Explorar: categoría, foto y ubicación (para que aparezca en "negocios cercanos").
         </p>
@@ -924,7 +956,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Servicios */}
-      <SectionCard title="Servicios" icon="content_cut">
+      <SectionCard id="servicios" title="Servicios" icon="content_cut">
         {services === null && !loadError && <p className="text-on-surface-variant text-sm">Cargando…</p>}
         {services !== null && services.length === 0 && (
           <p className="text-on-surface-variant text-sm" data-testid="services-empty">Aún no tienes servicios. Crea el primero abajo.</p>
@@ -992,7 +1024,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Equipo */}
-      <SectionCard title="Equipo" icon="group">
+      <SectionCard id="equipo" title="Equipo" icon="group">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Los trabajadores de tu negocio. Los clientes eligen con quién reservar.
         </p>
@@ -1000,7 +1032,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Horario */}
-      <SectionCard title="Horario semanal" icon="schedule">
+      <SectionCard id="horario" title="Horario semanal" icon="schedule">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Define cuándo abres cada día. Los clientes solo verán huecos dentro de este horario.
         </p>
@@ -1008,7 +1040,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Festivos */}
-      <SectionCard title="Festivos y días cerrados" icon="beach_access">
+      <SectionCard id="festivos" title="Festivos y días cerrados" icon="beach_access">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Los días añadidos aquí no tendrán disponibilidad para reservas.
         </p>
@@ -1016,7 +1048,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Confirmación */}
-      <SectionCard title="Confirmación de reservas" icon="verified">
+      <SectionCard id="confirmacion" title="Confirmación de reservas" icon="verified">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           En modo <strong>automático</strong> las reservas se confirman al instante. En modo <strong>manual</strong> quedan pendientes hasta que las confirmes desde la Agenda.
         </p>
@@ -1060,7 +1092,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Ventana de cancelación */}
-      <SectionCard title="Ventana de cancelación" icon="timer">
+      <SectionCard id="cancelacion" title="Ventana de cancelación" icon="timer">
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
           Tiempo mínimo de antelación para que los clientes puedan cancelar o reprogramar. <strong>0 horas</strong> = sin restricción.
         </p>
@@ -1096,7 +1128,7 @@ export function BusinessSettingsPage() {
       </SectionCard>
 
       {/* Plan */}
-      <SectionCard title="Plan" icon="workspace_premium">
+      <SectionCard id="plan" title="Plan" icon="workspace_premium">
         <div className="flex flex-col gap-stack-md" data-testid="plan-section">
           <p className="text-sm text-on-surface-variant -mt-stack-sm">
             El plan Premium desbloquea trabajadores ilimitados y más.

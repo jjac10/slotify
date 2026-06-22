@@ -31,6 +31,8 @@ test('el owner configura y guarda el horario del negocio', async ({ page }) => {
   // Ir a Configuración
   await page.goto('/configuracion')
   await expect(page).toHaveURL(/\/configuracion/)
+  // Las secciones de Configuración están plegadas: desplegar "Horario semanal".
+  await page.getByTestId('section-toggle-horario').click()
   await expect(page.getByTestId('hours-form')).toBeVisible()
 
   // El lunes viene prefijado como abierto (09:00–17:00)
