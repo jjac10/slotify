@@ -10,8 +10,9 @@ namespace Slotify.API.Controllers;
 public class ReviewsController(ReviewService reviews) : ApiControllerBase
 {
     /// <summary>
-    /// Valora una reserva pasada propia (1–5 + comentario). Solo el cliente registrado
-    /// dueño de la reserva, una sola vez. Recalcula la media del negocio.
+    /// Valora el negocio de una reserva pasada propia (1–5 + comentario). Solo el cliente
+    /// registrado dueño de la reserva; una reseña por negocio (si ya existe, se edita).
+    /// Recalcula la media del negocio.
     /// </summary>
     [HttpPost("/reservations/{reservationId:guid}/review")]
     [Authorize]
@@ -38,11 +39,36 @@ public class ReviewsController(ReviewService reviews) : ApiControllerBase
         {
             return Conflict(new { error = "review_not_allowed", message = ex.Message });
         }
-        catch (AlreadyReviewedException ex)
+    }
+
+    /// <summary>Edita una reseña propia (desde "Mis reseñas").</summary>
+    [HttpPut("/reviews/{reviewId:guid}")]
+    [Authorize]
+    public async Task<ActionResult<MyReviewResponse>> Update(Guid reviewId, UpdateReviewRequest request, CancellationToken ct)
+    {
+        try
         {
-            return Conflict(new { error = "already_reviewed", message = ex.Message });
+            return Ok(await reviews.UpdateAsync(reviewId, CurrentUserId, request.Rating, request.Comment, ct));
+        }
+        catch (ReviewNotFoundException ex)
+        {
+            return NotFound(new { error = "review_not_found", message = ex.Message });
+        }
+        catch (ReviewForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (InvalidReviewException ex)
+        {
+            return BadRequest(new { error = "invalid_review", message = ex.Message });
         }
     }
+
+    /// <summary>Reseñas propias del cliente autenticado ("Mis reseñas").</summary>
+    [HttpGet("/me/reviews")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<MyReviewResponse>>> ListMine(CancellationToken ct)
+        => Ok(await reviews.ListMineAsync(CurrentUserId, ct));
 
     /// <summary>Reseñas públicas de un negocio (más recientes primero).</summary>
     [HttpGet("/businesses/{businessId:guid}/reviews")]

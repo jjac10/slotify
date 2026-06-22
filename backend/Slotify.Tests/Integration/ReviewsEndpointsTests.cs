@@ -110,15 +110,58 @@ public class ReviewsEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sl
     }
 
     [Fact]
-    public async Task Review_Twice_Returns409()
+    public async Task Review_Again_EditsExisting_OneReviewPerBusiness()
+    {
+        var (businessId, name, serviceId, staffId) = await SetupBusinessAsync();
+        var (userId, customer) = await RegisterCustomerAsync();
+        // Dos reservas pasadas del mismo cliente en el mismo negocio.
+        var r1 = await SeedReservationAsync(businessId, serviceId, staffId, userId, past: true);
+        var r2 = await SeedReservationAsync(businessId, serviceId, staffId, userId, past: true);
+
+        Assert.Equal(HttpStatusCode.Created, (await customer.PostAsJsonAsync($"/reservations/{r1}/review", new CreateReviewRequest(4, "ok"))).StatusCode);
+        // Volver a valorar (otra reserva del mismo negocio) edita la misma reseña, no crea otra.
+        Assert.Equal(HttpStatusCode.Created, (await customer.PostAsJsonAsync($"/reservations/{r2}/review", new CreateReviewRequest(2, "peor"))).StatusCode);
+
+        var reviews = await (await _client.GetAsync($"/businesses/{businessId}/reviews"))
+            .Content.ReadFromJsonAsync<List<ReviewResponse>>();
+        var review = Assert.Single(reviews!); // sigue habiendo una sola reseña
+        Assert.Equal(2, review.Rating);
+        Assert.Equal("peor", review.Comment);
+        Assert.Equal(2.0, await GetPublicRatingAsync(name, businessId));
+    }
+
+    [Fact]
+    public async Task EditReview_ViaMeReviews_UpdatesRatingAndAverage()
+    {
+        var (businessId, name, serviceId, staffId) = await SetupBusinessAsync();
+        var (userId, customer) = await RegisterCustomerAsync();
+        var reservationId = await SeedReservationAsync(businessId, serviceId, staffId, userId, past: true);
+        await customer.PostAsJsonAsync($"/reservations/{reservationId}/review", new CreateReviewRequest(5, "genial"));
+
+        // "Mis reseñas" devuelve la propia, con el nombre del negocio.
+        var mine = await (await customer.GetAsync("/me/reviews")).Content.ReadFromJsonAsync<List<MyReviewResponse>>();
+        var review = Assert.Single(mine!);
+        Assert.Equal(name, review.BusinessName);
+        Assert.Equal(5, review.Rating);
+
+        // Editar la reseña baja la media del negocio.
+        var edit = await customer.PutAsJsonAsync($"/reviews/{review.Id}", new UpdateReviewRequest(2, "lo pensé mejor"));
+        Assert.Equal(HttpStatusCode.OK, edit.StatusCode);
+        Assert.Equal(2.0, await GetPublicRatingAsync(name, businessId));
+    }
+
+    [Fact]
+    public async Task EditReview_ByOtherUser_Returns403()
     {
         var (businessId, _, serviceId, staffId) = await SetupBusinessAsync();
         var (userId, customer) = await RegisterCustomerAsync();
+        var (_, other) = await RegisterCustomerAsync();
         var reservationId = await SeedReservationAsync(businessId, serviceId, staffId, userId, past: true);
+        var created = await (await customer.PostAsJsonAsync($"/reservations/{reservationId}/review", new CreateReviewRequest(5, null)))
+            .Content.ReadFromJsonAsync<ReviewResponse>();
 
-        await customer.PostAsJsonAsync($"/reservations/{reservationId}/review", new CreateReviewRequest(4, null));
-        var second = await customer.PostAsJsonAsync($"/reservations/{reservationId}/review", new CreateReviewRequest(2, null));
-        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        var res = await other.PutAsJsonAsync($"/reviews/{created!.Id}", new UpdateReviewRequest(1, null));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
 
     [Fact]

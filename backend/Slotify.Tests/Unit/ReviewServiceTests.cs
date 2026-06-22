@@ -7,8 +7,9 @@ using Slotify.Domain.Services;
 namespace Slotify.Tests.Unit;
 
 /// <summary>
-/// Reseñas: un cliente registrado valora (1–5 + comentario) una reserva pasada SUYA,
-/// una sola vez. Al crearla se recalcula la media/contador denormalizados del negocio.
+/// Reseñas: un cliente registrado valora un negocio (1–5 + comentario) tras una reserva
+/// pasada suya — una reseña por (negocio, usuario), editable. Al crear/editar se recalcula
+/// la media/contador denormalizados del negocio.
 /// </summary>
 public class ReviewServiceTests
 {
@@ -38,8 +39,9 @@ public class ReviewServiceTests
             .ReturnsAsync(reservation);
         _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Business { Id = _businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
-        _reviews.Setup(r => r.ExistsForReservationAsync(_reservationId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _reviews.Setup(r => r.GetByBusinessAndUserAsync(_businessId, _userId, It.IsAny<CancellationToken>())).ReturnsAsync((Review?)null);
         _reviews.Setup(r => r.AddAsync(It.IsAny<Review>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _reviews.Setup(r => r.UpdateAsync(It.IsAny<Review>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _reviews.Setup(r => r.GetBusinessAggregateAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync((1, (double?)5.0));
         _businesses.Setup(b => b.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
@@ -61,6 +63,27 @@ public class ReviewServiceTests
         Assert.Equal(5, saved.Rating);
         Assert.Equal("Genial", saved.Comment);
         Assert.Equal(5, result.Rating);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenBusinessAlreadyReviewed_EditsExistingInsteadOfAdding()
+    {
+        SetupReservation(_userId, Past);
+        var existing = new Review
+        {
+            Id = Guid.NewGuid(), BusinessId = _businessId, UserId = _userId, ReservationId = Guid.NewGuid(),
+            Rating = 3, Comment = "Regular", CreatedAt = Past,
+        };
+        _reviews.Setup(r => r.GetByBusinessAndUserAsync(_businessId, _userId, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+
+        var result = await CreateService().CreateAsync(_reservationId, _userId, 5, "Mejoró");
+
+        Assert.Equal(5, existing.Rating);
+        Assert.Equal("Mejoró", existing.Comment);
+        Assert.NotNull(existing.UpdatedAt);
+        Assert.Equal(5, result.Rating);
+        _reviews.Verify(r => r.UpdateAsync(existing, It.IsAny<CancellationToken>()), Times.Once);
+        _reviews.Verify(r => r.AddAsync(It.IsAny<Review>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -124,13 +147,70 @@ public class ReviewServiceTests
             () => CreateService().CreateAsync(_reservationId, _userId, 5, null));
     }
 
-    [Fact]
-    public async Task CreateAsync_AlreadyReviewed_Throws()
+    // --- Editar (PUT /reviews/{id}) ---
+
+    private Review SetupExistingReview(Guid ownerId)
     {
-        SetupReservation(_userId, Past);
-        _reviews.Setup(r => r.ExistsForReservationAsync(_reservationId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        await Assert.ThrowsAsync<AlreadyReviewedException>(
-            () => CreateService().CreateAsync(_reservationId, _userId, 5, null));
+        var review = new Review
+        {
+            Id = Guid.NewGuid(), BusinessId = _businessId, UserId = ownerId, ReservationId = _reservationId,
+            Rating = 3, Comment = "Regular", CreatedAt = Past, Business = new Business { Id = _businessId, Name = "Biz", OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid() },
+        };
+        _reviews.Setup(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>())).ReturnsAsync(review);
+        _reviews.Setup(r => r.UpdateAsync(It.IsAny<Review>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = _businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" });
+        _reviews.Setup(r => r.GetBusinessAggregateAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync((1, (double?)5.0));
+        _businesses.Setup(b => b.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        return review;
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AsAuthor_EditsAndRecomputes()
+    {
+        var review = SetupExistingReview(_userId);
+
+        var result = await CreateService().UpdateAsync(review.Id, _userId, 5, "Mucho mejor");
+
+        Assert.Equal(5, review.Rating);
+        Assert.Equal("Mucho mejor", review.Comment);
+        Assert.NotNull(review.UpdatedAt);
+        Assert.Equal(5, result.Rating);
+        _reviews.Verify(r => r.UpdateAsync(review, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NotAuthor_Throws403()
+    {
+        var review = SetupExistingReview(Guid.NewGuid()); // la reseña es de otro usuario
+        await Assert.ThrowsAsync<ReviewForbiddenException>(
+            () => CreateService().UpdateAsync(review.Id, _userId, 5, null));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NotFound_Throws()
+    {
+        var reviewId = Guid.NewGuid();
+        _reviews.Setup(r => r.GetByIdAsync(reviewId, It.IsAny<CancellationToken>())).ReturnsAsync((Review?)null);
+        await Assert.ThrowsAsync<ReviewNotFoundException>(
+            () => CreateService().UpdateAsync(reviewId, _userId, 5, null));
+    }
+
+    [Fact]
+    public async Task ListMineAsync_MapsWithBusinessName()
+    {
+        var review = new Review
+        {
+            Id = Guid.NewGuid(), BusinessId = _businessId, UserId = _userId, ReservationId = _reservationId,
+            Rating = 4, Comment = "Bien", CreatedAt = Past, Business = new Business { Id = _businessId, Name = "Barbería X", OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid() },
+        };
+        _reviews.Setup(r => r.ListByUserAsync(_userId, It.IsAny<CancellationToken>())).ReturnsAsync(new[] { review });
+
+        var list = await CreateService().ListMineAsync(_userId);
+
+        var dto = Assert.Single(list);
+        Assert.Equal("Barbería X", dto.BusinessName);
+        Assert.Equal(4, dto.Rating);
     }
 
     [Fact]

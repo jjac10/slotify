@@ -14,13 +14,29 @@ public class ReviewRepository(SlotifyDbContext db) : IReviewRepository
         await db.SaveChangesAsync(ct);
     }
 
-    public Task<bool> ExistsForReservationAsync(Guid reservationId, CancellationToken ct = default)
-        => db.Reviews.AnyAsync(r => r.ReservationId == reservationId, ct);
+    public async Task UpdateAsync(Review review, CancellationToken ct = default)
+    {
+        db.Reviews.Update(review);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public Task<Review?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Reviews.Include(r => r.Business).FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public Task<Review?> GetByBusinessAndUserAsync(Guid businessId, Guid userId, CancellationToken ct = default)
+        => db.Reviews.FirstOrDefaultAsync(r => r.BusinessId == businessId && r.UserId == userId, ct);
 
     public async Task<IReadOnlyList<Review>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
         => await db.Reviews.AsNoTracking()
             .Include(r => r.User)
             .Where(r => r.BusinessId == businessId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Review>> ListByUserAsync(Guid userId, CancellationToken ct = default)
+        => await db.Reviews.AsNoTracking()
+            .Include(r => r.Business)
+            .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(ct);
 

@@ -6,8 +6,9 @@ import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
 import { ReviewModal } from '../components/ReviewModal'
+import { reviewService } from '../services/reviewService'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
-import type { ReservationResponse } from '../types/api'
+import type { MyReviewResponse, ReservationResponse } from '../types/api'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -20,13 +21,14 @@ interface CardProps {
   r: ReservationResponse
   onCancelled?: (id: string) => void
   onReschedule?: () => void
-  /** Si se pasa, la cita es pasada y se puede valorar. */
+  /** Si se pasa, la cita es pasada y se puede valorar (o editar la valoración del negocio). */
   onReview?: () => void
-  reviewed?: boolean
+  /** Reseña existente del cliente para este negocio (si ya valoró). */
+  existingReview?: MyReviewResponse
   contact?: string
 }
 
-function ReservationCard({ r, onCancelled, onReschedule, onReview, reviewed, contact }: CardProps) {
+function ReservationCard({ r, onCancelled, onReschedule, onReview, existingReview, contact }: CardProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
   const [confirming, setConfirming] = useState(false)
@@ -93,12 +95,23 @@ function ReservationCard({ r, onCancelled, onReschedule, onReview, reviewed, con
       )}
 
       {onReview && !confirming && (
-        <div className="flex items-center gap-1 pt-1 border-t border-outline-variant/30">
-          {reviewed ? (
-            <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-secondary" data-testid="reviewed-badge">
-              <span className="material-symbols-outlined text-[16px] fill">check_circle</span>
-              ¡Gracias por tu valoración!
-            </span>
+        <div className="flex items-center gap-2 pt-1 border-t border-outline-variant/30">
+          {existingReview ? (
+            <>
+              <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-secondary" data-testid="reviewed-badge">
+                <span className="material-symbols-outlined text-[16px] fill">check_circle</span>
+                Ya valoraste este negocio
+              </span>
+              <button
+                type="button"
+                onClick={onReview}
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/15 transition-colors"
+                data-testid="review-edit-btn"
+              >
+                <span className="material-symbols-outlined text-[16px]">edit</span>
+                Editar valoración
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -156,7 +169,8 @@ function AuthedReservations() {
   const [tab, setTab] = useState<Tab>('upcoming')
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
   const [reviewTarget, setReviewTarget] = useState<ReservationResponse | null>(null)
-  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
+  // Reseña del cliente por negocio (una por negocio): para mostrar "ya valoraste"/editar.
+  const [reviewsByBusiness, setReviewsByBusiness] = useState<Map<string, MyReviewResponse>>(new Map())
 
   useEffect(() => {
     let active = true
@@ -166,6 +180,14 @@ function AuthedReservations() {
       .catch((err) => active && setError(getApiError(err)?.message ?? 'No se pudieron cargar tus reservas.'))
     return () => { active = false }
   }, [])
+
+  function loadMyReviews() {
+    reviewService.listMine()
+      .then((list) => setReviewsByBusiness(new Map(list.map((rv) => [rv.businessId, rv]))))
+      .catch(() => { /* las reseñas son secundarias en esta pantalla */ })
+  }
+
+  useEffect(loadMyReviews, [])
 
   const visible = useMemo(() => {
     if (!reservations) return null
@@ -241,7 +263,7 @@ function AuthedReservations() {
               onCancelled={tab === 'upcoming' ? handleCancelled : undefined}
               onReschedule={tab === 'upcoming' ? () => setRescheduleTarget(r) : undefined}
               onReview={tab === 'past' ? () => setReviewTarget(r) : undefined}
-              reviewed={reviewedIds.has(r.id)}
+              existingReview={reviewsByBusiness.get(r.businessId)}
             />
           ))}
         </ul>
@@ -255,16 +277,24 @@ function AuthedReservations() {
         />
       )}
 
-      {reviewTarget && (
-        <ReviewModal
-          reservation={reviewTarget}
-          onClose={() => setReviewTarget(null)}
-          onReviewed={(id) => {
-            setReviewedIds((prev) => new Set(prev).add(id))
-            setReviewTarget(null)
-          }}
-        />
-      )}
+      {reviewTarget && (() => {
+        const existing = reviewsByBusiness.get(reviewTarget.businessId)
+        return (
+          <ReviewModal
+            businessName={reviewTarget.businessName ?? 'el negocio'}
+            serviceName={reviewTarget.serviceName}
+            reservationId={reviewTarget.id}
+            reviewId={existing?.id}
+            initialRating={existing?.rating}
+            initialComment={existing?.comment}
+            onClose={() => setReviewTarget(null)}
+            onSaved={() => {
+              loadMyReviews()
+              setReviewTarget(null)
+            }}
+          />
+        )
+      })()}
     </section>
   )
 }

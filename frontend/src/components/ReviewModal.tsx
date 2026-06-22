@@ -1,20 +1,37 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { reservationService } from '../services/reservationService'
+import { reviewService } from '../services/reviewService'
 import { getApiError } from '../services/apiClient'
 import { StarInput } from './Stars'
-import type { ReservationResponse } from '../types/api'
 
 interface Props {
-  reservation: ReservationResponse
+  /** Nombre del negocio que se valora (cabecera del modal). */
+  businessName: string
+  /** Servicio (opcional, solo informativo). */
+  serviceName?: string | null
+  /** Modo CREAR: id de la reserva pasada desde la que se valora. */
+  reservationId?: string
+  /** Modo EDITAR: id de la reseña existente. Tiene prioridad sobre reservationId. */
+  reviewId?: string
+  /** Valores iniciales (al editar). */
+  initialRating?: number
+  initialComment?: string | null
   onClose: () => void
-  /** Se llama tras valorar con éxito (o si ya estaba valorada): marca la reserva como valorada. */
-  onReviewed: (reservationId: string) => void
+  /** Se llama tras guardar con éxito (crear o editar). */
+  onSaved: () => void
 }
 
-export function ReviewModal({ reservation, onClose, onReviewed }: Props) {
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
+/**
+ * Modal para valorar un negocio (1–5 + comentario). Crea (POST /reservations/{id}/review)
+ * o, si llega <c>reviewId</c>, edita (PUT /reviews/{id}). Una reseña por negocio.
+ */
+export function ReviewModal({
+  businessName, serviceName, reservationId, reviewId, initialRating = 0, initialComment, onClose, onSaved,
+}: Props) {
+  const isEdit = Boolean(reviewId)
+  const [rating, setRating] = useState(initialRating)
+  const [comment, setComment] = useState(initialComment ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,16 +41,12 @@ export function ReviewModal({ reservation, onClose, onReviewed }: Props) {
     setError(null)
     setSaving(true)
     try {
-      await reservationService.review(reservation.id, { rating, comment: comment.trim() || null })
-      onReviewed(reservation.id)
+      const body = { rating, comment: comment.trim() || null }
+      if (reviewId) await reviewService.update(reviewId, body)
+      else await reservationService.review(reservationId!, body)
+      onSaved()
     } catch (err) {
-      const apiErr = getApiError(err)
-      if (apiErr?.error === 'already_reviewed') {
-        // Ya estaba valorada (p. ej. en otra pestaña): trátalo como hecho.
-        onReviewed(reservation.id)
-        return
-      }
-      setError(apiErr?.message ?? 'No se pudo enviar la valoración.')
+      setError(getApiError(err)?.message ?? 'No se pudo guardar la valoración.')
       setSaving(false)
     }
   }
@@ -45,15 +58,15 @@ export function ReviewModal({ reservation, onClose, onReviewed }: Props) {
     >
       <form onSubmit={handleSubmit} className="card w-full max-w-sm flex flex-col gap-stack-md" data-testid="review-modal">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Valorar tu cita</h2>
+          <h2 className="text-lg font-bold">{isEdit ? 'Editar tu valoración' : 'Valorar el negocio'}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-surface-container-low" aria-label="Cerrar">
             <span className="material-symbols-outlined text-[22px] text-on-surface-variant">close</span>
           </button>
         </div>
 
         <p className="text-sm text-on-surface-variant -mt-stack-sm">
-          <span className="font-medium text-on-surface">{reservation.businessName ?? 'Reserva'}</span>
-          {reservation.serviceName ? ` · ${reservation.serviceName}` : ''}
+          <span className="font-medium text-on-surface">{businessName}</span>
+          {serviceName ? ` · ${serviceName}` : ''}
         </p>
 
         <div className="flex flex-col items-center gap-1">
@@ -77,7 +90,7 @@ export function ReviewModal({ reservation, onClose, onReviewed }: Props) {
         {error && <p role="alert" className="alert text-sm" data-testid="review-error">{error}</p>}
 
         <button type="submit" className="btn-primary" data-testid="review-submit" disabled={saving || rating < 1}>
-          {saving ? 'Enviando…' : 'Enviar valoración'}
+          {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Enviar valoración'}
         </button>
       </form>
     </div>
