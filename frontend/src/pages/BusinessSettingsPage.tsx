@@ -149,10 +149,25 @@ function HoursSection({ businessId }: { businessId: string }) {
 
 // ─── Festivos ────────────────────────────────────────────────────────────────
 
+function hhmm(time: string | null): string {
+  return time ? time.slice(0, 5) : ''
+}
+
+/** Texto legible de un festivo: rango de días y/o franja horaria. */
+function holidayLabel(h: BusinessHoliday): string {
+  const days = h.endDate && h.endDate !== h.holidayDate ? `${h.holidayDate} → ${h.endDate}` : h.holidayDate
+  const hours = h.startTime && h.endTime ? ` · ${hhmm(h.startTime)}–${hhmm(h.endTime)}` : ' · todo el día'
+  return days + hours
+}
+
 function HolidaysSection({ businessId }: { businessId: string }) {
   const [holidays, setHolidays] = useState<BusinessHoliday[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [date, setDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [partial, setPartial] = useState(false)
+  const [startTime, setStartTime] = useState('09:00')
+  const [endTime, setEndTime] = useState('14:00')
   const [reason, setReason] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -170,12 +185,18 @@ function HolidaysSection({ businessId }: { businessId: string }) {
   async function handleAdd(e: FormEvent) {
     e.preventDefault()
     if (!date) return
+    if (partial && startTime >= endTime) { setAddError('La hora de inicio debe ser anterior a la de fin.'); return }
     setAddError(null)
     setAdding(true)
     try {
-      await businessService.addHoliday(businessId, date, reason.trim() || undefined)
-      setDate('')
-      setReason('')
+      await businessService.addHoliday(businessId, {
+        holidayDate: date,
+        reason: reason.trim() || null,
+        endDate: endDate && endDate !== date ? endDate : null,
+        startTime: partial ? `${startTime}:00` : null,
+        endTime: partial ? `${endTime}:00` : null,
+      })
+      setDate(''); setEndDate(''); setReason(''); setPartial(false)
       await load()
     } catch (err) {
       setAddError(getApiError(err)?.message ?? 'No se pudo añadir el festivo.')
@@ -200,15 +221,15 @@ function HolidaysSection({ businessId }: { businessId: string }) {
   return (
     <div className="flex flex-col gap-stack-md">
       {holidays !== null && holidays.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2" data-testid="holidays-list">
           {holidays
             .slice()
             .sort((a, b) => a.holidayDate.localeCompare(b.holidayDate))
             .map((h) => (
-              <li key={h.id} className="glass-card rounded-xl px-stack-md py-3 flex items-center gap-stack-md">
+              <li key={h.id} className="glass-card rounded-xl px-stack-md py-3 flex items-center gap-stack-md" data-testid="holiday-item">
                 <span className="material-symbols-outlined text-[20px] text-on-surface-variant">beach_access</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">{h.holidayDate}</p>
+                  <p className="font-semibold text-sm">{holidayLabel(h)}</p>
                   {h.reason && <p className="text-xs text-on-surface-variant">{h.reason}</p>}
                 </div>
                 <button
@@ -228,24 +249,45 @@ function HolidaysSection({ businessId }: { businessId: string }) {
       )}
       {holidays === null && <p className="text-sm text-on-surface-variant">Cargando…</p>}
 
-      <form onSubmit={handleAdd} className="flex flex-col gap-stack-sm">
-        <p className="text-sm font-semibold">Añadir día festivo</p>
-        {addError && <p role="alert" className="alert text-xs">{addError}</p>}
+      <form onSubmit={handleAdd} className="flex flex-col gap-stack-sm border-t border-outline-variant/30 pt-stack-md" data-testid="add-holiday-form">
+        <p className="text-sm font-semibold">Añadir cierre</p>
+        {addError && <p role="alert" className="alert text-xs" data-testid="holiday-error">{addError}</p>}
         <div className="flex flex-wrap gap-2 items-end">
           <div className="field !gap-1">
-            <label className="field-label text-xs" htmlFor="holiday-date">Fecha</label>
-            <input id="holiday-date" type="date" className="field-input !py-2 w-44" min={today}
-              value={date} onChange={(e) => setDate(e.target.value)} required />
+            <label className="field-label text-xs" htmlFor="holiday-date">Desde</label>
+            <input id="holiday-date" type="date" className="field-input !py-2 w-40" min={today}
+              value={date} onChange={(e) => setDate(e.target.value)} required data-testid="holiday-date" />
+          </div>
+          <div className="field !gap-1">
+            <label className="field-label text-xs" htmlFor="holiday-end-date">Hasta (opcional)</label>
+            <input id="holiday-end-date" type="date" className="field-input !py-2 w-40" min={date || today}
+              value={endDate} onChange={(e) => setEndDate(e.target.value)} data-testid="holiday-end-date" />
           </div>
           <div className="field !gap-1 flex-1 min-w-40">
             <label className="field-label text-xs" htmlFor="holiday-reason">Motivo (opcional)</label>
             <input id="holiday-reason" type="text" className="field-input !py-2"
               value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Navidad, vacaciones…" />
           </div>
-          <button type="submit" className="btn-primary !py-2 text-sm" disabled={adding}>
-            {adding ? 'Añadiendo…' : 'Añadir'}
-          </button>
         </div>
+
+        <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+          <input type="checkbox" className="w-4 h-4 accent-primary-container" checked={partial}
+            onChange={(e) => setPartial(e.target.checked)} data-testid="holiday-partial-toggle" />
+          Cerrar solo unas horas (si no, se cierra el día completo)
+        </label>
+        {partial && (
+          <div className="flex items-center gap-2">
+            <input type="time" className="field-input !py-1.5 w-28" value={startTime}
+              onChange={(e) => setStartTime(e.target.value)} data-testid="holiday-start-time" aria-label="Hora de inicio" />
+            <span className="text-on-surface-variant">–</span>
+            <input type="time" className="field-input !py-1.5 w-28" value={endTime}
+              onChange={(e) => setEndTime(e.target.value)} data-testid="holiday-end-time" aria-label="Hora de fin" />
+          </div>
+        )}
+
+        <button type="submit" className="btn-primary !py-2 text-sm self-start" disabled={adding} data-testid="add-holiday-submit">
+          {adding ? 'Añadiendo…' : 'Añadir'}
+        </button>
       </form>
     </div>
   )

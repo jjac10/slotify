@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Slotify.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Slotify.Infrastructure.Data;
 namespace Slotify.Infrastructure.Migrations
 {
     [DbContext(typeof(SlotifyDbContext))]
-    partial class SlotifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620172947_Add_HolidayRangeAndHours")]
+    partial class Add_HolidayRangeAndHours
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,11 +106,6 @@ namespace Slotify.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("cancellation_cutoff_hours");
 
-                    b.Property<string>("Category")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("category");
-
                     b.Property<string>("ConfirmationMode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -122,14 +120,6 @@ namespace Slotify.Infrastructure.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision")
-                        .HasColumnName("latitude");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision")
-                        .HasColumnName("longitude");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -139,11 +129,6 @@ namespace Slotify.Infrastructure.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
-
-                    b.Property<string>("PhotoUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)")
-                        .HasColumnName("photo_url");
 
                     b.Property<int?>("SlotIntervalMinutes")
                         .HasColumnType("integer")

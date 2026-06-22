@@ -71,6 +71,41 @@ public class AvailabilityServiceTests
     }
 
     [Fact]
+    public async Task GetSlots_HolidayRangeCoversDate_ReturnsEmpty()
+    {
+        // Rango cerrado del día anterior al siguiente → cubre Date.
+        Setup(60, null, Open(Dow, 9, 18),
+            holidays: new[] { new BusinessHoliday { HolidayDate = Date.AddDays(-1), EndDate = Date.AddDays(1), IsClosed = true } });
+
+        Assert.Empty(await CreateService().GetSlotsAsync(_businessId, _serviceId, _staffId, Date));
+    }
+
+    [Fact]
+    public async Task GetSlots_HolidayRangeBeforeDate_DoesNotAffect()
+    {
+        // Rango que termina antes de Date → no cubre, hay slots normales.
+        Setup(60, null, Open(Dow, 9, 12),
+            holidays: new[] { new BusinessHoliday { HolidayDate = Date.AddDays(-3), EndDate = Date.AddDays(-1), IsClosed = true } });
+
+        Assert.Equal(3, (await CreateService().GetSlotsAsync(_businessId, _serviceId, _staffId, Date)).Count);
+    }
+
+    [Fact]
+    public async Task GetSlots_PartialHourClosure_RemovesOverlappingSlots()
+    {
+        // Abierto 9-12 (slots 9-10, 10-11, 11-12). Cierre parcial 10:00-11:00 (hora local).
+        Setup(60, null, Open(Dow, 9, 12),
+            holidays: new[] { new BusinessHoliday { HolidayDate = Date, IsClosed = true, StartTime = new TimeOnly(10, 0), EndTime = new TimeOnly(11, 0) } });
+
+        var slots = await CreateService().GetSlotsAsync(_businessId, _serviceId, _staffId, Date);
+
+        Assert.Equal(2, slots.Count);                       // queda 9-10 y 11-12
+        Assert.DoesNotContain(slots, s => s.Start == Utc(10)); // 10-11 eliminado
+        Assert.Contains(slots, s => s.Start == Utc(9));
+        Assert.Contains(slots, s => s.Start == Utc(11));
+    }
+
+    [Fact]
     public async Task GetSlots_OpenDay_StepDefaultsToDuration()
     {
         Setup(60, null, Open(Dow, 9, 12)); // 9-12, servicio 60 min, sin intervalo

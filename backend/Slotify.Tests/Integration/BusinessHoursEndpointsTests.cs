@@ -106,4 +106,32 @@ public class BusinessHoursEndpointsTests(SlotifyApiFactory factory) : IClassFixt
         var delete = await owner.DeleteAsync($"/businesses/{businessId}/holidays/{holiday!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
     }
+
+    [Fact]
+    public async Task AddHoliday_WithRangeAndHours_Returns201_AndPersistsFields()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var create = await owner.PostAsJsonAsync($"/businesses/{businessId}/holidays",
+            new CreateHolidayRequest(new DateOnly(2026, 8, 1), "Vacaciones", true,
+                EndDate: new DateOnly(2026, 8, 15), StartTime: new TimeOnly(14, 0), EndTime: new TimeOnly(16, 0)));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+        var list = await _client.GetFromJsonAsync<List<BusinessHolidayResponse>>($"/businesses/{businessId}/holidays");
+        var h = list!.Single();
+        Assert.Equal(new DateOnly(2026, 8, 15), h.EndDate);
+        Assert.Equal(new TimeOnly(14, 0), h.StartTime);
+        Assert.Equal(new TimeOnly(16, 0), h.EndTime);
+    }
+
+    [Fact]
+    public async Task AddHoliday_EndDateBeforeStart_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var create = await owner.PostAsJsonAsync($"/businesses/{businessId}/holidays",
+            new CreateHolidayRequest(new DateOnly(2026, 8, 10), null, true, EndDate: new DateOnly(2026, 8, 1)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
+    }
 }

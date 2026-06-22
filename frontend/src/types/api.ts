@@ -82,12 +82,27 @@ export interface CreateStaffRequest {
   phone?: string | null
 }
 
-/** GET /businesses/{id}/holidays — festivo/día cerrado. */
+/** GET /businesses/{id}/holidays — festivo/día(s) cerrado(s). */
 export interface BusinessHoliday {
   id: string
-  holidayDate: string // "YYYY-MM-DD"
+  holidayDate: string // "YYYY-MM-DD" (primer día)
+  /** Último día del rango (incl.); null = un solo día. */
+  endDate: string | null
+  /** Franja cerrada "HH:mm:ss"; null = día(s) completo(s). */
+  startTime: string | null
+  endTime: string | null
   reason: string | null
   isClosed: boolean
+}
+
+/** POST /businesses/{id}/holidays. */
+export interface CreateHolidayRequest {
+  holidayDate: string
+  reason?: string | null
+  isClosed?: boolean
+  endDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
 }
 
 /** GET /businesses/{id}/services (público). */

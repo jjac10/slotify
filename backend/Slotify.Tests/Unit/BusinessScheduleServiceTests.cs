@@ -101,6 +101,52 @@ public class BusinessScheduleServiceTests
     }
 
     [Fact]
+    public async Task AddHolidayAsync_RangeAndHours_Persisted()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+        BusinessHoliday? saved = null;
+        _holidays.Setup(h => h.AddAsync(It.IsAny<BusinessHoliday>(), It.IsAny<CancellationToken>()))
+            .Callback<BusinessHoliday, CancellationToken>((h, _) => saved = h).Returns(Task.CompletedTask);
+
+        var result = await CreateService().AddHolidayAsync(_businessId, _ownerId,
+            new CreateHolidayRequest(new DateOnly(2026, 8, 1), "Vacaciones", true,
+                EndDate: new DateOnly(2026, 8, 15), StartTime: new TimeOnly(14, 0), EndTime: new TimeOnly(16, 0)));
+
+        Assert.Equal(new DateOnly(2026, 8, 15), saved!.EndDate);
+        Assert.Equal(new TimeOnly(14, 0), saved.StartTime);
+        Assert.Equal(new TimeOnly(16, 0), saved.EndTime);
+        Assert.Equal(new DateOnly(2026, 8, 15), result.EndDate);
+    }
+
+    [Fact]
+    public async Task AddHolidayAsync_EndDateBeforeStart_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+
+        await Assert.ThrowsAsync<InvalidHolidayException>(() => CreateService().AddHolidayAsync(_businessId, _ownerId,
+            new CreateHolidayRequest(new DateOnly(2026, 8, 10), null, true, EndDate: new DateOnly(2026, 8, 1))));
+        _holidays.Verify(h => h.AddAsync(It.IsAny<BusinessHoliday>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddHolidayAsync_OnlyStartTime_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+
+        await Assert.ThrowsAsync<InvalidHolidayException>(() => CreateService().AddHolidayAsync(_businessId, _ownerId,
+            new CreateHolidayRequest(new DateOnly(2026, 8, 10), null, true, StartTime: new TimeOnly(14, 0))));
+    }
+
+    [Fact]
+    public async Task AddHolidayAsync_StartAfterEndTime_Throws()
+    {
+        _businesses.Setup(b => b.GetByIdAsync(_businessId, It.IsAny<CancellationToken>())).ReturnsAsync(OwnedBusiness());
+
+        await Assert.ThrowsAsync<InvalidHolidayException>(() => CreateService().AddHolidayAsync(_businessId, _ownerId,
+            new CreateHolidayRequest(new DateOnly(2026, 8, 10), null, true, StartTime: new TimeOnly(16, 0), EndTime: new TimeOnly(14, 0))));
+    }
+
+    [Fact]
     public async Task DeleteHolidayAsync_NotOwner_Throws()
     {
         var holiday = new BusinessHoliday { Id = Guid.NewGuid(), BusinessId = _businessId, HolidayDate = new DateOnly(2026, 1, 1) };
