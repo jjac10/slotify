@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getApiError } from '../services/apiClient'
 import { Logo } from '../components/Logo'
+import { isValidSpanishPhone } from '../components/GuestContactInput'
 
 type AccountType = 'customer' | 'owner'
 
@@ -32,7 +33,15 @@ export function RegisterPage() {
       if (accountType === 'owner') {
         await registerOwner({ name, email, password, businessName })
       } else {
-        await registerCustomer({ name, email, password, phone: phone || undefined })
+        // El teléfono es opcional; si lo pones, debe ser un móvil español (9 dígitos).
+        // Se envía con prefijo +34 para que normalice igual que en las reservas de invitado
+        // y se vinculen automáticamente las reservas previas hechas con ese número.
+        if (phone && !isValidSpanishPhone(phone)) {
+          setError('El teléfono debe tener 9 dígitos.')
+          setSubmitting(false)
+          return
+        }
+        await registerCustomer({ name, email, password, phone: phone ? `+34${phone}` : undefined })
       }
       navigate('/', { replace: true })
     } catch (err) {
@@ -89,8 +98,15 @@ export function RegisterPage() {
           {accountType === 'customer' ? (
             <div className="field">
               <label className="field-label" htmlFor="register-phone">Teléfono (opcional)</label>
-              <input id="register-phone" type="tel" className="field-input" data-testid="register-phone"
-                value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <div className="flex gap-2">
+                <select className="field-input w-28 shrink-0" disabled aria-label="País" data-testid="register-phone-country">
+                  <option value="ES">🇪🇸 +34</option>
+                </select>
+                <input id="register-phone" type="tel" inputMode="numeric" className="field-input flex-1" data-testid="register-phone"
+                  value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  placeholder="600 000 000" />
+              </div>
+              <p className="text-xs text-on-surface-variant">Si reservaste antes como invitado con este número, esas reservas se vincularán a tu cuenta.</p>
             </div>
           ) : (
             <div className="field">

@@ -139,8 +139,19 @@ public class ReservationManagementService(
     /// <summary>"Mis reservas": las del usuario autenticado, ordenadas por inicio.</summary>
     public async Task<IReadOnlyList<ReservationResponse>> ListMineAsync(Guid currentUserId, CancellationToken ct = default)
     {
-        var list = await reservations.ListByUserAsync(currentUserId, ct);
-        return list.Select(ReservationResponse.From).ToList();
+        // Reservas hechas con la cuenta + las que hizo como invitado y se vincularon a ella
+        // al registrarse (mismo teléfono/email). Se unen, deduplican y ordenan por inicio.
+        var direct = await reservations.ListByUserAsync(currentUserId, ct);
+        var guestIds = await guests.ListIdsByUserAsync(currentUserId, ct);
+        var viaGuest = guestIds is { Count: > 0 }
+            ? await reservations.ListByGuestIdsAsync(guestIds, ct)
+            : [];
+
+        return direct.Concat(viaGuest)
+            .DistinctBy(r => r.Id)
+            .OrderBy(r => r.StartTime)
+            .Select(ReservationResponse.From)
+            .ToList();
     }
 
     // --- Núcleo compartido ---------------------------------------------------

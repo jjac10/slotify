@@ -17,6 +17,12 @@ public class GuestRepository(SlotifyDbContext db) : IGuestRepository
     public Task<Guest?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Guests.FirstOrDefaultAsync(g => g.Id == id, ct);
 
+    public async Task<IReadOnlyList<Guid>> ListIdsByUserAsync(Guid userId, CancellationToken ct = default)
+        => await db.Guests.AsNoTracking()
+            .Where(g => g.UserId == userId)
+            .Select(g => g.Id)
+            .ToListAsync(ct);
+
     public Task<Guest?> FindByHashAsync(Guid businessId, string? phoneHash, string? emailHash, CancellationToken ct = default)
         => db.Guests.FirstOrDefaultAsync(g =>
             g.BusinessId == businessId &&
