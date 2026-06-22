@@ -37,7 +37,7 @@ public class BookingModeEndpointsTests(SlotifyApiFactory factory) : IClassFixtur
     }
 
     [Fact]
-    public async Task CalendarOnly_HidesFromExplore_AndBlocksGuestBooking_ButOwnerCanBook()
+    public async Task CalendarOnly_StillListedInExplore_ButBlocksGuestBooking_AndOwnerCanBook()
     {
         var (businessId, token, serviceId, staffId, owner) = await SetupAsync();
 
@@ -51,9 +51,10 @@ public class BookingModeEndpointsTests(SlotifyApiFactory factory) : IClassFixtur
         var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
         Assert.Equal("calendar_only", body!.BookingMode);
 
-        // Ya no sale en Explorar.
+        // Sigue apareciendo en Explorar (la UI lo marca como "cita en persona") con su modo.
         var after = await _client.GetFromJsonAsync<List<BusinessResponse>>($"/public/businesses?q={token}");
-        Assert.Empty(after!);
+        Assert.Single(after!);
+        Assert.Equal("calendar_only", after![0].BookingMode);
 
         // Un invitado no puede reservar online → 409.
         var start = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
