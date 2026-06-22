@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES } from '../constants/categories'
+import { MonthCalendar } from '../components/MonthCalendar'
 import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -284,22 +285,28 @@ function HolidaysSection({ businessId }: { businessId: string }) {
       <form onSubmit={handleAdd} className="flex flex-col gap-stack-sm border-t border-outline-variant/30 pt-stack-md" data-testid="add-holiday-form">
         <p className="text-sm font-semibold">Añadir cierre</p>
         {addError && <p role="alert" className="alert text-xs" data-testid="holiday-error">{addError}</p>}
-        <div className="flex flex-wrap gap-2 items-end">
-          <div className="field !gap-1">
-            <label className="field-label text-xs" htmlFor="holiday-date">Desde</label>
-            <input id="holiday-date" type="date" className="field-input !py-2 w-40" min={today}
-              value={date} onChange={(e) => setDate(e.target.value)} required data-testid="holiday-date" />
+        {/* Calendarios compactos lado a lado (apilados en móvil) para elegir Desde/Hasta. */}
+        <div className="flex flex-wrap gap-stack-md items-start">
+          <div className="field !gap-1" data-testid="holiday-date-field">
+            <label className="field-label text-xs">Desde</label>
+            <MonthCalendar value={date} min={today} onSelect={(d) => setDate(d)} />
           </div>
-          <div className="field !gap-1">
-            <label className="field-label text-xs" htmlFor="holiday-end-date">Hasta (opcional)</label>
-            <input id="holiday-end-date" type="date" className="field-input !py-2 w-40" min={date || today}
-              value={endDate} onChange={(e) => setEndDate(e.target.value)} data-testid="holiday-end-date" />
+          <div className="field !gap-1" data-testid="holiday-end-date-field">
+            <div className="flex items-center justify-between gap-2">
+              <label className="field-label text-xs">Hasta (opcional)</label>
+              {endDate && (
+                <button type="button" className="text-xs text-primary hover:underline"
+                  onClick={() => setEndDate('')} data-testid="holiday-end-date-clear">Quitar</button>
+              )}
+            </div>
+            {/* El fin no puede ser anterior al inicio; si no hay inicio, mínimo = hoy. */}
+            <MonthCalendar value={endDate} min={date || today} onSelect={(d) => setEndDate(d)} />
           </div>
-          <div className="field !gap-1 flex-1 min-w-40">
-            <label className="field-label text-xs" htmlFor="holiday-reason">Motivo (opcional)</label>
-            <input id="holiday-reason" type="text" className="field-input !py-2"
-              value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Navidad, vacaciones…" />
-          </div>
+        </div>
+        <div className="field !gap-1 flex-1 min-w-40">
+          <label className="field-label text-xs" htmlFor="holiday-reason">Motivo (opcional)</label>
+          <input id="holiday-reason" type="text" className="field-input !py-2"
+            value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Navidad, vacaciones…" />
         </div>
 
         <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
