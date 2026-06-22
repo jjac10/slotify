@@ -34,7 +34,7 @@ function SectionCard({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="card !p-0 overflow-hidden">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -911,6 +911,8 @@ export function BusinessSettingsPage() {
 
       {loadError && <p role="alert" className="alert" data-testid="business-error">{loadError}</p>}
 
+      {/* Todas las secciones unidas en un único bloque (acordeón compacto, sin huecos). */}
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-card divide-y divide-outline-variant/40">
       {/* Datos */}
       <SectionCard id="datos" title="Datos del negocio" icon="storefront" defaultOpen>
         <div className="flex items-start gap-stack-md" data-testid="business-card">
@@ -1192,6 +1194,7 @@ export function BusinessSettingsPage() {
           </p>
         </div>
       </SectionCard>
+      </div>
     </section>
   )
 }
