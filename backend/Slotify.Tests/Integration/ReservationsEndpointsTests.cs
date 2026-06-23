@@ -112,4 +112,62 @@ public class ReservationsEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task CreateReservation_AsAnonymousGuest_WithRegisteredEmail_Returns409()
+    {
+        // Un invitado SIN sesión pone el email del owner (cuenta registrada): no puede
+        // reservar "como" esa cuenta — anti-suplantación. (Repro del bug reportado.)
+        var ownerEmail = $"owner-{Guid.NewGuid():N}@test.local";
+        var owner = new RegisterOwnerRequest(ownerEmail, "SecurePass123!", "Pepe", "Barbería");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", owner)).Content.ReadFromJsonAsync<AuthResult>();
+        var businessId = auth!.BusinessId!.Value;
+        var authed = _factory.CreateClient();
+        authed.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var service = await (await authed.PostAsJsonAsync($"/businesses/{businessId}/services",
+            new CreateServiceRequest("Corte", null, 30, 15m, null))).Content.ReadFromJsonAsync<ServiceResponse>();
+        Guid staffId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SlotifyDbContext>();
+            staffId = await db.Staff.Where(s => s.BusinessId == businessId).Select(s => s.Id).FirstAsync();
+        }
+
+        var request = new CreateReservationRequest(businessId, service!.Id, staffId, At10, "Suplantador", null, ownerEmail);
+        var response = await _client.PostAsJsonAsync("/reservations", request); // sin token
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateReservation_OwnerBooksClientWithAccount_Returns201_AndLinks()
+    {
+        // El owner (recepción) SÍ puede apuntar la reserva a la cuenta de un cliente registrado.
+        var ownerEmail = $"owner-{Guid.NewGuid():N}@test.local";
+        var owner = new RegisterOwnerRequest(ownerEmail, "SecurePass123!", "Pepe", "Barbería");
+        var ownerAuth = await (await _client.PostAsJsonAsync("/auth/register-owner", owner)).Content.ReadFromJsonAsync<AuthResult>();
+        var businessId = ownerAuth!.BusinessId!.Value;
+        var authed = _factory.CreateClient();
+        authed.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerAuth.AccessToken);
+        var service = await (await authed.PostAsJsonAsync($"/businesses/{businessId}/services",
+            new CreateServiceRequest("Corte", null, 30, 15m, null))).Content.ReadFromJsonAsync<ServiceResponse>();
+        Guid staffId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SlotifyDbContext>();
+            staffId = await db.Staff.Where(s => s.BusinessId == businessId).Select(s => s.Id).FirstAsync();
+        }
+
+        // Cliente registrado cuyo email usará el owner al apuntar la reserva.
+        var clientEmail = $"cli-{Guid.NewGuid():N}@test.local";
+        var clientAuth = await (await _client.PostAsJsonAsync("/auth/register",
+            new RegisterCustomerRequest(clientEmail, "SecurePass123!", "Ana"))).Content.ReadFromJsonAsync<AuthResult>();
+
+        var request = new CreateReservationRequest(businessId, service!.Id, staffId, At10, "Ana", null, clientEmail);
+        var response = await authed.PostAsJsonAsync("/reservations", request); // con token del owner
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ReservationResponse>();
+        Assert.Equal(clientAuth!.UserId, body!.UserId); // vinculada a la cuenta del cliente
+        Assert.Null(body.GuestId);
+    }
 }

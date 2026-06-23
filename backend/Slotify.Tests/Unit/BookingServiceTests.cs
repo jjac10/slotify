@@ -248,6 +248,7 @@ public class BookingServiceTests
         var clientUserId = Guid.NewGuid();
         var ownerUserId = Guid.NewGuid();
         SetupValidServiceAndStaff(staffUserId: ownerUserId);
+        _staff.Setup(s => s.ExistsForUserAsync(ownerUserId, _businessId, It.IsAny<CancellationToken>())).ReturnsAsync(true); // es staff del negocio
         // El contacto del invitado coincide con una cuenta de cliente existente.
         _users.Setup(u => u.FindActiveUserByContactAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User { Id = clientUserId, Email = "ana@x.com", Name = "Ana", Type = "customer" });
@@ -260,6 +261,22 @@ public class BookingServiceTests
 
         Assert.Equal(clientUserId, saved!.UserId); // vinculada a la cuenta del cliente
         Assert.Null(saved.GuestId);
+        _guests.Verify(g => g.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_AnonymousGuestUsesRegisteredContact_Throws_AndDoesNotPersist()
+    {
+        // Un invitado SIN sesión pone un contacto que ya tiene cuenta (p. ej. el del owner):
+        // no puede reservar "como" esa cuenta — debe iniciar sesión (anti-suplantación).
+        SetupValidServiceAndStaff();
+        _users.Setup(u => u.FindActiveUserByContactAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = Guid.NewGuid(), Email = "owner@x.com", Name = "Dueña", Type = "owner" });
+
+        await Assert.ThrowsAsync<ContactBelongsToAccountException>(
+            () => CreateService().CreateAsync(GuestRequest(), userId: null));
+
+        _reservations.Verify(r => r.AddAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
         _guests.Verify(g => g.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
