@@ -50,7 +50,7 @@ public class ReservationGuestAndCutoffEndpointsTests(SlotifyApiFactory factory) 
         const string phone = "+34910000001";
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc), phone);
 
-        var res = await _client.DeleteAsync($"/reservations/{id}?contact={Uri.EscapeDataString(phone)}");
+        var res = await _client.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest(Contact: phone));
         Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/reservations/{id}")).StatusCode);
     }
@@ -61,7 +61,7 @@ public class ReservationGuestAndCutoffEndpointsTests(SlotifyApiFactory factory) 
         var (businessId, serviceId, staffId, _) = await SetupAsync();
         var id = await BookGuestAsync(businessId, serviceId, staffId, new DateTime(2026, 10, 2, 10, 0, 0, DateTimeKind.Utc), "+34910000002");
 
-        var res = await _client.DeleteAsync($"/reservations/{id}?contact={Uri.EscapeDataString("+34999999999")}");
+        var res = await _client.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest(Contact: "+34999999999"));
         Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
 
@@ -86,7 +86,7 @@ public class ReservationGuestAndCutoffEndpointsTests(SlotifyApiFactory factory) 
         const string phone = "+34910000004";
         var id = await BookGuestAsync(businessId, serviceId, staffId, DateTime.UtcNow.AddHours(1), phone);
 
-        var res = await _client.DeleteAsync($"/reservations/{id}?contact={Uri.EscapeDataString(phone)}");
+        var res = await _client.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest(Contact: phone));
         Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
     }
 
@@ -97,7 +97,7 @@ public class ReservationGuestAndCutoffEndpointsTests(SlotifyApiFactory factory) 
         var id = await BookGuestAsync(businessId, serviceId, staffId, DateTime.UtcNow.AddHours(1), "+34910000005");
 
         // El owner no está sujeto a la ventana de antelación.
-        var res = await owner.DeleteAsync($"/reservations/{id}");
+        var res = await owner.PostAsJsonAsync($"/reservations/{id}/cancel", new CancelReservationRequest());
         Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
     }
 }

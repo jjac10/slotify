@@ -8,8 +8,8 @@ using Slotify.Infrastructure.Data;
 namespace Slotify.Tests.Integration;
 
 /// <summary>
-/// Un invitado (sin cuenta) ve sus reservas por teléfono: `GET /reservations/lookup`
-/// normaliza + blind index para encontrarlas. Contacto que no existe → vacío.
+/// Un invitado (sin cuenta) ve sus reservas por teléfono: `POST /reservations/lookup`
+/// (contacto en el body) normaliza + blind index para encontrarlas. Contacto que no existe → vacío.
 /// </summary>
 public class GuestReservationLookupEndpointsTests(SlotifyApiFactory factory) : IClassFixture<SlotifyApiFactory>
 {
@@ -36,16 +36,16 @@ public class GuestReservationLookupEndpointsTests(SlotifyApiFactory factory) : I
         (await _client.PostAsJsonAsync("/reservations",
             new CreateReservationRequest(businessId, service!.Id, staffId, day, "Juan", phone, null))).EnsureSuccessStatusCode();
 
-        // Por el teléfono del invitado → su reserva, con los nombres enriquecidos.
-        var mine = await _client.GetFromJsonAsync<List<ReservationResponse>>(
-            $"/reservations/lookup?contact={Uri.EscapeDataString(phone)}");
+        // Por el teléfono del invitado (en el body) → su reserva, con los nombres enriquecidos.
+        var mine = await (await _client.PostAsJsonAsync("/reservations/lookup",
+            new LookupGuestReservationsRequest(phone))).Content.ReadFromJsonAsync<List<ReservationResponse>>();
         Assert.Single(mine!);
         Assert.Equal("Barbería", mine![0].BusinessName);
         Assert.Equal("Corte", mine[0].ServiceName);
 
         // Contacto que no existe → vacío (no se filtran datos de otros).
-        var none = await _client.GetFromJsonAsync<List<ReservationResponse>>(
-            "/reservations/lookup?contact=nadie@desconocido.test");
+        var none = await (await _client.PostAsJsonAsync("/reservations/lookup",
+            new LookupGuestReservationsRequest("nadie@desconocido.test"))).Content.ReadFromJsonAsync<List<ReservationResponse>>();
         Assert.Empty(none!);
     }
 }

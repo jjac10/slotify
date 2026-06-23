@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Logo } from './Logo'
 
@@ -15,6 +15,13 @@ export function Layout() {
   const authenticated = status === 'authenticated'
   const [menuOpen, setMenuOpen] = useState(false)
   const initial = user?.email?.[0]?.toUpperCase() ?? 'U'
+
+  // Re-clic en el nav de la ruta actual → remonta la página (recarga sus datos).
+  const location = useLocation()
+  const [reloadKey, setReloadKey] = useState(0)
+  const handleNavClick = (to: string) => {
+    if (location.pathname === to) setReloadKey((k) => k + 1)
+  }
 
   const items: NavItem[] = [
     { to: '/explorar', label: 'Explorar', icon: 'explore' },
@@ -44,6 +51,7 @@ export function Layout() {
               key={it.to}
               to={it.to}
               data-testid={it.testid}
+              onClick={() => handleNavClick(it.to)}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
                   isActive ? 'bg-primary-container text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-low'
@@ -124,7 +132,8 @@ export function Layout() {
       {/* Contenido */}
       <main className="md:pl-56">
         <div className="mx-auto max-w-md md:max-w-3xl px-container-mobile md:px-container-desktop py-stack-lg pb-28 md:pb-stack-xl">
-          <Outlet />
+          {/* key cambia al re-pulsar el nav de la ruta actual → remonta y recarga */}
+          <Outlet key={reloadKey} />
         </div>
       </main>
 
@@ -136,6 +145,7 @@ export function Layout() {
               <NavLink
                 key={it.to}
                 to={it.to}
+                onClick={() => handleNavClick(it.to)}
                 className={({ isActive }) =>
                   `flex min-w-[4rem] flex-col items-center justify-center gap-0.5 px-1 transition-colors active:scale-95 ${
                     isActive ? 'text-primary' : 'text-on-surface-variant'

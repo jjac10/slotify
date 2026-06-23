@@ -78,11 +78,14 @@ public class ReservationsController(
     public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListMine(CancellationToken ct)
         => Ok(await management.ListMineAsync(CurrentUserId, ct));
 
-    /// <summary>Reservas de un invitado por su teléfono o email (sin cuenta). Público.</summary>
-    [HttpGet("lookup")]
+    /// <summary>
+    /// Reservas de un invitado por su teléfono o email (sin cuenta). Público. El contacto
+    /// va en el body (POST) para no exponer datos personales en la URL/logs.
+    /// </summary>
+    [HttpPost("lookup")]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> Lookup([FromQuery] string? contact, CancellationToken ct)
-        => Ok(await guestLookup.LookupAsync(contact, ct));
+    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> Lookup(LookupGuestReservationsRequest request, CancellationToken ct)
+        => Ok(await guestLookup.LookupAsync(request.Contact, ct));
 
     /// <summary>Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.</summary>
     [HttpGet("/businesses/{businessId:guid}/reservations")]
@@ -168,11 +171,12 @@ public class ReservationsController(
     /// <summary>
     /// Cancela una reserva (hard-delete + auditoría). Con JWT: owner, staff o el propio
     /// usuario. Sin JWT: el invitado dueño, verificado con su teléfono/email en <c>contact</c>.
+    /// El motivo y el contacto van en el body (no en la URL) por ser datos personales.
     /// Respeta la ventana de antelación del negocio.
     /// </summary>
-    [HttpDelete("{id:guid}")]
+    [HttpPost("{id:guid}/cancel")]
     [AllowAnonymous]
-    public async Task<IActionResult> Cancel(Guid id, [FromQuery] string? reason, [FromQuery] string? contact, CancellationToken ct)
+    public async Task<IActionResult> Cancel(Guid id, CancelReservationRequest request, CancellationToken ct)
     {
         try
         {
@@ -181,9 +185,9 @@ public class ReservationsController(
 
             var userId = TryGetUserId();
             if (userId is { } uid)
-                await management.CancelAsync(id, uid, reason, ct);
+                await management.CancelAsync(id, uid, request.Reason, ct);
             else
-                await management.CancelAsGuestAsync(id, contact, reason, ct);
+                await management.CancelAsGuestAsync(id, request.Contact, request.Reason, ct);
 
             if (snapshot is not null)
                 await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
