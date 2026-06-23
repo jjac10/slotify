@@ -40,6 +40,31 @@ function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Lunes (00:00) de la semana de una fecha. */
+function startOfWeek(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)) // getDay: 0=domingo → desplazamos a lunes
+  return x
+}
+
+function weekKey(iso: string): string {
+  const s = startOfWeek(new Date(iso))
+  return `w-${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`
+}
+
+/** Cabecera de semana: "Esta semana · 23 – 29 jun" (o el rango con su mes). */
+function weekLabel(iso: string): string {
+  const s = startOfWeek(new Date(iso))
+  const e = new Date(s)
+  e.setDate(e.getDate() + 6)
+  const prefix = s.getTime() === startOfWeek(new Date()).getTime() ? 'Esta semana · ' : ''
+  const sameMonth = s.getMonth() === e.getMonth()
+  const start = s.toLocaleDateString('es-ES', sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' })
+  const end = e.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  return `${prefix}${start} – ${end}`
+}
+
 interface ItemProps {
   reservation: ReservationResponse
   onCancelled: (id: string) => void
@@ -175,6 +200,7 @@ export function OwnerAgendaPage() {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [staffFilter, setStaffFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [grouping, setGrouping] = useState<'day' | 'week'>('day')
   const [view, setView] = useState<'list' | 'day'>('list')
   const [dayDate, setDayDate] = useState(() => isoDate(new Date()))
 
@@ -235,15 +261,18 @@ export function OwnerAgendaPage() {
         return tab === 'upcoming' ? ta - tb : tb - ta // próximas: antes primero; pasadas: recientes primero
       })
 
+    // Agrupado por día (Hoy/Mañana/fecha) o por semana (rango lunes–domingo).
+    const keyOf = grouping === 'week' ? weekKey : dayKey
+    const labelOf = grouping === 'week' ? weekLabel : dayLabel
     const result: { key: string; label: string; items: ReservationResponse[] }[] = []
     for (const r of filtered) {
-      const key = dayKey(r.startTime)
+      const key = keyOf(r.startTime)
       const last = result[result.length - 1]
       if (last && last.key === key) last.items.push(r)
-      else result.push({ key, label: dayLabel(r.startTime), items: [r] })
+      else result.push({ key, label: labelOf(r.startTime), items: [r] })
     }
     return result
-  }, [reservations, tab, staffFilter, search])
+  }, [reservations, tab, staffFilter, search, grouping])
 
   if (!isOwner || !businessId) {
     return (
@@ -367,21 +396,38 @@ export function OwnerAgendaPage() {
         </>
       ) : (
         <>
-          {/* Pestañas Próximas / Pasadas */}
-          <div className="mb-stack-sm inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-tabs">
-            {([['upcoming', 'Próximas'], ['past', 'Pasadas']] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setTab(value)}
-                data-testid={`agenda-tab-${value}`}
-                className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
-                  tab === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          {/* Pestañas Próximas / Pasadas + agrupado Día / Semana */}
+          <div className="mb-stack-sm flex flex-wrap items-center justify-between gap-stack-sm">
+            <div className="inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-tabs">
+              {([['upcoming', 'Próximas'], ['past', 'Pasadas']] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTab(value)}
+                  data-testid={`agenda-tab-${value}`}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+                    tab === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-grouping">
+              {([['day', 'Día'], ['week', 'Semana']] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setGrouping(value)}
+                  data-testid={`agenda-group-${value}`}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+                    grouping === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Buscar cliente */}

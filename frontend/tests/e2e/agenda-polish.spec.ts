@@ -62,6 +62,12 @@ test('la agenda separa Próximas/Pasadas, agrupa por día y filtra por cliente',
   await expect(page.getByTestId('agenda-day-header').first()).toBeVisible()
   await expect(page.getByTestId('agenda-item').filter({ hasText: 'Cliente Agenda' })).toBeVisible()
 
+  // Agrupado por Semana: la reserva sigue visible bajo una cabecera de semana ("… – …")
+  await page.getByTestId('agenda-group-week').click()
+  await expect(page.getByTestId('agenda-day-header').first()).toContainText('–')
+  await expect(page.getByTestId('agenda-item').filter({ hasText: 'Cliente Agenda' })).toBeVisible()
+  await page.getByTestId('agenda-group-day').click()
+
   // Buscar un nombre que no existe → vacío; limpiar → reaparece
   await page.getByTestId('agenda-search').fill('zzzzz')
   await expect(page.getByTestId('agenda-empty')).toBeVisible()
