@@ -5,9 +5,15 @@ import { getApiError } from '../services/apiClient'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
 import { NewReservationModal } from '../components/NewReservationModal'
+import { AgendaDayTimeline } from '../components/AgendaDayTimeline'
 import type { ReservationResponse } from '../types/api'
 
 const DAY_MS = 86_400_000
+
+/** "YYYY-MM-DD" local de una fecha. */
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function startOfDay(d: Date): number {
   const x = new Date(d)
@@ -169,6 +175,8 @@ export function OwnerAgendaPage() {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [staffFilter, setStaffFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [view, setView] = useState<'list' | 'day'>('list')
+  const [dayDate, setDayDate] = useState(() => isoDate(new Date()))
 
   function loadReservations() {
     if (!businessId) return
@@ -267,6 +275,12 @@ export function OwnerAgendaPage() {
     setRescheduleTarget(null)
   }
 
+  function shiftDay(delta: number) {
+    const d = new Date(`${dayDate}T12:00:00`)
+    d.setDate(d.getDate() + delta)
+    setDayDate(isoDate(d))
+  }
+
   return (
     <section>
       <div className="flex items-start justify-between gap-stack-md mb-stack-md">
@@ -288,36 +302,23 @@ export function OwnerAgendaPage() {
         </p>
       )}
 
-      {/* Pestañas Próximas / Pasadas */}
-      <div className="mb-stack-sm inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-tabs">
-        {([['upcoming', 'Próximas'], ['past', 'Pasadas']] as const).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setTab(value)}
-            data-testid={`agenda-tab-${value}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
-              tab === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filtros: buscar cliente + trabajador */}
-      <div className="mb-stack-md flex gap-stack-sm flex-wrap">
-        <div className="relative flex-1 min-w-[180px]">
-          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-          <input
-            type="search"
-            data-testid="agenda-search"
-            className="field-input w-full !pl-11"
-            placeholder="Buscar cliente…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar por nombre de cliente"
-          />
+      {/* Toggle Lista / Día + filtro por trabajador (compartido) */}
+      <div className="mb-stack-md flex items-center justify-between gap-stack-sm flex-wrap">
+        <div className="inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-view-toggle">
+          {([['list', 'Lista', 'view_agenda'], ['day', 'Día', 'calendar_view_day']] as const).map(([v, label, icon]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              data-testid={`agenda-view-${v}`}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-bold transition-all ${
+                view === v ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{icon}</span>
+              {label}
+            </button>
+          ))}
         </div>
         {staffOptions.length > 1 && (
           <select
@@ -337,40 +338,102 @@ export function OwnerAgendaPage() {
 
       {reservations === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
 
-      {groups !== null && groups.length === 0 && (
-        <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="agenda-empty">
-          <span className="material-symbols-outlined text-[40px] text-on-surface-variant/50">calendar_today</span>
-          <p className="mt-stack-sm font-semibold">
-            {search.trim() || staffFilter !== 'all'
-              ? 'No hay reservas que coincidan con el filtro.'
-              : tab === 'upcoming' ? 'No hay reservas próximas.' : 'No hay reservas pasadas.'}
-          </p>
-        </div>
-      )}
+      {view === 'day' ? (
+        <>
+          {/* Navegación de día */}
+          <div className="mb-stack-md flex items-center justify-center gap-stack-md">
+            <button type="button" onClick={() => shiftDay(-1)} data-testid="agenda-day-prev"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-container-low" aria-label="Día anterior">
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button type="button" onClick={() => setDayDate(isoDate(new Date()))} data-testid="agenda-day-today"
+              className="min-w-[10rem] text-center text-sm font-bold capitalize hover:text-primary">
+              {dayLabel(`${dayDate}T12:00:00`)}
+            </button>
+            <button type="button" onClick={() => shiftDay(1)} data-testid="agenda-day-next"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-container-low" aria-label="Día siguiente">
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+          {reservations !== null && (
+            <AgendaDayTimeline
+              reservations={reservations}
+              date={dayDate}
+              staffFilter={staffFilter}
+              onSelect={(r) => setRescheduleTarget(r)}
+              onAddAt={() => setCreating(true)}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {/* Pestañas Próximas / Pasadas */}
+          <div className="mb-stack-sm inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="agenda-tabs">
+            {([['upcoming', 'Próximas'], ['past', 'Pasadas']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTab(value)}
+                data-testid={`agenda-tab-${value}`}
+                className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+                  tab === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-      {groups !== null && groups.length > 0 && (
-        <div className="flex flex-col gap-stack-md" data-testid="agenda-list">
-          {groups.map((g) => (
-            <div key={g.key}>
-              <div className="mb-stack-sm flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant" data-testid="agenda-day-header">
-                <span className="material-symbols-outlined text-[16px]">event</span>
-                <span className="capitalize">{g.label}</span>
-                <span className="font-semibold normal-case opacity-70">· {g.items.length}</span>
-              </div>
-              <ul className="flex flex-col gap-stack-sm">
-                {g.items.map((r) => (
-                  <AgendaItem
-                    key={r.id}
-                    reservation={r}
-                    onCancelled={handleCancelled}
-                    onConfirmed={handleConfirmed}
-                    onReschedule={() => setRescheduleTarget(r)}
-                  />
-                ))}
-              </ul>
+          {/* Buscar cliente */}
+          <div className="mb-stack-md relative">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+            <input
+              type="search"
+              data-testid="agenda-search"
+              className="field-input w-full !pl-11"
+              placeholder="Buscar cliente…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Buscar por nombre de cliente"
+            />
+          </div>
+
+          {groups !== null && groups.length === 0 && (
+            <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="agenda-empty">
+              <span className="material-symbols-outlined text-[40px] text-on-surface-variant/50">calendar_today</span>
+              <p className="mt-stack-sm font-semibold">
+                {search.trim() || staffFilter !== 'all'
+                  ? 'No hay reservas que coincidan con el filtro.'
+                  : tab === 'upcoming' ? 'No hay reservas próximas.' : 'No hay reservas pasadas.'}
+              </p>
             </div>
-          ))}
-        </div>
+          )}
+
+          {groups !== null && groups.length > 0 && (
+            <div className="flex flex-col gap-stack-md" data-testid="agenda-list">
+              {groups.map((g) => (
+                <div key={g.key}>
+                  <div className="mb-stack-sm flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant" data-testid="agenda-day-header">
+                    <span className="material-symbols-outlined text-[16px]">event</span>
+                    <span className="capitalize">{g.label}</span>
+                    <span className="font-semibold normal-case opacity-70">· {g.items.length}</span>
+                  </div>
+                  <ul className="flex flex-col gap-stack-sm">
+                    {g.items.map((r) => (
+                      <AgendaItem
+                        key={r.id}
+                        reservation={r}
+                        onCancelled={handleCancelled}
+                        onConfirmed={handleConfirmed}
+                        onReschedule={() => setRescheduleTarget(r)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {rescheduleTarget && (
@@ -384,6 +447,7 @@ export function OwnerAgendaPage() {
       {creating && (
         <NewReservationModal
           businessId={businessId}
+          initialDate={view === 'day' ? dayDate : undefined}
           onClose={() => setCreating(false)}
           onCreated={() => { setCreating(false); loadReservations() }}
         />
