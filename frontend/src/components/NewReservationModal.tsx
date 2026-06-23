@@ -10,6 +10,8 @@ interface Props {
   businessId: string
   onClose: () => void
   onCreated: () => void
+  /** Día preseleccionado (YYYY-MM-DD); por defecto hoy. */
+  initialDate?: string
 }
 
 function isoDate(d: Date): string {
@@ -25,13 +27,13 @@ function formatTime(iso: string): string {
  * (datos de invitado). El backend la registra como reserva de invitado aunque
  * la petición esté autenticada.
  */
-export function NewReservationModal({ businessId, onClose, onCreated }: Props) {
+export function NewReservationModal({ businessId, onClose, onCreated, initialDate }: Props) {
   const today = useMemo(() => isoDate(new Date()), [])
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
   const [staff, setStaff] = useState<StaffMember[] | null>(null)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState(initialDate ?? today)
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null)
   const [slotStart, setSlotStart] = useState('')
   const [loadingSlots, setLoadingSlots] = useState(false)
