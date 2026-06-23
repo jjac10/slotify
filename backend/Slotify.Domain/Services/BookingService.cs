@@ -35,15 +35,15 @@ public class BookingService(
         if (worker is null || worker.BusinessId != request.BusinessId)
             throw new StaffNotFoundException(request.StaffId);
 
-        // Negocio en 'solo calendario': no acepta reservas online. Solo el owner o su
-        // staff pueden apuntar reservas (desde la Agenda); un cliente/invitado, no.
-        if (business.BookingMode == "calendar_only")
-        {
-            var isManager = userId is { } actorId
-                && (business.OwnerId == actorId || await staff.ExistsForUserAsync(actorId, business.Id, ct));
-            if (!isManager)
-                throw new OnlineBookingDisabledException();
-        }
+        // ¿Quien hace la petición es el owner o staff del negocio? (apunta reservas desde
+        // su agenda — "recepción" — y por eso puede vincularlas a la cuenta del cliente).
+        var isManager = userId is { } actorId
+            && (business.OwnerId == actorId || await staff.ExistsForUserAsync(actorId, business.Id, ct));
+
+        // Negocio en 'solo calendario': no acepta reservas online. Solo el owner/staff
+        // pueden apuntar reservas (desde la Agenda); un cliente/invitado, no.
+        if (business.BookingMode == "calendar_only" && !isManager)
+            throw new OnlineBookingDisabledException();
 
         // ¿Reserva para un invitado? Si llegan datos de invitado, la reserva es para un
         // cliente aunque la petición esté autenticada: así el owner/staff crea reservas
@@ -72,11 +72,17 @@ public class BookingService(
             reservationUserId = null;
 
             var (normalizedEmail, normalizedPhone) = NormalizeGuestContact(request);
-            // Si el cliente ya tiene cuenta (mismo teléfono/email), la reserva se vincula
-            // a su cuenta y le aparece en "Mis reservas"; si no, se crea como invitado.
+            // Si el contacto pertenece a una cuenta registrada, solo el owner/staff puede
+            // apuntar la reserva a esa cuenta (recepción). Un invitado anónimo NO puede
+            // reservar "como" esa cuenta sin loguearse (evita suplantación) → debe iniciar
+            // sesión. Si el contacto no tiene cuenta, se crea/reutiliza el invitado.
             var existingUser = await users.FindActiveUserByContactAsync(normalizedEmail, normalizedPhone, ct);
             if (existingUser is not null)
-                reservationUserId = existingUser.Id;
+            {
+                if (!isManager)
+                    throw new ContactBelongsToAccountException();
+                reservationUserId = existingUser.Id; // el owner/staff la vincula a la cuenta del cliente
+            }
             else
                 guestId = (await ResolveGuestAsync(request, normalizedEmail, normalizedPhone, ct)).Id;
         }

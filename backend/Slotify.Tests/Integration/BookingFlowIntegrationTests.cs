@@ -75,18 +75,19 @@ public class BookingFlowIntegrationTests : IClassFixture<PostgresFixture>, IAsyn
     }
 
     [Fact]
-    public async Task CreateAsync_BookForClientWithExistingAccount_LinksToTheirAccount_NotGuest()
+    public async Task CreateAsync_OwnerBooksForClientWithExistingAccount_LinksToTheirAccount_NotGuest()
     {
         var ctx = await SeedAsync();
+        var ownerId = await _db.Businesses.Where(b => b.Id == ctx.businessId).Select(b => b.OwnerId).SingleAsync();
         // El cliente ya tiene cuenta, registrado con su teléfono (con espacios).
         var client = new User { Id = Guid.NewGuid(), Email = $"c-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "Cliente", Type = "customer", Phone = "+34 666 777 888" };
         _db.Users.Add(client);
         await _db.SaveChangesAsync();
 
-        // El owner reserva para ese cliente metiendo el mismo teléfono (sin espacios):
-        // la normalización básica (quitar espacios) hace que coincidan.
+        // El OWNER (recepción) reserva para ese cliente metiendo el mismo teléfono (sin espacios):
+        // la normalización básica (quitar espacios) hace que coincidan y se vincule a su cuenta.
         var request = new CreateReservationRequest(ctx.businessId, ctx.serviceId, ctx.staffId, At10, "Cliente", "+34666777888", null);
-        var result = await NewBookingService(_db).CreateAsync(request, userId: null);
+        var result = await NewBookingService(_db).CreateAsync(request, userId: ownerId);
 
         await using var verify = _fixture.CreateContext();
         var reservation = await verify.Reservations.AsNoTracking().SingleAsync(r => r.Id == result.Id);

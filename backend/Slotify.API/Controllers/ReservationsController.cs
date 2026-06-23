@@ -53,6 +53,10 @@ public class ReservationsController(
         {
             return Conflict(new { error = "online_booking_disabled", message = ex.Message });
         }
+        catch (ContactBelongsToAccountException ex)
+        {
+            return Conflict(new { error = "contact_belongs_to_account", message = ex.Message });
+        }
         catch (SlotUnavailableException ex)
         {
             return Conflict(new { error = "slot_unavailable", message = ex.Message });
