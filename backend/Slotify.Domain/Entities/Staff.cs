@@ -24,6 +24,12 @@ public class Staff
     public string? Email { get; set; }
     public string? Phone { get; set; }
 
+    /// <summary>
+    /// Token de invitación pendiente para que el empleado cree su cuenta (NULL si no hay
+    /// invitación o ya la aceptó). Al aceptarla se enlaza <see cref="UserId"/> y se limpia.
+    /// </summary>
+    public string? InviteToken { get; set; }
+
     /// <summary>'active', 'inactive', etc.</summary>
     public string Status { get; set; } = "active";
 

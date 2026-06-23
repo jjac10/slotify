@@ -43,6 +43,44 @@ public class StaffController(StaffService staff, StaffServiceAssignmentService a
         }
     }
 
+    /// <summary>
+    /// Invita a un empleado a crear su cuenta (solo el owner): genera un token. Como el
+    /// email es simulado en el TFM, el owner copia el enlace de la respuesta y se lo pasa.
+    /// </summary>
+    [HttpPost("{staffId:guid}/invite")]
+    [Authorize]
+    public async Task<ActionResult<StaffInviteResponse>> Invite(Guid businessId, Guid staffId, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await staff.InviteAsync(businessId, staffId, CurrentUserId, ct));
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (StaffNotFoundException ex)
+        {
+            return NotFound(new { error = "staff_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (CannotModifyOwnerStaffException ex)
+        {
+            return Conflict(new { error = "cannot_invite_owner", message = ex.Message });
+        }
+        catch (StaffAlreadyHasAccountException ex)
+        {
+            return Conflict(new { error = "already_has_account", message = ex.Message });
+        }
+        catch (StaffEmailRequiredException ex)
+        {
+            return BadRequest(new { error = "email_required", message = ex.Message });
+        }
+    }
+
     /// <summary>Edita un trabajador (nombre/contacto; solo el owner).</summary>
     [HttpPatch("{staffId:guid}")]
     [Authorize]

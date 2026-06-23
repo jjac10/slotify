@@ -145,6 +145,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(s => s.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
             e.Property(s => s.Email).HasColumnName("email").HasMaxLength(255);
             e.Property(s => s.Phone).HasColumnName("phone").HasMaxLength(20);
+            e.Property(s => s.InviteToken).HasColumnName("invite_token").HasMaxLength(128);
             e.Property(s => s.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");
             e.Property(s => s.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
 

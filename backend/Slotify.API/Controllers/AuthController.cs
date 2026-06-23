@@ -51,6 +51,44 @@ public class AuthController(AuthService auth) : ControllerBase
         }
     }
 
+    /// <summary>Datos de una invitación de empleado pendiente (para la pantalla de aceptar). Público.</summary>
+    [HttpGet("staff-invite/{token}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<StaffInviteInfoResponse>> GetStaffInvite(string token, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await auth.GetStaffInviteAsync(token, ct));
+        }
+        catch (StaffInviteNotFoundException ex)
+        {
+            return NotFound(new { error = "invite_not_found", message = ex.Message });
+        }
+    }
+
+    /// <summary>El empleado fija su contraseña y crea su cuenta a partir del token de invitación. Público.</summary>
+    [HttpPost("staff-invite/{token}/accept")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResult>> AcceptStaffInvite(string token, AcceptStaffInviteRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return StatusCode(StatusCodes.Status201Created, await auth.AcceptStaffInviteAsync(token, request.Password, ct));
+        }
+        catch (StaffInviteNotFoundException ex)
+        {
+            return NotFound(new { error = "invite_not_found", message = ex.Message });
+        }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
+        }
+        catch (EmailAlreadyExistsException ex)
+        {
+            return Conflict(new { error = "email_exists", message = ex.Message });
+        }
+    }
+
     /// <summary>Autentica con email + contraseña.</summary>
     [HttpPost("login")]
     [AllowAnonymous]

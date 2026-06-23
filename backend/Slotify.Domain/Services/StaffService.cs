@@ -70,6 +70,31 @@ public class StaffService(
         return StaffResponse.From(member);
     }
 
+    /// <summary>
+    /// Invita a un empleado a crear su cuenta: genera un token de invitación (el owner le
+    /// pasa el enlace). Requiere email, no ser el owner y no tener ya cuenta. Solo el owner.
+    /// </summary>
+    public async Task<StaffInviteResponse> InviteAsync(
+        Guid businessId, Guid staffId, Guid currentUserId, CancellationToken ct = default)
+    {
+        await EnsureOwnerAsync(businessId, currentUserId, ct);
+
+        var member = await staff.GetByIdAsync(staffId, ct);
+        if (member is null || member.BusinessId != businessId)
+            throw new StaffNotFoundException(staffId);
+        if (member.Role == "owner")
+            throw new CannotModifyOwnerStaffException();
+        if (member.UserId is not null)
+            throw new StaffAlreadyHasAccountException();
+        if (string.IsNullOrWhiteSpace(member.Email))
+            throw new StaffEmailRequiredException();
+
+        member.InviteToken = System.Security.Cryptography.RandomNumberGenerator.GetHexString(48);
+        await staff.UpdateAsync(member, ct);
+
+        return new StaffInviteResponse(member.Id, member.Email!, member.InviteToken!);
+    }
+
     public async Task DeactivateAsync(
         Guid businessId, Guid staffId, Guid currentUserId, CancellationToken ct = default)
     {
