@@ -69,6 +69,8 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         business.PhotoUrl = request.PhotoUrl;
         business.Latitude = request.Latitude;
         business.Longitude = request.Longitude;
+        business.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        business.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
         await repository.UpdateAsync(business, ct);
 
         return BusinessResponse.From(business);

@@ -83,6 +83,12 @@ public class Business
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
+    /// <summary>Teléfono de contacto público (para llamar/reservar en persona). NULL = sin fijar.</summary>
+    public string? Phone { get; set; }
+
+    /// <summary>Dirección de contacto pública (texto libre). NULL = sin fijar.</summary>
+    public string? Address { get; set; }
+
     /// <summary>Media de valoraciones (1–5). NULL si aún no tiene reseñas. Denormalizado.</summary>
     public double? Rating { get; set; }
 

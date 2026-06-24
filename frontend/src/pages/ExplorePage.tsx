@@ -31,6 +31,7 @@ export function ExplorePage() {
   const [coords, setCoords] = useState<Coords | null>(null)
   const [locating, setLocating] = useState(false)
   const [locError, setLocError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<BusinessResponse | null>(null)
 
   useEffect(() => {
     let active = true
@@ -153,12 +154,12 @@ export function ExplorePage() {
                 )}
               </div>
               <div className="flex items-center gap-stack-md p-stack-md">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold">{b.name}</p>
+                <button type="button" onClick={() => setSelected(b)} className="min-w-0 flex-1 text-left group" data-testid="explore-details">
+                  <p className="truncate font-bold group-hover:text-primary transition-colors">{b.name}</p>
                   <div className="mt-0.5" data-testid="explore-rating">
                     <RatingStars value={b.rating} count={b.reviewCount} />
                   </div>
-                </div>
+                </button>
                 {b.bookingMode === 'calendar_only' ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-2 text-xs font-semibold text-on-surface-variant shrink-0" data-testid="explore-in-person" title="Este negocio no acepta reservas online">
                     <span className="material-symbols-outlined text-[16px]">storefront</span>
@@ -174,6 +175,76 @@ export function ExplorePage() {
           ))}
         </ul>
       )}
+
+      {selected && <BusinessDetailsModal business={selected} onClose={() => setSelected(null)} />}
     </section>
+  )
+}
+
+/** Detalles de un negocio: foto, valoración y, sobre todo, cómo contactar/llegar. */
+function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResponse; onClose: () => void }) {
+  const mapUrl = b.latitude != null && b.longitude != null
+    ? `https://www.google.com/maps/search/?api=1&query=${b.latitude},${b.longitude}`
+    : null
+  const calendarOnly = b.bookingMode === 'calendar_only'
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="card w-full max-w-sm !p-0 overflow-hidden flex flex-col" data-testid="business-modal">
+        <div className="relative h-36 w-full bg-gradient-to-br from-primary-container/40 to-secondary-container/40 flex items-center justify-center">
+          {b.photoUrl
+            ? <img src={b.photoUrl} alt={b.name} className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+            : <span className="material-symbols-outlined text-[48px] text-primary/60">{categoryIcon(b.category)}</span>}
+          <button type="button" onClick={onClose} aria-label="Cerrar" data-testid="business-modal-close"
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-surface/90 text-on-surface backdrop-blur hover:bg-surface">
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-stack-sm p-stack-md">
+          <div>
+            <h2 className="text-lg font-bold">{b.name}</h2>
+            <div className="mt-0.5 flex items-center gap-2">
+              {b.category && <span className="text-xs font-semibold text-on-surface-variant">{categoryLabel(b.category)}</span>}
+              <RatingStars value={b.rating} count={b.reviewCount} />
+            </div>
+          </div>
+
+          {calendarOnly && (
+            <p className="rounded-lg bg-surface-container px-3 py-2 text-xs font-semibold text-on-surface-variant" data-testid="business-modal-in-person">
+              Este negocio no reserva online. Contacta para tu cita:
+            </p>
+          )}
+
+          {/* Contacto */}
+          <div className="flex flex-col gap-1 text-sm">
+            {b.phone ? (
+              <a href={`tel:${b.phone}`} className="inline-flex items-center gap-2 font-semibold text-primary hover:underline" data-testid="business-modal-phone">
+                <span className="material-symbols-outlined text-[18px]">call</span>{b.phone}
+              </a>
+            ) : <p className="inline-flex items-center gap-2 text-on-surface-variant"><span className="material-symbols-outlined text-[18px]">call</span>Sin teléfono</p>}
+            {b.address && (
+              <p className="inline-flex items-center gap-2 text-on-surface-variant" data-testid="business-modal-address">
+                <span className="material-symbols-outlined text-[18px]">location_on</span>{b.address}
+              </p>
+            )}
+            {mapUrl && (
+              <a href={mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
+                <span className="material-symbols-outlined text-[18px]">map</span>Ver en el mapa
+              </a>
+            )}
+          </div>
+
+          {!calendarOnly && (
+            <Link to={`/reservar?businessId=${b.id}`} className="btn-primary text-center" data-testid="business-modal-reserve">
+              Reservar
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

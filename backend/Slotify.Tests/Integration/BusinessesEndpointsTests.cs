@@ -203,17 +203,21 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         var (businessId, owner) = await RegisterOwnerAsync();
 
         var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
-            new UpdateBusinessProfileRequest("barberia", "https://img/x.jpg", 40.4168, -3.7038));
+            new UpdateBusinessProfileRequest("barberia", "https://img/x.jpg", 40.4168, -3.7038, "+34911223344", "Calle Mayor 1"));
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
         var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
         Assert.Equal("barberia", body!.Category);
         Assert.Equal(40.4168, body.Latitude);
+        Assert.Equal("+34911223344", body.Phone);
+        Assert.Equal("Calle Mayor 1", body.Address);
 
-        // Aparece en el listado público con su perfil.
+        // Aparece en el listado público con su perfil (incl. contacto).
         var pub = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses");
         var found = pub!.Single(b => b.Id == businessId);
         Assert.Equal("barberia", found.Category);
         Assert.Equal("https://img/x.jpg", found.PhotoUrl);
+        Assert.Equal("+34911223344", found.Phone);
+        Assert.Equal("Calle Mayor 1", found.Address);
 
         // Filtro por categoría.
         var byCat = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=barberia");
