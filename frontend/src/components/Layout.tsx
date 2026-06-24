@@ -30,16 +30,17 @@ export function Layout() {
     ...(authenticated && !isOwner && !isStaff
       ? [{ to: '/mis-resenas', label: 'Mis reseñas', icon: 'reviews', testid: 'nav-my-reviews' }]
       : []),
+    // Panel (solo owner) va antes de la Agenda.
+    ...(isOwner
+      ? [{ to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' }]
+      : []),
     // Agenda: el owner y los empleados (estos ven solo sus reservas).
     ...(isOwner || isStaff
       ? [{ to: '/agenda', label: 'Agenda', icon: 'calendar_today', testid: 'nav-agenda' }]
       : []),
-    // Solo el owner gestiona el negocio.
+    // Configuración (solo owner) al final.
     ...(isOwner
-      ? [
-          { to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' },
-          { to: '/configuracion', label: 'Configuración', icon: 'settings', testid: 'nav-settings' },
-        ]
+      ? [{ to: '/configuracion', label: 'Configuración', icon: 'settings', testid: 'nav-settings' }]
       : []),
   ]
 
