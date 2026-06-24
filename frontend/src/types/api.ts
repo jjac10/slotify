@@ -70,6 +70,9 @@ export interface BusinessResponse {
   photoUrl: string | null
   latitude: number | null
   longitude: number | null
+  /** Contacto público (para llamar/visitar, sobre todo en modo "solo calendario"). */
+  phone: string | null
+  address: string | null
   /** Valoraciones (denormalizado). `rating` null si aún no tiene reseñas. */
   rating: number | null
   reviewCount: number
@@ -121,6 +124,8 @@ export interface UpdateBusinessProfileRequest {
   photoUrl: string | null
   latitude: number | null
   longitude: number | null
+  phone?: string | null
+  address?: string | null
 }
 
 /** GET /businesses/{id}/staff — trabajador del negocio (no expone email/teléfono). */

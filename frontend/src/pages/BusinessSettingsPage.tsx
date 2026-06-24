@@ -705,6 +705,8 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
   const [photoUrl, setPhotoUrl] = useState('')
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -716,6 +718,8 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
     setPhotoUrl(business.photoUrl ?? '')
     setLat(business.latitude != null ? String(business.latitude) : '')
     setLng(business.longitude != null ? String(business.longitude) : '')
+    setPhone(business.phone ?? '')
+    setAddress(business.address ?? '')
   }, [business])
 
   function useMyLocation() {
@@ -738,6 +742,8 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
         photoUrl: photoUrl.trim() || null,
         latitude: lat.trim() === '' ? null : Number(lat),
         longitude: lng.trim() === '' ? null : Number(lng),
+        phone: phone.trim() || null,
+        address: address.trim() || null,
       })
       onUpdated(updated)
       setSaved(true)
@@ -769,6 +775,16 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
           <img src={photoUrl} alt="Vista previa" className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )}
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-phone">Teléfono de contacto</label>
+        <input id="profile-phone" type="tel" className="field-input" data-testid="profile-phone"
+          value={phone} onChange={(e) => { setPhone(e.target.value); setSaved(false) }} placeholder="+34 600 000 000" />
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-address">Dirección</label>
+        <input id="profile-address" type="text" className="field-input" data-testid="profile-address"
+          value={address} onChange={(e) => { setAddress(e.target.value); setSaved(false) }} placeholder="Calle, número, ciudad" />
       </div>
       <div className="field">
         <label className="field-label">Ubicación (para "negocios cercanos")</label>

@@ -8,4 +8,6 @@ public record UpdateBusinessProfileRequest(
     string? Category,
     string? PhotoUrl,
     double? Latitude,
-    double? Longitude);
+    double? Longitude,
+    string? Phone = null,
+    string? Address = null);
