@@ -18,12 +18,15 @@ public class AuthService(
     IRefreshTokenRepository refreshTokens,
     IGuestRepository guests,
     IBlindIndex blindIndex,
-    IBusinessRepository businesses)
+    IBusinessRepository businesses,
+    IStaffRepository staff)
 {
     public const string FreeTierCode = "free";
     public const string OwnerType = "owner";
     public const string CustomerType = "customer";
+    public const string EmployeeType = "employee";
     public const string OwnerRole = "owner";
+    public const string StaffRole = "staff";
 
     /// <summary>
     /// Alta de cliente (sin negocio): user con type='customer'. Además vincula
@@ -55,7 +58,7 @@ public class AuthService(
             : blindIndex.Compute(ContactNormalizer.NormalizePhone(request.Phone));
         await guests.LinkToUserByHashAsync(user.Id, phoneHash, emailHash, ct);
 
-        return await IssueResultAsync(user, businessId: null, ct);
+        return await IssueResultAsync(user, businessId: null, role: null, ct);
     }
 
     /// <summary>Alta de propietario + su negocio (plan Free) + owner-staff, atómico.</summary>
@@ -96,7 +99,7 @@ public class AuthService(
 
         await auth.RegisterOwnerAsync(user, business, ownerStaff, DefaultWeeklyHours(business.Id), ct);
 
-        return await IssueResultAsync(user, business.Id, ct);
+        return await IssueResultAsync(user, business.Id, OwnerRole, ct);
     }
 
     /// <summary>
@@ -129,7 +132,8 @@ public class AuthService(
         if (user is null || !hasher.Verify(request.Password, user.PasswordHash))
             throw new InvalidCredentialsException();
 
-        return await IssueResultAsync(user, await ResolveOwnedBusinessIdAsync(user, ct), ct);
+        var (businessId, role) = await ResolveMembershipAsync(user, ct);
+        return await IssueResultAsync(user, businessId, role, ct);
     }
 
     public async Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
@@ -140,28 +144,77 @@ public class AuthService(
         var user = await auth.GetByIdAsync(userId, ct)
             ?? throw new InvalidRefreshTokenException();
 
-        return await IssueResultAsync(user, await ResolveOwnedBusinessIdAsync(user, ct), ct);
+        var (businessId, role) = await ResolveMembershipAsync(user, ct);
+        return await IssueResultAsync(user, businessId, role, ct);
+    }
+
+    /// <summary>
+    /// Un empleado crea su cuenta a partir del token de invitación: alta de user
+    /// (type='employee') enlazado a su registro de staff, e inicio de sesión.
+    /// </summary>
+    public async Task<AuthResult> AcceptStaffInviteAsync(string token, string password, CancellationToken ct = default)
+    {
+        PasswordPolicy.Validate(password);
+
+        var member = await staff.GetByInviteTokenAsync(token, ct);
+        if (member is null || member.UserId is not null || string.IsNullOrWhiteSpace(member.Email))
+            throw new StaffInviteNotFoundException();
+        if (await auth.EmailExistsAsync(member.Email, ct))
+            throw new EmailAlreadyExistsException(member.Email);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = member.Email,
+            PasswordHash = hasher.Hash(password),
+            Name = member.Name,
+            Type = EmployeeType,
+        };
+        await auth.AddUserAsync(user, ct);
+
+        member.UserId = user.Id;
+        member.InviteToken = null; // la invitación se consume
+        await staff.UpdateAsync(member, ct);
+
+        return await IssueResultAsync(user, member.BusinessId, StaffRole, ct);
+    }
+
+    /// <summary>Datos de una invitación pendiente (para la pantalla de aceptar), o error si no es válida.</summary>
+    public async Task<StaffInviteInfoResponse> GetStaffInviteAsync(string token, CancellationToken ct = default)
+    {
+        var member = await staff.GetByInviteTokenAsync(token, ct);
+        if (member is null || member.UserId is not null || string.IsNullOrWhiteSpace(member.Email))
+            throw new StaffInviteNotFoundException();
+        return new StaffInviteInfoResponse(member.Business?.Name ?? "el negocio", member.Name, member.Email!);
     }
 
     /// <summary>Emite access + refresh, persiste el refresh y devuelve el resultado.</summary>
-    private async Task<AuthResult> IssueResultAsync(User user, Guid? businessId, CancellationToken ct)
+    private async Task<AuthResult> IssueResultAsync(User user, Guid? businessId, string? role, CancellationToken ct)
     {
         var accessToken = tokens.CreateAccessToken(user);
         var refreshToken = tokens.CreateRefreshToken();
         await refreshTokens.IssueAsync(user.Id, refreshToken, ct);
-        return new AuthResult(user.Id, businessId, accessToken, refreshToken);
+        return new AuthResult(user.Id, businessId, accessToken, refreshToken, role);
     }
 
     /// <summary>
-    /// Negocio que posee el usuario (si es owner), para que el cliente sepa que tiene
-    /// negocio al loguearse o renovar. Los clientes no consultan BD (no tienen negocio).
+    /// Pertenencia del usuario a un negocio (para login/refresh): si es owner, su negocio
+    /// con rol 'owner'; si es un empleado con cuenta, el negocio de su staff con rol 'staff';
+    /// los clientes no pertenecen a ninguno.
     /// </summary>
-    private async Task<Guid?> ResolveOwnedBusinessIdAsync(User user, CancellationToken ct)
+    private async Task<(Guid? businessId, string? role)> ResolveMembershipAsync(User user, CancellationToken ct)
     {
-        if (user.Type != OwnerType)
-            return null;
+        if (user.Type == OwnerType)
+        {
+            var owned = await businesses.ListByOwnerAsync(user.Id, ct);
+            if (owned.Count > 0)
+                return (owned[0].Id, OwnerRole);
+        }
 
-        var owned = await businesses.ListByOwnerAsync(user.Id, ct);
-        return owned.Count > 0 ? owned[0].Id : null;
+        var membership = await staff.GetByUserAsync(user.Id, ct);
+        if (membership is not null && membership.Role != OwnerRole)
+            return (membership.BusinessId, StaffRole);
+
+        return (null, null);
     }
 }

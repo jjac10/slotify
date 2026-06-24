@@ -10,6 +10,7 @@ import type {
   DashboardResponse,
   ReviewResponse,
   ServiceResponse,
+  StaffInviteResponse,
   StaffMember,
   UpdateBusinessProfileRequest,
 } from '../types/api'
@@ -102,6 +103,12 @@ export const businessService = {
       email: request.email || null,
       phone: request.phone || null,
     })
+    return data
+  },
+
+  /** POST /businesses/{id}/staff/{staffId}/invite — genera el token de invitación del empleado (solo owner). */
+  async inviteStaff(businessId: string, staffId: string): Promise<StaffInviteResponse> {
+    const { data } = await api.post<StaffInviteResponse>(`/businesses/${businessId}/staff/${staffId}/invite`, {})
     return data
   },
 

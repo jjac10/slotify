@@ -12,6 +12,22 @@ export interface AuthResult {
   businessId: string | null
   accessToken: string
   refreshToken: string
+  /** 'owner' | 'staff' | null — distingue al dueño del empleado. */
+  businessRole: string | null
+}
+
+/** GET /auth/staff-invite/{token} — datos de una invitación de empleado pendiente. */
+export interface StaffInviteInfoResponse {
+  businessName: string
+  staffName: string
+  email: string
+}
+
+/** POST /businesses/{id}/staff/{staffId}/invite — token para que el empleado cree su cuenta. */
+export interface StaffInviteResponse {
+  staffId: string
+  email: string
+  token: string
 }
 
 export interface RegisterCustomerRequest {

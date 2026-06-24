@@ -10,6 +10,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
 import { MyReviewsPage } from './pages/MyReviewsPage'
+import { AcceptInvitePage } from './pages/AcceptInvitePage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
@@ -23,6 +24,8 @@ export function App() {
       <Route element={<Layout />}>
         <Route path="explorar" element={<ExplorePage />} />
         <Route path="reservar" element={<ReserveFlowPage />} />
+        {/* Enlace de invitación de empleado (público): crear cuenta + entrar */}
+        <Route path="invitacion/:token" element={<AcceptInvitePage />} />
         {/* Público: logueado ve sus reservas; invitado busca por teléfono/email */}
         <Route path="mis-reservas" element={<MyReservationsPage />} />
 

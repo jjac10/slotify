@@ -28,11 +28,16 @@ type AuthStatus = 'loading' | 'authenticated' | 'anonymous'
 interface AuthContextValue {
   user: AuthUser | null
   businessId: string | null
+  /** 'owner' | 'staff' | null. */
+  businessRole: string | null
   status: AuthStatus
   isOwner: boolean
+  isStaff: boolean
   login: (request: LoginRequest) => Promise<void>
   registerCustomer: (request: RegisterCustomerRequest) => Promise<void>
   registerOwner: (request: RegisterOwnerRequest) => Promise<void>
+  /** El empleado acepta su invitación (fija contraseña) y queda logueado. */
+  acceptStaffInvite: (token: string, password: string, email: string) => Promise<void>
   logout: () => void
 }
 
@@ -42,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [businessId, setBusinessId] = useState<string | null>(tokenStorage.getBusinessId())
+  const [businessRole, setBusinessRole] = useState<string | null>(tokenStorage.getBusinessRole())
   const [status, setStatus] = useState<AuthStatus>(
     tokenStorage.getAccessToken() ? 'loading' : 'anonymous',
   )
@@ -50,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.clear()
     setUser(null)
     setBusinessId(null)
+    setBusinessRole(null)
     setStatus('anonymous')
   }, [])
 
@@ -91,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.setSession(result)
     setUser({ userId: result.userId, email })
     setBusinessId(result.businessId)
+    setBusinessRole(result.businessRole ?? null)
     setStatus('authenticated')
   }, [])
 
@@ -115,18 +123,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession],
   )
 
+  const acceptStaffInvite = useCallback(
+    async (token: string, password: string, email: string) => {
+      applySession(await authService.acceptStaffInvite(token, password), email)
+    },
+    [applySession],
+  )
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       businessId,
+      businessRole,
       status,
-      isOwner: businessId !== null,
+      // 'owner' explícito, o sesión antigua (con negocio pero sin rol guardado) → owner.
+      isOwner: businessRole === 'owner' || (businessRole == null && businessId != null),
+      isStaff: businessRole === 'staff',
       login,
       registerCustomer,
       registerOwner,
+      acceptStaffInvite,
       logout,
     }),
-    [user, businessId, status, login, registerCustomer, registerOwner, logout],
+    [user, businessId, businessRole, status, login, registerCustomer, registerOwner, acceptStaffInvite, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

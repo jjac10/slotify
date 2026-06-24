@@ -192,7 +192,7 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
 }
 
 export function OwnerAgendaPage() {
-  const { businessId, isOwner } = useAuth()
+  const { businessId, isOwner, isStaff } = useAuth()
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
@@ -274,11 +274,11 @@ export function OwnerAgendaPage() {
     return result
   }, [reservations, tab, staffFilter, search, grouping])
 
-  if (!isOwner || !businessId) {
+  if ((!isOwner && !isStaff) || !businessId) {
     return (
       <section>
         <h1>Agenda</h1>
-        <p className="text-on-surface-variant">Esta sección es solo para propietarios de un negocio.</p>
+        <p className="text-on-surface-variant">Esta sección es solo para el negocio y su equipo.</p>
       </section>
     )
   }
@@ -314,7 +314,7 @@ export function OwnerAgendaPage() {
     <section>
       <div className="flex items-start justify-between gap-stack-md mb-stack-md">
         <div>
-          <h1>Agenda del negocio</h1>
+          <h1>{isOwner ? 'Agenda del negocio' : 'Mi agenda'}</h1>
           <p className="text-on-surface-variant">
             Hoy <strong className="text-on-surface">{summary.todayCount}</strong> · esta semana <strong className="text-on-surface">{summary.weekCount}</strong>
           </p>

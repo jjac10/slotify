@@ -424,20 +424,23 @@ public class ReservationManagementServiceTests
     }
 
     [Fact]
-    public async Task ListForBusinessAsync_AsStaff_PassesFiltersThrough()
+    public async Task ListForBusinessAsync_AsStaff_ScopesToOwnReservations()
     {
-        var employeeId = Guid.NewGuid();
+        var employeeUserId = Guid.NewGuid();
+        var staffId = Guid.NewGuid();
         var date = new DateOnly(2026, 7, 1);
-        var staffFilter = Guid.NewGuid();
         SetupBusiness();
-        _staff.Setup(s => s.ExistsForUserAsync(employeeId, _businessId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _reservations.Setup(r => r.ListByBusinessAsync(_businessId, date, staffFilter, It.IsAny<CancellationToken>()))
+        // El empleado pertenece al negocio; su agenda se acota a su propio staffId.
+        _staff.Setup(s => s.GetByUserAsync(employeeUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Staff { Id = staffId, BusinessId = _businessId, UserId = employeeUserId, Role = "employee", Name = "E" });
+        _reservations.Setup(r => r.ListByBusinessAsync(_businessId, date, staffId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var result = await CreateService().ListForBusinessAsync(_businessId, employeeId, date, staffFilter);
+        // Aunque pase otro staffFilter, se ignora y se usa el suyo.
+        var result = await CreateService().ListForBusinessAsync(_businessId, employeeUserId, date, Guid.NewGuid());
 
         Assert.Empty(result);
-        _reservations.Verify(r => r.ListByBusinessAsync(_businessId, date, staffFilter, It.IsAny<CancellationToken>()), Times.Once);
+        _reservations.Verify(r => r.ListByBusinessAsync(_businessId, date, staffId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

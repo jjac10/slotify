@@ -126,12 +126,24 @@ public class ReservationManagementService(
 
     /// <summary>
     /// Agenda del negocio: reservas (no canceladas) ordenadas por inicio, con filtros
-    /// opcionales por día y trabajador. Solo el owner del negocio o su staff.
+    /// opcionales por día y trabajador. El owner ve todas (con su filtro); un empleado
+    /// solo ve SUS reservas (se fuerza el filtro a su propio staffId).
     /// </summary>
     public async Task<IReadOnlyList<ReservationResponse>> ListForBusinessAsync(
         Guid businessId, Guid currentUserId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
     {
-        await EnsureBusinessAccessOrThrowAsync(businessId, currentUserId, ct);
+        var business = await businesses.GetByIdAsync(businessId, ct)
+            ?? throw new ReservationForbiddenException();
+
+        if (business.OwnerId != currentUserId)
+        {
+            // No es el owner: debe ser un empleado del negocio y solo ve sus reservas.
+            var membership = await staff.GetByUserAsync(currentUserId, ct);
+            if (membership is null || membership.BusinessId != businessId)
+                throw new ReservationForbiddenException();
+            staffId = membership.Id;
+        }
+
         var list = await reservations.ListByBusinessAsync(businessId, date, staffId, ct);
         return list.Select(ReservationResponse.From).ToList();
     }

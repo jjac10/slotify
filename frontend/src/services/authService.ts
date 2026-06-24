@@ -5,6 +5,7 @@ import type {
   MeResponse,
   RegisterCustomerRequest,
   RegisterOwnerRequest,
+  StaffInviteInfoResponse,
 } from '../types/api'
 
 export const authService = {
@@ -25,6 +26,18 @@ export const authService = {
 
   async me(): Promise<MeResponse> {
     const { data } = await api.get<MeResponse>('/auth/me')
+    return data
+  },
+
+  /** GET /auth/staff-invite/{token} — datos de una invitación de empleado pendiente. */
+  async getStaffInvite(token: string): Promise<StaffInviteInfoResponse> {
+    const { data } = await api.get<StaffInviteInfoResponse>(`/auth/staff-invite/${token}`)
+    return data
+  },
+
+  /** POST /auth/staff-invite/{token}/accept — el empleado fija su contraseña y queda logueado. */
+  async acceptStaffInvite(token: string, password: string): Promise<AuthResult> {
+    const { data } = await api.post<AuthResult>(`/auth/staff-invite/${token}/accept`, { password })
     return data
   },
 }

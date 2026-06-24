@@ -14,6 +14,12 @@ public class StaffRepository(SlotifyDbContext db) : IStaffRepository
     public Task<Staff?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Staff.FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    public Task<Staff?> GetByInviteTokenAsync(string token, CancellationToken ct = default)
+        => db.Staff.Include(s => s.Business).FirstOrDefaultAsync(s => s.InviteToken == token, ct);
+
+    public Task<Staff?> GetByUserAsync(Guid userId, CancellationToken ct = default)
+        => db.Staff.FirstOrDefaultAsync(s => s.UserId == userId && s.Status == "active", ct);
+
     public async Task AddAsync(Staff staff, CancellationToken ct = default)
     {
         db.Staff.Add(staff);

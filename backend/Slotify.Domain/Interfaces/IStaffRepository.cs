@@ -13,6 +13,12 @@ public interface IStaffRepository
 
     Task<Staff?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Trabajador por token de invitación pendiente (para que el empleado cree su cuenta), o null.</summary>
+    Task<Staff?> GetByInviteTokenAsync(string token, CancellationToken ct = default);
+
+    /// <summary>El registro de staff enlazado a un usuario (su pertenencia a un negocio), o null.</summary>
+    Task<Staff?> GetByUserAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>Da de alta un trabajador.</summary>
     Task AddAsync(Staff staff, CancellationToken ct = default);
 
