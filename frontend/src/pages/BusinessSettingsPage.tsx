@@ -529,6 +529,20 @@ function TeamSection({ businessId, services }: { businessId: string; services: S
   const [addError, setAddError] = useState<string | null>(null)
   const [premiumRequired, setPremiumRequired] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  // Enlace de invitación generado para un empleado (email simulado → el owner lo copia).
+  const [inviteLink, setInviteLink] = useState<{ staffId: string; url: string } | null>(null)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
+  async function handleInvite(member: StaffMember) {
+    setInviteError(null)
+    try {
+      const res = await businessService.inviteStaff(businessId, member.id)
+      setInviteLink({ staffId: member.id, url: `${window.location.origin}/invitacion/${res.token}` })
+    } catch (err) {
+      setInviteLink(null)
+      setInviteError(getApiError(err)?.message ?? 'No se pudo generar la invitación.')
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -576,6 +590,7 @@ function TeamSection({ businessId, services }: { businessId: string; services: S
 
   return (
     <div className="flex flex-col gap-stack-md">
+      {inviteError && <p role="alert" className="alert text-xs" data-testid="staff-invite-error">{inviteError}</p>}
       {staff === null && <p className="text-sm text-on-surface-variant">Cargando…</p>}
       {staff !== null && (
         <ul className="flex flex-col gap-2" data-testid="staff-list">
@@ -604,17 +619,39 @@ function TeamSection({ businessId, services }: { businessId: string; services: S
                   Servicios
                 </button>
                 {member.role !== 'owner' && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(member)}
-                    className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
-                    aria-label={`Dar de baja a ${member.name}`}
-                    data-testid="staff-remove"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">person_remove</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleInvite(member)}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary-container/15 transition-colors"
+                      data-testid="staff-invite-btn"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">mail</span>
+                      Invitar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(member)}
+                      className="p-1 rounded-lg text-error hover:bg-error-container/30 transition-colors"
+                      aria-label={`Dar de baja a ${member.name}`}
+                      data-testid="staff-remove"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                    </button>
+                  </>
                 )}
               </div>
+              {inviteLink?.staffId === member.id && (
+                <div className="border-t border-outline-variant/30 pt-stack-sm flex flex-col gap-1" data-testid="staff-invite-link">
+                  <p className="text-xs text-on-surface-variant">Pásale este enlace para que cree su cuenta (el email es simulado):</p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly className="field-input !py-1.5 flex-1 text-xs" value={inviteLink.url} data-testid="staff-invite-url"
+                      onFocus={(e) => e.currentTarget.select()} />
+                    <button type="button" className="btn-primary !py-1.5 text-xs shrink-0"
+                      onClick={() => navigator.clipboard?.writeText(inviteLink.url)}>Copiar</button>
+                  </div>
+                </div>
+              )}
               {expandedId === member.id && services !== null && (
                 <div className="border-t border-outline-variant/30 pt-stack-sm">
                   <StaffServicesEditor businessId={businessId} staffId={member.id} services={services} />

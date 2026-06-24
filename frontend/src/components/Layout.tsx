@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 export function Layout() {
-  const { user, status, isOwner, logout } = useAuth()
+  const { user, status, isOwner, isStaff, logout } = useAuth()
   const authenticated = status === 'authenticated'
   const [menuOpen, setMenuOpen] = useState(false)
   const initial = user?.email?.[0]?.toUpperCase() ?? 'U'
@@ -26,13 +26,18 @@ export function Layout() {
   const items: NavItem[] = [
     { to: '/explorar', label: 'Explorar', icon: 'explore' },
     { to: '/mis-reservas', label: 'Reservas', icon: 'event', testid: 'nav-my-reservations' },
-    ...(authenticated && !isOwner
+    // Cliente puro (ni owner ni empleado): sus reseñas.
+    ...(authenticated && !isOwner && !isStaff
       ? [{ to: '/mis-resenas', label: 'Mis reseñas', icon: 'reviews', testid: 'nav-my-reviews' }]
       : []),
+    // Agenda: el owner y los empleados (estos ven solo sus reservas).
+    ...(isOwner || isStaff
+      ? [{ to: '/agenda', label: 'Agenda', icon: 'calendar_today', testid: 'nav-agenda' }]
+      : []),
+    // Solo el owner gestiona el negocio.
     ...(isOwner
       ? [
           { to: '/panel', label: 'Panel', icon: 'dashboard', testid: 'nav-dashboard' },
-          { to: '/agenda', label: 'Agenda', icon: 'calendar_today', testid: 'nav-agenda' },
           { to: '/configuracion', label: 'Configuración', icon: 'settings', testid: 'nav-settings' },
         ]
       : []),
