@@ -1,0 +1,6 @@
+# HTTPS automático (Let's Encrypt) para el dominio definido en la variable DOMAIN.
+# Caddy reenvía todo al frontend (nginx), que sirve la SPA y proxya /api → backend.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy frontend:80
+}
