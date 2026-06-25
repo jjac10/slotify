@@ -4,7 +4,12 @@ import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES, categoryIcon, categoryLabel } from '../constants/categories'
 import { RatingStars } from '../components/Stars'
-import type { BusinessResponse } from '../types/api'
+import type { BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
+
+function formatPrice(price: number | null): string {
+  if (price === null) return 'Gratis'
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(price)
+}
 
 interface Coords { lat: number; lng: number }
 
@@ -132,7 +137,16 @@ export function ExplorePage() {
       {items !== null && items.length > 0 && (
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md" data-testid="explore-list">
           {items.map(({ b, dist }) => (
-            <li key={b.id} className="card !p-0 overflow-hidden flex flex-col" data-testid="explore-item">
+            <li key={b.id} className="card !p-0 overflow-hidden flex flex-col relative group cursor-pointer" data-testid="explore-item">
+              {/* Overlay clicable: pulsar en cualquier parte de la tarjeta abre el modal de detalles.
+                  El botón "Reservar" se eleva por encima (z-10) para seguir siendo clicable por su cuenta. */}
+              <button
+                type="button"
+                onClick={() => setSelected(b)}
+                className="absolute inset-0 z-10"
+                data-testid="explore-details"
+                aria-label={`Ver detalles de ${b.name}`}
+              />
               {/* Foto o placeholder con icono de categoría */}
               <div className="relative h-32 w-full bg-gradient-to-br from-primary-container/40 to-secondary-container/40 flex items-center justify-center">
                 {b.photoUrl ? (
@@ -154,19 +168,19 @@ export function ExplorePage() {
                 )}
               </div>
               <div className="flex items-center gap-stack-md p-stack-md">
-                <button type="button" onClick={() => setSelected(b)} className="min-w-0 flex-1 text-left group" data-testid="explore-details">
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-bold group-hover:text-primary transition-colors">{b.name}</p>
                   <div className="mt-0.5" data-testid="explore-rating">
                     <RatingStars value={b.rating} count={b.reviewCount} />
                   </div>
-                </button>
+                </div>
                 {b.bookingMode === 'calendar_only' ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-2 text-xs font-semibold text-on-surface-variant shrink-0" data-testid="explore-in-person" title="Este negocio no acepta reservas online">
                     <span className="material-symbols-outlined text-[16px]">storefront</span>
                     Cita en persona
                   </span>
                 ) : (
-                  <Link to={`/reservar?businessId=${b.id}`} className="btn-primary py-2 text-sm shrink-0" data-testid="explore-reserve">
+                  <Link to={`/reservar?businessId=${b.id}`} onClick={(e) => e.stopPropagation()} className="btn-primary py-2 text-sm shrink-0 relative z-20" data-testid="explore-reserve">
                     Reservar
                   </Link>
                 )}
@@ -187,6 +201,15 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
     ? `https://www.google.com/maps/search/?api=1&query=${b.latitude},${b.longitude}`
     : null
   const calendarOnly = b.bookingMode === 'calendar_only'
+  const [services, setServices] = useState<ServiceResponse[] | null>(null)
+  const [staff, setStaff] = useState<StaffMember[] | null>(null)
+
+  useEffect(() => {
+    let active = true
+    businessService.listServices(b.id).then((s) => active && setServices(s)).catch(() => active && setServices([]))
+    businessService.listStaff(b.id).then((s) => active && setStaff(s)).catch(() => active && setStaff([]))
+    return () => { active = false }
+  }, [b.id])
 
   return (
     <div
@@ -204,7 +227,7 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
           </button>
         </div>
 
-        <div className="flex flex-col gap-stack-sm p-stack-md">
+        <div className="flex flex-col gap-stack-sm p-stack-md max-h-[60vh] overflow-y-auto">
           <div>
             <h2 className="text-lg font-bold">{b.name}</h2>
             <div className="mt-0.5 flex items-center gap-2">
@@ -237,6 +260,41 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
               </a>
             )}
           </div>
+
+          {/* Servicios (nombre · duración · precio) */}
+          {services !== null && services.length > 0 && (
+            <div className="border-t border-outline-variant/30 pt-stack-sm" data-testid="business-modal-services">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-on-surface-variant">Servicios</p>
+              <ul className="flex flex-col gap-1">
+                {services.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate">
+                      {s.name}
+                      <span className="text-on-surface-variant"> · {s.durationMinutes} min</span>
+                    </span>
+                    <span className="shrink-0 font-semibold">{formatPrice(s.price)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Equipo */}
+          {staff !== null && staff.length > 0 && (
+            <div className="border-t border-outline-variant/30 pt-stack-sm" data-testid="business-modal-staff">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-on-surface-variant">Equipo</p>
+              <div className="flex flex-wrap gap-2">
+                {staff.map((m) => (
+                  <span key={m.id} className="inline-flex items-center gap-1.5 rounded-full bg-surface-container px-2.5 py-1 text-xs font-medium">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-container/30 text-[10px] font-bold text-primary">
+                      {m.name[0]?.toUpperCase() ?? '?'}
+                    </span>
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!calendarOnly && (
             <Link to={`/reservar?businessId=${b.id}`} className="btn-primary text-center" data-testid="business-modal-reserve">
