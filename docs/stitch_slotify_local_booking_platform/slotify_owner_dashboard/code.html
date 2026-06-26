@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify Business Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#e4e6e8",
+                    "surface-variant": "#d8e3fb",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "surface-container-highest": "#d8e3fb",
+                    "error": "#ba1a1a",
+                    "secondary": "#00687a",
+                    "tertiary": "#4c4f51",
+                    "surface-container": "#e7eeff",
+                    "secondary-container": "#57dffe",
+                    "inverse-on-surface": "#ecf1ff",
+                    "on-tertiary-fixed": "#191c1e",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-container-high": "#dee8ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#cfdaf2",
+                    "outline-variant": "#ccc3d8",
+                    "primary": "#630ed4",
+                    "surface": "#f9f9ff",
+                    "outline": "#7b7487",
+                    "on-secondary-fixed": "#001f26",
+                    "on-secondary-container": "#006172",
+                    "primary-container": "#7c3aed",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#25005a",
+                    "on-background": "#111c2d",
+                    "on-primary-container": "#ede0ff",
+                    "on-tertiary": "#ffffff",
+                    "background": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "on-surface-variant": "#4a4455",
+                    "tertiary-container": "#646769",
+                    "primary-fixed-dim": "#d2bbff",
+                    "surface-bright": "#f9f9ff",
+                    "on-surface": "#111c2d",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "inverse-surface": "#263143",
+                    "inverse-primary": "#d2bbff",
+                    "surface-tint": "#732ee4",
+                    "secondary-fixed": "#acedff",
+                    "primary-fixed": "#eaddff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter": "16px",
+                    "container-padding-desktop": "32px",
+                    "container-padding-mobile": "16px",
+                    "stack-xl": "32px",
+                    "unit": "4px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "button": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        display: inline-block;
+        line-height: 1;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen font-body-md pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-container-mobile h-16 w-full bg-surface dark:bg-on-background">
+<div class="flex items-center gap-stack-sm">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Dashboard</h1>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a business owner, a middle-aged man with a friendly expression, set against a blurred modern office background. The lighting is soft and natural, emphasizing a professional yet approachable corporate modern aesthetic. The color palette is clean with subtle hints of Morado purple in the environment, maintaining high-end UI visual consistency." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMJX8rQpjDtFQujkiBO-uUqzVH5ODU4g5nuhn-Eg1VkxNzjNZll_MDP9GSTaknmJ-WUgpxpPB8E_O0J6XLZWHSuax61cLarSo_RBzFB51Hral0HNxs2mzpTNc0dh08fNeHXqngcbbpyE2jmUZaiR5keHSZF4e5JedoR66IQh_Zj5TWfZxXYxgLK3Y-4rdpe4I3HFpMOu_TFU40D6eDfhoNOVX_YJBV4ZhhOL9OmSs4scKH8L89LXC3ph7Xue3uDPUCrFLb3TH6qr7G"/>
+</div>
+</div>
+</header>
+<main class="pt-20 px-container-mobile space-y-stack-xl">
+<!-- Stats Row - Bento Grid Style -->
+<section class="grid grid-cols-3 gap-stack-md">
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant flex flex-col items-center text-center">
+<span class="font-label-md text-label-md text-on-surface-variant">Reservas</span>
+<span class="font-headline-md text-headline-md font-bold text-primary">124</span>
+</div>
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant flex flex-col items-center text-center">
+<span class="font-label-md text-label-md text-on-surface-variant">Ocupación</span>
+<span class="font-headline-md text-headline-md font-bold text-secondary">88%</span>
+</div>
+<div class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant flex flex-col items-center text-center">
+<span class="font-label-md text-label-md text-on-surface-variant">Cancels</span>
+<span class="font-headline-md text-headline-md font-bold text-error">4</span>
+</div>
+</section>
+<!-- Compact Calendar Section -->
+<section class="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant">
+<div class="flex items-center justify-between mb-stack-md">
+<h2 class="font-headline-md text-headline-md-mobile text-on-surface">Mayo 2024</h2>
+<div class="flex gap-stack-sm">
+<button class="p-1 hover:bg-surface-container-low rounded-lg"><span class="material-symbols-outlined">chevron_left</span></button>
+<button class="p-1 hover:bg-surface-container-low rounded-lg"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-y-stack-sm text-center">
+<!-- Day Labels -->
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60">L</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60">M</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60">M</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60">J</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60">V</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60 font-bold">S</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-60 font-bold">D</div>
+<!-- Calendar Days - Simplified mockup -->
+<div class="py-2 text-on-surface-variant opacity-30">29</div>
+<div class="py-2 text-on-surface-variant opacity-30">30</div>
+<div class="py-2 relative flex flex-col items-center">1 <div class="w-1 h-1 bg-primary rounded-full absolute bottom-1"></div></div>
+<div class="py-2">2</div>
+<div class="py-2 relative flex flex-col items-center">3 <div class="w-1 h-1 bg-primary rounded-full absolute bottom-1"></div></div>
+<div class="py-2 font-bold">4</div>
+<div class="py-2 font-bold">5</div>
+<!-- Active Day -->
+<div class="py-2 bg-primary-container text-on-primary-container rounded-lg font-bold">6</div>
+<div class="py-2 relative flex flex-col items-center">7 <div class="w-1 h-1 bg-primary rounded-full absolute bottom-1"></div></div>
+<div class="py-2 relative flex flex-col items-center">8 <div class="w-1 h-1 bg-primary rounded-full absolute bottom-1"></div></div>
+<div class="py-2">9</div>
+<div class="py-2 relative flex flex-col items-center">10 <div class="w-1 h-1 bg-primary rounded-full absolute bottom-1"></div></div>
+<div class="py-2 font-bold">11</div>
+<div class="py-2 font-bold">12</div>
+</div>
+</section>
+<!-- Quick Actions Row -->
+<section class="flex gap-stack-md overflow-x-auto hide-scrollbar">
+<button class="flex-none bg-primary text-on-primary px-stack-lg py-stack-md rounded-xl font-button flex items-center gap-stack-sm shadow-lg active:scale-95 transition-transform">
+<span class="material-symbols-outlined">add_circle</span>
+                Nuevo servicio
+            </button>
+<button class="flex-none bg-surface-container-high text-primary px-stack-lg py-stack-md rounded-xl font-button flex items-center gap-stack-sm border border-primary/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">person_add</span>
+                Añadir trabajador
+            </button>
+</section>
+<!-- Upcoming Section -->
+<section class="space-y-stack-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md-mobile text-on-surface">Próximas Reservas</h2>
+<a class="text-primary font-label-md hover:underline" href="#">Ver todas</a>
+</div>
+<div class="space-y-stack-sm">
+<!-- Card 1 -->
+<div class="glass-card p-stack-md rounded-xl flex items-center gap-stack-md">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-headline-md">
+                        MR
+                    </div>
+<div class="flex-1">
+<h3 class="font-body-lg font-semibold">Marcos Rodríguez</h3>
+<p class="font-body-md text-on-surface-variant">Corte Degradado + Barba</p>
+</div>
+<div class="text-right">
+<p class="font-label-md font-bold text-primary">10:30</p>
+<p class="font-label-md text-on-surface-variant">Hoy</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card p-stack-md rounded-xl flex items-center gap-stack-md">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold text-headline-md">
+                        LS
+                    </div>
+<div class="flex-1">
+<h3 class="font-body-lg font-semibold">Lucía Sánchez</h3>
+<p class="font-body-md text-on-surface-variant">Coloración Completa</p>
+</div>
+<div class="text-right">
+<p class="font-label-md font-bold text-primary">12:00</p>
+<p class="font-label-md text-on-surface-variant">Hoy</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-card p-stack-md rounded-xl flex items-center gap-stack-md">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-headline-md">
+                        AG
+                    </div>
+<div class="flex-1">
+<h3 class="font-body-lg font-semibold">Andrés García</h3>
+<p class="font-body-md text-on-surface-variant">Corte Clásico</p>
+</div>
+<div class="text-right">
+<p class="font-label-md font-bold text-primary">14:15</p>
+<p class="font-label-md text-on-surface-variant">Hoy</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe w-full">
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-semibold transition-opacity hover:opacity-80 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-md text-label-md">Panel</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant transition-opacity hover:opacity-80 active:scale-90" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-label-md">Agenda</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant transition-opacity hover:opacity-80 active:scale-90" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-md text-label-md">Equipo</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant transition-opacity hover:opacity-80 active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Perfil</span>
+</a>
+</nav>
+<!-- Background Subtle Effect -->
+<div class="fixed inset-0 -z-10 pointer-events-none opacity-20">
+
+</div>
+<script>
+        // Simple Interaction logic
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('click', (e) => {
+                // Prevent default for mockup purposes
+                if (el.tagName === 'A') e.preventDefault();
+            });
+        });
+    </script>
+</body></html>

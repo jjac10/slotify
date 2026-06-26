@@ -6,39 +6,56 @@
 - **Auth:** Bearer token en header `Authorization: Bearer {JWT}`
 - **Formato:** JSON
 - **Errores:** HTTP status codes estándar + error detail
+- **CORS:** habilitado para el frontend; orígenes permitidos en `Cors:AllowedOrigins` (dev: `http://localhost:5173`, `http://localhost:3000`)
 
 ---
 
 ## Autenticación
 
 ### POST /auth/register
-Registrar nuevo propietario de negocio.
+Registrar un **cliente** (sin negocio; `type=customer`).
+
+**Request:**
+```json
+{
+  "email": "ana@example.com",
+  "password": "SecurePass123!",
+  "name": "Ana",
+  "phone": "+34912345678"
+}
+```
+> `phone` es **opcional**: si se indica, al registrarse se **vinculan automáticamente**
+> las reservas previas hechas como invitado con ese teléfono/email (sync invitado→usuario).
+
+**Response:** 201 — `businessId` es `null` (el cliente no tiene negocio).
+```json
+{ "userId": "uuid", "businessId": null, "accessToken": "jwt", "refreshToken": "opaque_token" }
+```
+
+> **Contraseña:** mín. 8 caracteres con mayúscula, minúscula, dígito y símbolo.
+> Si no cumple → `400` (`weak_password`, con `details`). Email duplicado → `409`.
+> Reservar NO exige registrarse (existe el flujo *guest*).
+
+---
+
+### POST /auth/register-owner
+Registrar un **propietario** + su negocio (plan Free) + owner-as-staff, de forma atómica.
 
 **Request:**
 ```json
 {
   "email": "owner@example.com",
   "password": "SecurePass123!",
+  "name": "Pepe",
   "businessName": "Mi Salón"
 }
 ```
 
-**Response:** 201
+**Response:** 201 (incluye `businessId` del negocio creado).
 ```json
-{
-  "userId": "uuid",
-  "businessId": "uuid",
-  "accessToken": "jwt",
-  "refreshToken": "refresh_uuid",
-  "expiresIn": 86400
-}
+{ "userId": "uuid", "businessId": "uuid", "accessToken": "jwt", "refreshToken": "opaque_token" }
 ```
-
-**Tests (TDD):**
-- ✓ Email inválido rechazado
-- ✓ Contraseña corta rechazada
-- ✓ Email duplicado rechazado
-- ✓ Negocio creado automáticamente en Free plan
+Mismas reglas de contraseña (`400`) y email duplicado (`409`) que el registro de cliente.
 
 ---
 
@@ -53,14 +70,12 @@ Autenticar usuario.
 }
 ```
 
-**Response:** 200
+**Response:** 200 — mismo `AuthResult` que el registro. Para un **owner**, `businessId`
+es el de su negocio (igual que en `refresh`); para un cliente es `null`. Así el
+frontend sabe si mostrar las secciones de propietario tras un login (no solo tras
+el registro).
 ```json
-{
-  "accessToken": "jwt",
-  "refreshToken": "refresh_uuid",
-  "expiresIn": 86400,
-  "user": { "id": "uuid", "email": "...", "plan": "free" }
-}
+{ "userId": "uuid", "businessId": "uuid", "accessToken": "jwt", "refreshToken": "opaque_token" }
 ```
 
 ---
@@ -85,7 +100,38 @@ Renovar access token.
 
 ---
 
+### GET /auth/me
+Datos del usuario autenticado.
+
+**Auth:** Required (Bearer token)
+**Response:** 200
+```json
+{
+  "userId": "uuid",
+  "email": "owner@example.com"
+}
+```
+Sin token válido → 401.
+
+---
+
+## Negocios (Businesses)
+
+### GET /businesses
+Lista los negocios del owner autenticado.
+
+**Auth:** Required (Bearer token)
+**Response:** 200
+```json
+[ { "id": "uuid", "name": "Mi Salón", "status": "active" } ]
+```
+
+---
+
 ## Servicios (Services)
+
+> Crear servicio es **solo owner** del negocio y respeta el límite del plan
+> (Free=5): si se supera → `409` (`limit_reached`). Listar es público.
 
 ### GET /businesses/{businessId}/services
 Listar servicios del negocio.
@@ -132,6 +178,30 @@ Crear servicio.
 
 ---
 
+## Staff (Trabajadores)
+
+### GET /businesses/{businessId}/staff
+Lista los trabajadores **activos** de un negocio, ordenados por nombre. Público:
+el cliente lo usa para elegir con quién reservar (el `staffId` que exige crear una
+reserva). El owner aparece como staff (`role=owner`).
+
+**Auth:** Optional (público)
+**Response:** 200
+```json
+[
+  {
+    "id": "uuid",
+    "businessId": "uuid",
+    "name": "Pepe",
+    "role": "owner",
+    "status": "active"
+  }
+]
+```
+> No expone email/teléfono del trabajador. Los inactivos se excluyen.
+
+---
+
 ## Disponibilidad
 
 ### GET /businesses/{businessId}/availability
@@ -156,6 +226,8 @@ Obtener slots disponibles para un servicio.
   ]
 }
 ```
+
+> **Zona horaria:** el horario del negocio se interpreta como hora local de su zona (`businesses.timezone`, IANA; por defecto `Europe/Madrid`) y los slots se devuelven en UTC. La conversión respeta el horario de verano/invierno (DST): p. ej. una apertura a las 09:00 sale a las 07:00 UTC en verano (CEST) y a las 08:00 UTC en invierno (CET).
 
 **Tests:**
 - ✓ Excluir horas cerradas
@@ -198,6 +270,13 @@ Crear reserva (guest o logged).
 }
 ```
 
+**Errores:**
+- `404 service_not_found` / `404 staff_not_found` el servicio o el trabajador no existen en ese negocio
+- `400 invalid_guest_contact` invitado sin nombre, o sin exactamente uno de teléfono/email
+- `400 self_booking_not_allowed` un usuario autenticado no puede reservarse a sí mismo como trabajador asignado (sí puede crear reservas de invitado para clientes)
+- `409 slot_unavailable` el hueco solapa con otra reserva del mismo staff (garantía dura: exclusion constraint en BD)
+- `409 limit_reached` el plan Freemium del negocio alcanzó su tope de reservas del mes natural (Free=100/mes; Premium ilimitado). Mejora a Premium para más.
+
 **Tests (TDD - Crítico):**
 - ✓ Guest: teléfono O email (no ambos, no ninguno)
 - ✓ Guest: encriptar teléfono/email en BD
@@ -233,24 +312,51 @@ Obtener detalles de reserva (guest o owner).
 
 ---
 
-### PATCH /reservations/{id}
-Modificar reserva (cambiar hora).
+### GET /reservations/mine
+"Mis reservas": las del usuario autenticado (no canceladas), ordenadas por inicio.
 
-**Auth:** Optional + token
+**Auth:** Required (JWT)
+**Response:** 200 — array de `ReservationResponse`.
+```json
+[ { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+    "userId": "uuid", "guestId": null,
+    "startTime": "2026-09-05T12:00:00Z", "endTime": "2026-09-05T12:30:00Z", "status": "pending" } ]
+```
+
+**Tests:**
+- ✓ Solo devuelve las reservas del propio usuario (no las de invitados)
+- ✓ 401 sin token
+
+---
+
+### PATCH /reservations/{id}
+Reprogramar reserva: cambia el inicio y **conserva la duración** (el fin se recalcula).
+
+**Auth:** Required (JWT) — autoriza el owner del negocio, el staff del negocio o el propio usuario de la reserva.
 **Request:**
 ```json
 {
-  "newStartTime": "2026-06-20T15:00:00Z",
-  "confirmationToken": "abc123"  // si guest
+  "startTime": "2026-06-20T15:00:00Z"
 }
 ```
 
-**Response:** 200
+**Response:** 200 — la reserva actualizada (`ReservationResponse`).
+
+**Errores:**
+- `401` sin token · `403` sin permiso sobre la reserva
+- `404` la reserva no existe
+- `409 slot_unavailable` el nuevo horario solapa con otra reserva del mismo staff (garantía dura: exclusion constraint en BD)
+- `409 concurrency_conflict` otra operación modificó la reserva entretanto (optimistic locking por `version`)
+
+**Notas:**
+- Auditoría: registra `action='updated'` con el horario anterior (`old_values`) y el nuevo (`new_values`).
+- El pre-check de solape se excluye a sí misma; la BD lo garantiza con el exclusion constraint (ADR #4).
 
 **Tests:**
-- ✓ Validar nuevo slot disponible
-- ✓ Notificar owner + guest
-- ✓ Validar permissions (guest token o user logged)
+- ✓ Reprograma a hueco libre (200, conserva duración) + auditoría
+- ✓ 401 sin token · 403 por otro owner · 409 sobre hueco ocupado
+- ✓ Optimistic locking: version obsoleta → `ReservationConcurrencyException`
+- 🔮 Notificar owner + guest (pendiente: notificaciones)
 
 ---
 
@@ -282,41 +388,64 @@ Cancelar reserva.
 ## Dashboard Owner
 
 ### GET /businesses/{businessId}/dashboard
-Resumen para propietario.
+Resumen del negocio para su propietario.
 
-**Auth:** Required (owner)
+**Auth:** Required (solo el owner del negocio).
 **Response:** 200
 ```json
 {
   "totalReservations": 45,
-  "monthlyRevenue": 1250.00,
+  "reservationsThisMonth": 12,
+  "estimatedMonthlyRevenue": 1250.00,
   "upcomingReservations": [
-    { "id": "...", "guestName": "...", "time": "...", "status": "pending" }
-  ],
-  "noShowRate": 0.05,
-  "occupancyRate": 0.75
+    { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+      "userId": null, "guestId": "uuid",
+      "startTime": "2026-06-20T10:00:00Z", "endTime": "2026-06-20T10:30:00Z", "status": "pending" }
+  ]
 }
 ```
+
+**Métricas:**
+- `totalReservations`: reservas no canceladas del negocio (histórico).
+- `reservationsThisMonth`: reservas cuyo inicio cae en el mes en curso (UTC).
+- `estimatedMonthlyRevenue`: suma del **precio del servicio** de las reservas del mes
+  (los servicios gratuitos suman 0). Es una estimación: el precio puede cambiar con el tiempo.
+- `upcomingReservations`: las próximas (inicio ≥ ahora), ordenadas por inicio, máx. 5
+  (`ReservationResponse`).
+
+**Errores:** `401` sin token · `403` (`forbidden`) si no es el owner · `404` (`business_not_found`) si el negocio no existe.
+
+> Pendiente (🔮): `noShowRate` (requiere marcar asistencia) y `occupancyRate` (requiere
+> aforo sobre el horario). Se omiten a propósito hasta que existan los datos que los sustenten.
+
+**Tests:**
+- ✓ Owner: 200 con contadores + próximas reservas
+- ✓ 401 sin token · 403 por otro owner · 404 negocio inexistente
+- ✓ Ingresos = suma del precio del servicio (gratuito = 0); contadores con ventana de mes
 
 ---
 
 ### GET /businesses/{businessId}/reservations
-Listar reservas del negocio.
+Agenda del negocio: reservas (no canceladas) ordenadas por inicio.
 
-**Auth:** Required (owner)
-**Query params:**
+**Auth:** Required (owner del negocio o staff del negocio; otro usuario → 403)
+**Query params (opcionales):**
 ```
-?status=pending&from=2026-06-01&to=2026-06-30&page=1&limit=20
+?date=2026-09-01     // solo ese día (UTC)
+&staffId=<uuid>      // solo ese trabajador
 ```
 
-**Response:** 200
+**Response:** 200 — array de `ReservationResponse`.
 ```json
-{
-  "total": 120,
-  "page": 1,
-  "data": [...]
-}
+[ { "id": "uuid", "businessId": "uuid", "serviceId": "uuid", "staffId": "uuid",
+    "userId": null, "guestId": "uuid",
+    "startTime": "2026-09-01T10:00:00Z", "endTime": "2026-09-01T10:30:00Z", "status": "pending" } ]
 ```
+
+**Tests:**
+- ✓ Owner ve las reservas del negocio; filtro por fecha
+- ✓ 401 sin token · 403 si no es owner/staff del negocio
+- 🔮 paginación + filtro por estado (pendiente)
 
 ---
 

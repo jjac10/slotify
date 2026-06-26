@@ -1,0 +1,46 @@
+import { test, expect } from '@playwright/test'
+
+/**
+ * El owner configura el horario semanal de su negocio desde la UI y lo guarda.
+ * El editor prefija L–V 09–17, así que basta con guardar para habilitar reservas.
+ */
+
+function unique(): string {
+  return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+}
+
+const PASSWORD = 'SecurePass123!'
+
+test('el owner configura y guarda el horario del negocio', async ({ page }) => {
+  const email = `owner-${unique()}@slotify.test`
+
+  // Registro como propietario
+  await page.goto('/register')
+  await page.getByTestId('register-account-type').selectOption('owner')
+  await page.getByTestId('register-name').fill('Owner Horario')
+  await page.getByTestId('register-email').fill(email)
+  await page.getByTestId('register-password').fill(PASSWORD)
+  await page.getByTestId('register-business-name').fill(`Negocio ${unique()}`)
+  await page.getByTestId('register-submit').click()
+
+  // Esperar a que el registro complete y el owner quede autenticado (su home es el Panel)
+  // antes de recargar en /configuracion; si no, el goto corre antes de guardar el token
+  // y ProtectedRoute rebota a /login.
+  await expect(page).toHaveURL(/\/panel/)
+
+  // Ir a Configuración
+  await page.goto('/configuracion')
+  await expect(page).toHaveURL(/\/configuracion/)
+  // Las secciones de Configuración están plegadas: desplegar "Horario semanal".
+  await page.getByTestId('section-toggle-horario').click()
+  await expect(page.getByTestId('hours-form')).toBeVisible()
+
+  // El lunes viene prefijado como abierto (09:00–17:00)
+  await expect(page.getByTestId('hours-day-1-opening')).toHaveValue('09:00')
+
+  // Cerrar el sábado y guardar
+  await page.getByTestId('hours-day-6-open-toggle').uncheck()
+  await page.getByTestId('hours-save').click()
+
+  await expect(page.getByTestId('hours-saved')).toBeVisible()
+})

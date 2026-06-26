@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Profile - Slotify</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#001f26",
+                        "on-primary-fixed": "#25005a",
+                        "surface-variant": "#d8e3fb",
+                        "inverse-primary": "#d2bbff",
+                        "on-background": "#111c2d",
+                        "surface-tint": "#732ee4",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface-dim": "#cfdaf2",
+                        "on-surface-variant": "#4a4455",
+                        "surface-container": "#e7eeff",
+                        "on-tertiary-container": "#e4e6e8",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-fixed": "#eaddff",
+                        "outline": "#7b7487",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d8e3fb",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-primary-container": "#ede0ff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "surface-container-high": "#dee8ff",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "secondary-fixed": "#acedff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-container": "#006172",
+                        "background": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "secondary-container": "#57dffe",
+                        "outline-variant": "#ccc3d8",
+                        "inverse-surface": "#263143",
+                        "on-surface": "#111c2d",
+                        "tertiary-container": "#646769",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "tertiary": "#4c4f51",
+                        "secondary": "#00687a",
+                        "primary-container": "#7c3aed"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "gutter": "16px",
+                        "container-padding-mobile": "16px",
+                        "stack-xl": "32px",
+                        "stack-lg": "24px",
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "container-padding-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "button": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "button": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background flex items-center justify-between px-container-padding-mobile h-16 w-full">
+<div class="flex items-center gap-stack-md">
+<button class="material-symbols-outlined text-on-surface hover:bg-surface-container-low transition-colors rounded-full p-2 active:scale-95 duration-200">menu</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Slotify</h1>
+</div>
+<div class="flex items-center gap-stack-sm">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of Alex Rivers, a stylish man in his late 20s with a friendly expression. He is wearing a minimalist dark charcoal blazer against a clean, soft-lit studio background. The lighting is bright and modern, consistent with a high-end corporate lifestyle aesthetic. The color palette is composed of crisp whites, slate greys, and a subtle touch of purple vitality in the reflections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_M7IedJSopFCPo_aIswpJSNZudzQbWVW6mNjq4-SaPLUtPyewHGhOlUk2c1Jc1FNVUoTr9VsGMZX333Lak0CAJVdOcjpTN3A5Fxx7cisyfLvb1xhRdF1laq9nBKVTuLOyMqyUn_qpbK4aG91z2ODaPVDtOEfAe8zF0-wvvEy2noGFnOyMzz2HZPPfWHmbxJyawUjtyuaFa2gpIuINAi-4xBGItQshBttZlkPLSBgoSZBDpqAq6wdLtfNUuohLmIn2_AJOu-b7NXrC"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-container-padding-mobile md:px-container-padding-desktop max-w-5xl mx-auto">
+<!-- Profile Header Section -->
+<section class="mb-stack-xl flex flex-col md:flex-row items-center md:items-start gap-stack-lg">
+<div class="relative">
+<div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+<img alt="Alex Rivers Profile" class="w-full h-full object-cover" data-alt="A detailed, close-up portrait of a modern professional male, Alex Rivers, looking confidently at the camera. The setting is a bright, airy architectural space with clean lines and natural light. The aesthetic is professional yet energetic, using a high-utility minimalist approach. The colors are predominantly white and soft slate with a focused Morado purple accent in the background decor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6uMS9_n8QmX0BKEdLh4bUIQY2eHsSH592zPA4iU-2Z1Zhw3xXuTcJPdyDC6vsbANhaOyRTxyKYHJUA1t7umEDthns8vzT1vQUubEqVkXSq6lEgg2ySNvIWTXW-uz_Ye0ZZQvT-6fR33mCJR4HoozMuEVA7Ap6mmbjc8Hm9CGoBtThKN6Geg-GcOeu0-3A7_xdqY-WvhnJ_0E_r7eYUgYysoxKUpS7gwB6-bKDOlrU_-mKcu0OkI23QEDAOldI1OMubh7Ks_7QpQIR"/>
+</div>
+<button class="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg hover:opacity-90 transition-opacity active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+<div class="text-center md:text-left flex-1">
+<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-stack-sm">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Alex Rivers</h2>
+<p class="text-on-surface-variant font-body-md flex items-center justify-center md:justify-start gap-1">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+                            Pro Member since 2023
+                        </p>
+</div>
+<button class="bg-primary text-white font-button text-button px-stack-lg py-3 rounded-xl hover:shadow-lg transition-all active:scale-95 mt-stack-md md:mt-0">
+                        Edit Profile
+                    </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-stack-lg">
+<div class="flex items-center gap-stack-md bg-surface-container-low p-stack-md rounded-xl">
+<span class="material-symbols-outlined text-primary">mail</span>
+<div class="text-left">
+<p class="text-label-md font-label-md text-on-surface-variant">Email Address</p>
+<p class="text-body-md font-medium">alex.rivers@slotify.com</p>
+</div>
+</div>
+<div class="flex items-center gap-stack-md bg-surface-container-low p-stack-md rounded-xl">
+<span class="material-symbols-outlined text-primary">phone_iphone</span>
+<div class="text-left">
+<p class="text-label-md font-label-md text-on-surface-variant">Phone Number</p>
+<p class="text-body-md font-medium">+1 (555) 0123-4567</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Sections -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- My Bookings (Main Section) -->
+<div class="md:col-span-8 flex flex-col gap-stack-md">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface">My Bookings</h3>
+<a class="text-primary text-label-md font-semibold hover:underline" href="#">View All</a>
+</div>
+<!-- Booking Cards -->
+<div class="space-y-4">
+<div class="glass-card p-stack-md rounded-xl flex items-center gap-stack-md group cursor-pointer hover:bg-white transition-colors">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Luxe Salon" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A bright, modern hair salon interior with minimalist workstations and large mirrors. The aesthetic is clean and high-end, featuring white walls and warm wood accents. The lighting is soft and flattering, creating a premium and inviting atmosphere. Vibrant purple branding accents are visible on hair product bottles on the shelves." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDiGQutOhP4fP2SM5Tr-pLxGRFajsOPTqMF7Bgp0kYRiwFBE9KyycBIeGRittFWjxQRFR4N99nxXAITgc8iBPezd4mEBlJ1mEzPDmM7BFRsD84tkoXRxdvT7Ms0iYVPGSZgdaYKEjuk6BZWkvgjosxCdVi6Oh0KvhwDWU-uMIKeeAkkURp-ISsIxnG7Rf0CXs0zdaCFEw1SvJ0dSwa3Wj2ReFuSab5WQ8ZWIHeA8y4-yw86QEj3waFjvOx6jBkUWPWd1Duym_dKCww"/>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-on-surface">Precision Haircut</h4>
+<p class="text-label-md text-on-surface-variant">Luxe Salon • Tomorrow at 10:30 AM</p>
+</div>
+<span class="bg-secondary-container text-on-secondary-container text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Upcoming</span>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<div class="glass-card p-stack-md rounded-xl flex items-center gap-stack-md group cursor-pointer hover:bg-white transition-colors">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Zen Wellness" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A serene spa environment with stacked smooth stones and a single white orchid. The background is a soft, out-of-focus light slate wall. The mood is extremely tranquil and clean, evoking reliability and professional wellness. The composition is balanced and minimalist, emphasizing a high-end luxury service experience." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6FseoUX749II4uMaMVu25WD5CMtQT1n_M4mEws6rKsc3WoPlLBnP6e8B01Stb51jiRFz3mO2RN0wjZK6fV15npwL-9nl5Y6tnis2ihWTVMXMRQWwKWW_8OSVfXZMHJJUNkmyQEy8HjFdejUwPvVtcClo94__ctx8lQ_muwbmWxbSoVTHRpdRN-b4BOUzIzBAozc5JAavBMjmtxcxkZZfLzaZlMlKX0Y3Yk9RWsGOoXgxMdxW2Punas3QKJKF8mwLB7z8iu3a3GtuW"/>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-on-surface">Deep Tissue Massage</h4>
+<p class="text-label-md text-on-surface-variant">Zen Wellness • Oct 12, 2023</p>
+</div>
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Completed</span>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</div>
+<!-- Favorite Businesses -->
+<div class="mt-stack-lg">
+<div class="flex items-center justify-between mb-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Favorite Businesses</h3>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+<div class="group cursor-pointer">
+<div class="aspect-square rounded-xl overflow-hidden mb-2 relative">
+<img alt="Flow Yoga" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A modern yoga studio with floor-to-ceiling windows, light wood floors, and neatly arranged mats. The sunlight spills across the floor, creating a bright and airy atmosphere of vitality. The design is minimalist and professional, focusing on a premium user experience. Subtle purple yoga blocks provide a pop of the brand's primary color." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVPghtc1mjp8UBvbCdmz5nUAZ2gjPaytx32NAnG_GaPFfZ1Wpp2ydZJrmCiaPqK8goDdtjWsGA5CtbY46-bM5fN9AlvJaB3jXKi6hb9gQFhpQlxfxxqSkP7um_d4Ndwss7ntK599IkEeIWuDxjcpEru5iQ-QKJItu7GD77on2GV0tvJ1zMNlmG5xSGbGgl98BwCwuMoL6SRvxZZep5iZd9xdzAJDARtKWgCSXsLAngBMGPPKi1Ff19PuxMUCAwiVKmGXd4_k6eM31t"/>
+<div class="absolute top-2 right-2 bg-white/80 backdrop-blur p-1 rounded-full text-error">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+</div>
+<p class="font-semibold text-body-md text-on-surface truncate">Flow Yoga Studio</p>
+<p class="text-label-md text-on-surface-variant">4.9 ★ (1.2k reviews)</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-square rounded-xl overflow-hidden mb-2 relative">
+<img alt="Urban Grind" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A minimalist boutique coffee shop interior with sleek metal surfaces and warm pendant lighting. The aesthetic is clean, urban, and modern. The setting feels professional and inviting, perfect for a local business discovery platform. A high-contrast Morado purple chair in the corner provides a signature brand accent." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuJadToby5BB6XFjEkGMNQaS1f_GBCGpJh8y00L_EilLrMx_yy876iCtcDAufHS2jlsyuh1i5QE0yfP9kyLX6ny_-dpSmYgWm8nReMsbV4E9jQHvz7iTf3UtGlN_cGE45ZyVECuBt0JF6RDDKtpp0MNw7cOY8apPIExqDnrS--V23EKuGPCeFDNDaHDtGjUfCQeqcwCB-pxzqOyUMf3S95m4BKd3I3l-TBQc6LP63XztUMt4QcuPFb3dhUFSNDGLuoHR5uAn9wXbh9"/>
+<div class="absolute top-2 right-2 bg-white/80 backdrop-blur p-1 rounded-full text-error">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+</div>
+<p class="font-semibold text-body-md text-on-surface truncate">Urban Grind</p>
+<p class="text-label-md text-on-surface-variant">4.7 ★ (850 reviews)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Cards (Payments & Settings) -->
+<div class="md:col-span-4 flex flex-col gap-gutter">
+<!-- Payment Methods -->
+<div class="bg-white p-stack-md rounded-2xl border border-outline-variant">
+<div class="flex items-center justify-between mb-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Payments</h3>
+<span class="material-symbols-outlined text-primary">add_circle</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center gap-stack-md p-3 rounded-lg bg-surface-container-lowest border border-outline-variant hover:border-primary transition-colors cursor-pointer">
+<div class="bg-[#1A1A1A] w-12 h-8 rounded flex items-center justify-center text-white text-[10px] font-bold">VISA</div>
+<div class="flex-1">
+<p class="text-body-md font-semibold text-on-surface">•••• 4242</p>
+<p class="text-label-md text-on-surface-variant">Expires 12/25</p>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+</div>
+<div class="flex items-center gap-stack-md p-3 rounded-lg bg-surface-container-lowest border border-outline-variant hover:border-primary transition-colors cursor-pointer">
+<div class="bg-primary-container w-12 h-8 rounded flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md font-semibold text-on-surface">Slotify Pay</p>
+<p class="text-label-md text-on-surface-variant">Balance: $42.50</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Notification Settings -->
+<div class="bg-white p-stack-md rounded-2xl border border-outline-variant">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-stack-md">Notifications</h3>
+<div class="space-y-4">
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-body-md font-medium text-on-surface">Push Notifications</span>
+<span class="text-label-md text-on-surface-variant">Booking reminders &amp; updates</span>
+</div>
+<div class="relative inline-flex items-center">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-body-md font-medium text-on-surface">Email Marketing</span>
+<span class="text-label-md text-on-surface-variant">Special offers &amp; newsletters</span>
+</div>
+<div class="relative inline-flex items-center">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+</div>
+</div>
+<!-- Quick Actions List -->
+<nav class="flex flex-col py-stack-sm bg-surface-container-low rounded-2xl overflow-hidden">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-body-md">Account Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="text-body-md">Help Center</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="text-body-md font-semibold">Log Out</span>
+</a>
+</nav>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe w-full">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-label-md">Bookings</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary font-semibold hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</button>
+</nav>
+<!-- FAB Suppression Logic: Not rendering FAB on Profile Screen as per instructions -->
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousedown', () => {
+                card.style.transform = 'scale(0.98)';
+            });
+            card.addEventListener('mouseup', () => {
+                card.style.transform = 'scale(1)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simple fade-in animation on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = document.querySelectorAll('main > *');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+                setTimeout(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+</body></html>

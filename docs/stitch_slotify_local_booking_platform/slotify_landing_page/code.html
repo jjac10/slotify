@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify - Reserva tu cita sin descargas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        
+        .hero-gradient {
+            background: radial-gradient(circle at top right, #7C3AED 0%, #630ed4 100%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+<!-- Tailwind Config Verbatim -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#e4e6e8",
+                    "surface-variant": "#d8e3fb",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "surface-container-highest": "#d8e3fb",
+                    "error": "#ba1a1a",
+                    "secondary": "#00687a",
+                    "tertiary": "#4c4f51",
+                    "surface-container": "#e7eeff",
+                    "secondary-container": "#57dffe",
+                    "inverse-on-surface": "#ecf1ff",
+                    "on-tertiary-fixed": "#191c1e",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-container-high": "#dee8ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#cfdaf2",
+                    "outline-variant": "#ccc3d8",
+                    "primary": "#630ed4",
+                    "surface": "#f9f9ff",
+                    "outline": "#7b7487",
+                    "on-secondary-fixed": "#001f26",
+                    "on-secondary-container": "#006172",
+                    "primary-container": "#7c3aed",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#25005a",
+                    "on-background": "#111c2d",
+                    "on-primary-container": "#ede0ff",
+                    "on-tertiary": "#ffffff",
+                    "background": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "on-surface-variant": "#4a4455",
+                    "tertiary-container": "#646769",
+                    "primary-fixed-dim": "#d2bbff",
+                    "surface-bright": "#f9f9ff",
+                    "on-surface": "#111c2d",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "inverse-surface": "#263143",
+                    "inverse-primary": "#d2bbff",
+                    "surface-tint": "#732ee4",
+                    "secondary-fixed": "#acedff",
+                    "primary-fixed": "#eaddff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter": "16px",
+                    "container-padding-desktop": "32px",
+                    "container-padding-mobile": "16px",
+                    "stack-xl": "32px",
+                    "unit": "4px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "button": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-secondary-container/30">
+<!-- TopAppBar Content & Identity from JSON -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-container-mobile h-16 bg-white shadow-sm md:px-container-padding-desktop">
+<div class="flex items-center gap-stack-sm">
+<img alt="Slotify Logo" class="h-8 w-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjinivjbNNMij-nLlr3XBcIya-zEmBRuUBu2QOSeign7wBRaB2YOdNHVzCOkcPL50N05sbn_TSIAAD1cM_uEnYqnfvX7pgln3DMQe5-YZUOV58TqmhqfSZ8FaXwQ5EAzcP5L0rsHbZLHNwggqeafYKBfpOMaqLAfdBHQAPRIpKuGhPdxPzzwlts3yP5CBN1DVhYuTq7abx2k9TxmgQ0TvPRiTpR_o0BCxTD53cxs2LCV8O_eCx9xskya4YbfexNWtZZpce0Hhoe8Wp"/>
+<span class="font-headline-md text-headline-md font-bold text-primary">Slotify</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="md:hidden p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="hidden md:flex gap-stack-lg items-center text-label-md font-label-md">
+<a class="text-primary font-bold" href="#">Inicio</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Servicios</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Precios</a>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-full font-button text-button active:scale-95 transition-all">Acceder</button>
+</div>
+</div>
+</header>
+<main class="pt-16">
+<!-- Hero Section -->
+<section class="relative overflow-hidden hero-gradient min-h-[85vh] flex flex-col justify-center items-center text-center px-container-padding-mobile text-white pt-stack-xl pb-stack-xl">
+<!-- Decorative Elements -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-secondary-container opacity-20 blur-[100px] rounded-full"></div>
+<div class="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-container opacity-30 blur-[100px] rounded-full"></div>
+<div class="relative z-10 max-w-4xl mx-auto">
+<span class="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-label-md font-label-md mb-stack-md animate-fade-in">
+                    Simple • Rápido • Sin Instalación
+                </span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg mb-stack-md leading-tight">
+                    Reserva tu cita <br class="hidden md:block"/> <span class="text-secondary-fixed">sin descargas</span>
+</h1>
+<p class="font-body-lg text-body-lg text-white/80 max-w-2xl mx-auto mb-stack-xl">
+                    La plataforma más intuitiva para reservar servicios locales. Olvídate de registros pesados y aplicaciones que ocupan espacio.
+                </p>
+<!-- CTAs -->
+<div class="flex flex-col md:flex-row gap-stack-md justify-center items-center">
+<button class="w-full md:w-auto px-8 py-4 bg-secondary-container text-on-secondary-container rounded-xl font-button text-button shadow-lg shadow-secondary/20 hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">search</span>
+                        Buscar negocio
+                    </button>
+<button class="w-full md:w-auto px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl font-button text-button hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">storefront</span>
+                        Soy propietario
+                    </button>
+</div>
+</div>
+<!-- Floating Card Illustration -->
+<div class="mt-stack-xl relative z-10 max-w-sm mx-auto animate-float">
+<div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed"></div>
+<div class="text-left">
+<p class="text-label-md font-bold text-white">Barbería Elite</p>
+<p class="text-[10px] text-white/60">Disponible hoy</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed">verified</span>
+</div>
+<div class="grid grid-cols-3 gap-2 mb-4">
+<div class="bg-white/20 h-8 rounded-lg"></div>
+<div class="bg-secondary-fixed h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-on-secondary-container">16:30</div>
+<div class="bg-white/20 h-8 rounded-lg"></div>
+</div>
+<div class="w-full h-10 bg-white rounded-lg"></div>
+</div>
+</div>
+</section>
+<!-- Features Row -->
+<section class="py-stack-xl px-container-padding-mobile max-w-7xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-stack-lg">
+<!-- Feature 1 -->
+<div class="p-stack-md bg-white rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary mb-stack-md group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">no_accounts</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Reserva sin registro</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        Entra, elige tu servicio y confirma. No pedimos contraseñas innecesarias ni formularios largos.
+                    </p>
+</div>
+<!-- Feature 2 -->
+<div class="p-stack-md bg-white rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary mb-stack-md group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">notifications_active</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Recordatorios automáticos</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        Te avisamos por WhatsApp o Email antes de tu cita para que nunca te olvides de nada importante.
+                    </p>
+</div>
+<!-- Feature 3 -->
+<div class="p-stack-md bg-white rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary mb-stack-md group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">person_pin</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Hiper-personalización</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        El sistema aprende tus preferencias para ofrecerte los horarios que mejor se adaptan a tu ritmo de vida.
+                    </p>
+</div>
+</div>
+</section>
+<!-- QR Code Section -->
+<section class="bg-surface-container-low py-stack-xl px-container-padding-mobile">
+<div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-stack-xl bg-white p-stack-xl rounded-3xl border border-outline-variant shadow-sm">
+<div class="flex-1 text-center md:text-left">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:text-headline-md text-on-surface mb-stack-md">Accede desde tu móvil</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-lg">
+                        Escanea el código QR para descubrir los mejores negocios cerca de ti. Sin descargar nada, directamente en tu navegador móvil con la mejor experiencia de usuario.
+                    </p>
+<div class="flex flex-wrap justify-center md:justify-start gap-4">
+<div class="flex items-center gap-2 text-on-surface-variant text-label-md font-label-md">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Optimizado para iOS & Android
+                        </div>
+<div class="flex items-center gap-2 text-on-surface-variant text-label-md font-label-md">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Carga ultra-rápida
+                        </div>
+</div>
+</div>
+<div class="w-48 h-48 bg-surface-container flex items-center justify-center rounded-2xl border-4 border-white shadow-lg shrink-0 relative overflow-hidden group">
+<!-- QR Placeholder -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
+<span class="material-symbols-outlined text-8xl text-primary/40 group-hover:scale-110 transition-transform duration-300">qr_code_2</span>
+<div class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+</div>
+</div>
+</section>
+<!-- Image Bento (Atmospheric) -->
+<section class="py-stack-xl px-container-padding-mobile max-w-7xl mx-auto">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+<div class="col-span-2 row-span-2 rounded-2xl overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="A modern and luxurious hair salon interior with minimal furniture, warm ambient lighting, and Morado and Cyan color accents. The atmosphere is professional, clean, and inviting, reflecting the brand's precision and vitality aesthetic. Soft focus on styling tools in the foreground." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd9AVelnicTUcLotw6s_eamEqrhaNfxSNvGJeUCsIONcOF6o6-JSt6_f_CIds9s9alMktK3ZZeLz9uM_aMOtW1-jTDd-SWRKxF9jKSE7RnXOtTyzNnrIcRI67-7AwABERz4Te3LkwSws87g4Q3illpc2rVcUZhWAVUHTwXkHQ9fAe1HhpS_N7wB33Bmqxx2VSoYG6ZFJoJF_wze213FO7H0RmRl6IzKe8HNrDx90xV6wapX1NHWLIyzC-d7BC9cBe--PB9Y_ZL8vfg"/>
+</div>
+<div class="rounded-2xl overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Close up of a professional aesthetician's workspace featuring high-end skincare products arranged neatly on a white marble surface. The lighting is high-key and bright, evoking a sense of reliability and cleanliness. Subtle purple reflections hint at the Slotify brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoK3ld0oQuQQYNzuZon2keZ-jTXatAQ2Uv_vPnFhwHteEvYBzKEVhf5W26EGfN-iNF6S1V78-vIGMi79IB7JqQqDSjWyMBIM9YlOH1AvrGXtckILcP4b4VWDpWwv2J-lvvY7MhAxsY7OLfrKp0TubSS9TwzzzGJMXkX3m-gNK-jNEOmNU_K7xfK6--rjS-SEVMhQz96BEc_R42on4LsY8LC-jL6UhmNd7m1KpeWA-QgdXywWgRJsUMe57VC52P57Y5Fa06LTJY9-Sn"/>
+</div>
+<div class="rounded-2xl overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="A stylish barber focused on his craft in a modern shop with exposed brick and industrial lighting. The mood is energetic and artisan-focused. High-contrast lighting highlights the precision of the service, aligned with the corporate modern design system of the booking platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3grwGJSMLE6HePTPRJZ-4GKisAFN8zFPqhWhmXmuBlORVIvQY5gECnxpgvwxgiWV62KSQPQcLIA8VZwtAFL0oNNnMbZHpKvEiaKY2CpVuoUWwm68-G0BP0DATeJVyoe_LeUfrMIbuWQvVXaCFSKL13lSkyDJnKZVWntkk8kaWVG25gCeCBnJT968B2Pvsf-aychoBJK1auulWUAdsKX61oYrsIUmXooTStmmHMxlgcYv27oXd8ZykrqCtr2XxAnrxNEj1uV1e3qCj"/>
+</div>
+<div class="col-span-2 rounded-2xl overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="An airy spa reception area with minimalist decor, featuring a touch-screen tablet for digital check-ins. The space uses a palette of light slates and whites with a punch of vibrant Morado purple. The environment is serene, technologically advanced, and sophisticated." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_V-O9LxOMtfjkuzJ9rBGcy_CFfMolZC86qa8zGc6VxcUMR56K1KJJUUDQ4Iu_EIlt8rWV_68QdteF1NUGidO451AtT_vPOzp6kRCSDh5ymKY5BXTPFCVzcV7Vhgg3uOefSRlmx7jlSNc_FysYk8LMYL-lNim6KLV1LC0PMCVYdxgT0bbKSe8t9wsLe0OsRUMEmpcESDQhghrZSWR2dz2V6ZmG9HhZ1amvZIPpP7WrenWyFbE2twC6oFZoZW4zs13kie4laTtTsVQp"/>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Hidden on desktop as per Shell Visibility rules) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center h-16 px-4 pb-safe bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+<!-- Mapping to "Explore" as active for landing -->
+<a class="flex flex-col items-center justify-center text-primary font-semibold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-md text-[10px]">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-[10px]">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-[10px]">Inbox</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+<!-- Minimal Mobile Footer -->
+<footer class="bg-surface-container-highest/30 pt-stack-xl pb-24 md:pb-stack-xl px-container-padding-mobile border-t border-outline-variant/30">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-stack-md">
+<div class="flex items-center gap-2">
+<img alt="Slotify Logo" class="h-6 w-6 grayscale opacity-60" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjinivjbNNMij-nLlr3XBcIya-zEmBRuUBu2QOSeign7wBRaB2YOdNHVzCOkcPL50N05sbn_TSIAAD1cM_uEnYqnfvX7pgln3DMQe5-YZUOV58TqmhqfSZ8FaXwQ5EAzcP5L0rsHbZLHNwggqeafYKBfpOMaqLAfdBHQAPRIpKuGhPdxPzzwlts3yP5CBN1DVhYuTq7abx2k9TxmgQ0TvPRiTpR_o0BCxTD53cxs2LCV8O_eCx9xskya4YbfexNWtZZpce0Hhoe8Wp"/>
+<span class="text-label-md font-bold text-on-surface-variant uppercase tracking-wider">Slotify</span>
+</div>
+<div class="flex gap-stack-md text-on-surface-variant font-label-md">
+<a class="hover:text-primary" href="#">Términos</a>
+<a class="hover:text-primary" href="#">Privacidad</a>
+<a class="hover:text-primary" href="#">Contacto</a>
+</div>
+<p class="text-[10px] text-on-surface-variant/60 font-label-md">
+                © 2024 Slotify Inc. Reserva con inteligencia.
+            </p>
+</div>
+</footer>
+<script>
+        // Micro-interaction for hover states
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                // Potential for lightweight hover sound or subtle animation
+            });
+        });
+
+        // Intersection Observer for fade-in effects
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('section > div').forEach(el => {
+            el.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(el);
+        });
+    </script>
+</body></html>

@@ -94,9 +94,11 @@ public class MongoReservationRepository : IReservationRepository { }
 
 **Decision:** Versioning + Unique constraint
 ```sql
--- Unique constraint
-CREATE UNIQUE INDEX idx_no_double_booking 
-ON reservations(service_id, start_time, status) 
+-- Unique constraint POR TRABAJADOR (no por service): dos trabajadores pueden dar
+-- el mismo servicio a la vez, así que la unicidad va sobre (staff_id, start_time).
+-- Si fuera por service bloquearía reservas legítimas. Schema canónico: DATA_MODEL.md.
+CREATE UNIQUE INDEX idx_no_double_booking
+ON reservations(staff_id, start_time)
 WHERE status != 'cancelled';
 
 -- Entity versioning
@@ -104,6 +106,10 @@ public class Reservation {
     public int Version { get; set; } // Incrementa en cada UPDATE
 }
 ```
+
+> Esto evita solapamientos exactos de inicio. Los solapamientos parciales
+> (una cita de 60 min que pisa otra del mismo `staff_id`) se validan en la capa
+> de servicio comprobando rangos `[start_time, end_time)`.
 
 **Flow:**
 1. READ reservation (versión 0)
@@ -258,18 +264,20 @@ GROUP BY DATE_TRUNC('month', start_time);
 
 **Decision:** Feature flags + DB parametrización
 ```sql
--- pricing_tiers table
+-- pricing_tiers table (schema canónico completo en DATA_MODEL.md)
 CREATE TABLE pricing_tiers (
   id UUID PRIMARY KEY,
-  name VARCHAR(50), -- "free", "premium"
-  max_reservations_per_month INT,
+  code VARCHAR(50) UNIQUE NOT NULL, -- "free", "premium" (clave estable usada en código)
+  name VARCHAR(100) NOT NULL,       -- nombre visible
+  max_reservations_per_month INT,   -- NULL = ilimitado
   max_services INT,
   max_staff INT,
   has_api BOOLEAN,
   ...
 );
 
--- business.plan_id referencia pricing_tiers
+-- businesses.tier_id (NOT NULL) referencia pricing_tiers.
+-- El plan vive en el NEGOCIO, no en el user: un owner puede tener varios negocios.
 ```
 
 **Validation en Service:**
@@ -425,27 +433,34 @@ ORDER BY created_at DESC;
 **Status:** ✅ Accepted
 **Context:** Invitado reserva sin cuenta, luego quiere registrarse
 
-**Decision:** Endpoint `/auth/link-reservations`
-- Invitado crea reserva con teléfono/email
-- Luego se registra con mismo teléfono/email
-- Llamar link → sincroniza reservas históricas
+**Decision:** Sincronización **automática en el registro** (sin endpoint manual).
+- Invitado crea reserva → se crea un `guest` con `phone_hash`/`email_hash` (HMAC,
+  blind index) y `phone_encrypted`/`email_encrypted` (AES-GCM, recuperable).
+- Al registrarse con el mismo teléfono/email, el backend enlaza los guests
+  poniendo `guests.user_id`. El historial se ve por `user_id` (directo) o por los
+  `guest_id` ya vinculados al user. La reserva NUNCA cambia su `guest_id` a un
+  user (el CHECK `user_or_guest` exige exactamente uno de los dos).
 
 **Flow:**
 ```
 1. POST /reservations (guest, phone="+34...")
-   → reservation.guest_id = NULL, guest_phone_encrypted = "AES(...)"
+   → guest.phone_hash = HMAC("+34..."), guest.phone_encrypted = AES("+34...")
+   → reservation.guest_id = guest.id, reservation.user_id = NULL
 
 2. POST /auth/register (email, phone="+34...")
    → user.id = "user-123"
+   → UPDATE guests SET user_id = "user-123"
+     WHERE phone_hash = HMAC("+34...") OR email_hash = HMAC(email)
 
-3. POST /auth/link-reservations (phone="+34...")
-   → UPDATE reservations SET guest_id = "user-123" WHERE guest_phone = "AES(...)"
+3. GET /my-reservations
+   → WHERE user_id = "user-123"
+        OR guest_id IN (SELECT id FROM guests WHERE user_id = "user-123")
 ```
 
 **Consequences:**
-- ✅ No pierden historial
-- ✅ UX seamless
-- ❌ Requiere comparación de encrypted values (lento si muchos invitados)
+- ✅ No pierden historial; UX seamless (sin paso extra)
+- ✅ Búsqueda/unicidad por `*_hash` (HMAC determinista), no por AES (rápido)
+- ❌ Requiere normalizar antes del HMAC (teléfono E.164, email lowercase+trim)
 
 ---
 

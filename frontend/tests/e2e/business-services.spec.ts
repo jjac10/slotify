@@ -1,0 +1,53 @@
+import { test, expect } from '@playwright/test'
+
+/**
+ * El owner ve su negocio (nombre + id) y crea un servicio desde la UI;
+ * el servicio aparece en la lista. Corre contra el stack real.
+ */
+
+function unique(): string {
+  return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+}
+
+const PASSWORD = 'SecurePass123!'
+
+test('el owner ve su negocio y crea un servicio', async ({ page }) => {
+  const suffix = unique()
+  const email = `owner-${suffix}@slotify.test`
+  const businessName = `Barbería ${suffix}`
+
+  // Registro como propietario → queda autenticado como owner
+  await page.goto('/register')
+  await page.getByTestId('register-account-type').selectOption('owner')
+  await page.getByTestId('register-name').fill('Owner E2E')
+  await page.getByTestId('register-email').fill(email)
+  await page.getByTestId('register-password').fill(PASSWORD)
+  await page.getByTestId('register-business-name').fill(businessName)
+  await page.getByTestId('register-submit').click()
+
+  // Esperar a que el registro complete y el owner quede autenticado (su home es el Panel)
+  // antes de recargar en /configuracion; si no, el goto corre antes de guardar el token
+  // y ProtectedRoute rebota a /login.
+  await expect(page).toHaveURL(/\/panel/)
+
+  // El owner navega a Configuración
+  await page.goto('/configuracion')
+  await expect(page).toHaveURL(/\/configuracion/)
+
+  // Ve el nombre de su negocio + lista de servicios vacía
+  await expect(page.getByTestId('business-name')).toHaveText(businessName)
+  // Las secciones de Configuración están plegadas: desplegar "Servicios".
+  await page.getByTestId('section-toggle-servicios').click()
+  await expect(page.getByTestId('services-empty')).toBeVisible()
+
+  // Crea un servicio (el formulario está plegado tras un botón "Nuevo servicio")
+  await page.getByTestId('new-service-toggle').click()
+  await page.getByTestId('service-name').fill('Corte de cabello')
+  await page.getByTestId('service-duration').fill('30')
+  await page.getByTestId('service-price').fill('25')
+  await page.getByTestId('create-service-submit').click()
+
+  // Aparece en la lista
+  await expect(page.getByTestId('services-list')).toBeVisible()
+  await expect(page.getByTestId('service-item').filter({ hasText: 'Corte de cabello' })).toBeVisible()
+})

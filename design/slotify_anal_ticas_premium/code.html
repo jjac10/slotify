@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Slotify Analytics - Premium Business Insights</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "on-surface": "#111c2d",
+                    "surface-tint": "#732ee4",
+                    "surface": "#f9f9ff",
+                    "inverse-surface": "#263143",
+                    "surface-variant": "#d8e3fb",
+                    "on-secondary-container": "#006172",
+                    "primary-fixed-dim": "#d2bbff",
+                    "on-primary-container": "#ede0ff",
+                    "surface-container-high": "#dee8ff",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#646769",
+                    "surface-container-highest": "#d8e3fb",
+                    "outline-variant": "#ccc3d8",
+                    "outline": "#7b7487",
+                    "background": "#f9f9ff",
+                    "on-primary-fixed": "#25005a",
+                    "on-background": "#111c2d",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "on-secondary-fixed": "#001f26",
+                    "secondary": "#00687a",
+                    "on-surface-variant": "#4a4455",
+                    "on-tertiary-fixed": "#191c1e",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "inverse-primary": "#d2bbff",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-container": "#e7eeff",
+                    "surface-dim": "#cfdaf2",
+                    "primary-container": "#7c3aed",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-bright": "#f9f9ff",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#eaddff",
+                    "tertiary": "#4c4f51",
+                    "primary": "#630ed4",
+                    "on-tertiary-container": "#e4e6e8",
+                    "inverse-on-surface": "#ecf1ff",
+                    "secondary-fixed": "#acedff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#57dffe",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter": "16px",
+                    "container-padding-desktop": "32px",
+                    "stack-xl": "32px",
+                    "container-padding-mobile": "16px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "button": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "button": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f9f9ff;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E2E8F0;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d8e3fb;
+            border-radius: 10px;
+        }
+        .chart-bar {
+            transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface custom-scrollbar">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background flex items-center justify-between px-container-mobile h-16 w-full shadow-sm md:px-container-padding-desktop">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-primary dark:text-primary-fixed-dim p-2 hover:bg-surface-container-low transition-colors rounded-full">menu</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Slotify</h1>
+</div>
+<!-- Desktop Nav Integration -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-primary font-bold dark:text-primary-fixed-dim text-label-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary transition-colors text-label-md" href="#">Bookings</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary transition-colors text-label-md" href="#">Messages</a>
+</nav>
+<div class="flex items-center gap-stack-md">
+<button class="material-symbols-outlined text-on-surface-variant p-2">notifications</button>
+<div class="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a business executive in a high-key office environment. The subject is wearing a modern charcoal suit with a soft, confident smile. The background features blurred glass walls and minimalist furniture in a cool blue and white palette, reflecting a corporate modern aesthetic with precise lighting and energetic vitality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNfpTsCzVk7qmOgZr1PWt6_QFAKT_9XdJLSqdkOqqHidiCu6ZvbQQmDeaElYxFxY70Cs6gukZ8rc0ASx-ofpY61FBxLibYy3FnRyascD2bJ_GxNhnc613UqeddWV23lTejYNpuNpY6d2Ii9x6xCeShgC2DOZZz3nFcW7O0VWnYPpnNq40-TFcT4IISzu9MhOLgII7UE9n4-W_uhAU8LE4DkZNMscQZFzOAX2APnrUOor8utD-e3H-dpjZHzhBGkqTX07xPP1R9t8g8"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-container-mobile md:px-container-padding-desktop max-w-7xl mx-auto">
+<!-- Header & Date Picker -->
+<section class="flex flex-col md:flex-row md:items-center justify-between gap-gutter mb-stack-xl">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Analytics Hub</h2>
+<p class="text-on-surface-variant text-body-md">Visión general del rendimiento de tu negocio.</p>
+</div>
+<div class="flex items-center gap-stack-sm bg-white p-1 rounded-xl border border-outline-variant/30 shadow-sm">
+<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-button transition-transform active:scale-95">7 Días</button>
+<button class="px-4 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant text-button">30 Días</button>
+<button class="px-4 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant text-button">Trimestre</button>
+<div class="h-6 w-px bg-outline-variant mx-1"></div>
+<button class="material-symbols-outlined text-on-surface-variant p-2 hover:bg-surface-container rounded-lg">calendar_month</button>
+</div>
+</section>
+<!-- Bento Grid Stats -->
+<div class="bento-grid">
+<!-- Summary Main Card -->
+<article class="col-span-12 lg:col-span-8 p-stack-lg glass-card rounded-xl flex flex-col gap-stack-lg">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Crecimiento Total</h3>
+<p class="text-body-md text-on-surface-variant">Ingresos vs Reservas este mes</p>
+</div>
+<div class="flex gap-stack-md">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary"></span>
+<span class="text-label-md">Ingresos</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary-container"></span>
+<span class="text-label-md">Reservas</span>
+</div>
+</div>
+</div>
+<div class="relative h-64 w-full flex items-end justify-between px-2 overflow-hidden">
+<!-- Fake Chart Bars -->
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 40%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 60%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">LUN</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 55%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 45%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">MAR</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary rounded-t-sm" style="height: 85%"></div>
+<div class="w-1/2 bg-secondary-container rounded-t-sm" style="height: 70%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">MIE</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 65%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 50%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">JUE</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 90%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 80%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">VIE</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 45%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 35%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">SAB</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full max-w-[40px]">
+<div class="w-full flex gap-1 items-end h-full">
+<div class="w-1/2 bg-primary/20 rounded-t-sm group-hover:bg-primary transition-colors" style="height: 30%"></div>
+<div class="w-1/2 bg-secondary-container/20 rounded-t-sm group-hover:bg-secondary-container transition-colors" style="height: 20%"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">DOM</span>
+</div>
+</div>
+</article>
+<!-- Quick Stats -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-stack-md">
+<div class="p-6 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-between shadow-lg shadow-primary/10">
+<div>
+<p class="text-label-md opacity-80">Ingresos Totales</p>
+<h4 class="text-2xl font-bold mt-1">$12,480.00</h4>
+</div>
+<span class="material-symbols-outlined text-4xl opacity-50" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+<div class="p-6 bg-white border border-outline-variant/30 rounded-xl flex items-center justify-between">
+<div>
+<p class="text-label-md text-on-surface-variant">Reservas Activas</p>
+<h4 class="text-2xl font-bold mt-1 text-on-surface">342</h4>
+</div>
+<div class="flex items-center text-secondary font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-label-md">12%</span>
+</div>
+</div>
+<div class="p-6 bg-white border border-outline-variant/30 rounded-xl flex items-center justify-between">
+<div>
+<p class="text-label-md text-on-surface-variant">Satisfacción</p>
+<h4 class="text-2xl font-bold mt-1 text-on-surface">4.9/5</h4>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary text-[10px] flex items-center justify-center text-white">+8</div>
+</div>
+</div>
+</div>
+<!-- Horas Más Populares -->
+<article class="col-span-12 md:col-span-6 lg:col-span-4 p-stack-lg glass-card rounded-xl">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-stack-md">Horas más populares</h3>
+<div class="space-y-stack-md">
+<div class="flex items-center gap-stack-md">
+<span class="text-label-md w-12">10:00</span>
+<div class="flex-1 h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%] rounded-full"></div>
+</div>
+<span class="text-label-md font-bold">85%</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<span class="text-label-md w-12">14:00</span>
+<div class="flex-1 h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[62%] rounded-full"></div>
+</div>
+<span class="text-label-md font-bold">62%</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<span class="text-label-md w-12">17:00</span>
+<div class="flex-1 h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[94%] rounded-full"></div>
+</div>
+<span class="text-label-md font-bold">94%</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<span class="text-label-md w-12">19:00</span>
+<div class="flex-1 h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[40%] rounded-full"></div>
+</div>
+<span class="text-label-md font-bold">40%</span>
+</div>
+</div>
+<div class="mt-stack-lg p-stack-sm bg-surface-container-low rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">lightbulb</span>
+<p class="text-xs text-on-surface-variant">El pico de actividad ocurre a las 17:00 los viernes.</p>
+</div>
+</article>
+<!-- Retención de Clientes -->
+<article class="col-span-12 md:col-span-6 lg:col-span-4 p-stack-lg glass-card rounded-xl flex flex-col justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-stack-md">Retención de clientes</h3>
+<div class="flex items-center justify-center py-6">
+<!-- Custom Radial Chart -->
+<div class="relative w-40 h-40">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="stroke-current text-surface-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="stroke-current text-secondary-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="78, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-2xl font-bold text-on-surface">78%</span>
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider">Lealtad</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center px-2">
+<div class="text-center">
+<p class="text-xl font-bold text-on-surface">2.4k</p>
+<p class="text-[10px] text-on-surface-variant">Recurrentes</p>
+</div>
+<div class="w-px h-8 bg-outline-variant"></div>
+<div class="text-center">
+<p class="text-xl font-bold text-on-surface">650</p>
+<p class="text-[10px] text-on-surface-variant">Nuevos</p>
+</div>
+</div>
+</article>
+<!-- Servicios Más Vendidos -->
+<article class="col-span-12 lg:col-span-4 p-stack-lg glass-card rounded-xl">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-stack-md">Servicios más vendidos</h3>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">content_cut</span>
+</div>
+<div class="flex-1">
+<h5 class="text-body-md font-semibold">Corte Premium</h5>
+<p class="text-xs text-on-surface-variant">142 ventas</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$4,260</p>
+<p class="text-[10px] text-secondary">+5%</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">face</span>
+</div>
+<div class="flex-1">
+<h5 class="text-body-md font-semibold">Tratamiento Facial</h5>
+<p class="text-xs text-on-surface-variant">98 ventas</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$3,920</p>
+<p class="text-[10px] text-secondary">+12%</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">spa</span>
+</div>
+<div class="flex-1">
+<h5 class="text-body-md font-semibold">Masaje Relajante</h5>
+<p class="text-xs text-on-surface-variant">76 ventas</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$3,040</p>
+<p class="text-[10px] text-error">-2%</p>
+</div>
+</div>
+</div>
+</article>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile only) -->
+<footer class="md:hidden fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe w-full">
+<div class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-semibold">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label-md text-label-md">Bookings</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</div>
+</footer>
+<script>
+        // Simple animation trigger for chart bars
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.bg-primary, .bg-secondary-container');
+            bars.forEach(bar => {
+                const finalHeight = bar.style.height;
+                bar.style.height = '0';
+                setTimeout(() => {
+                    bar.style.height = finalHeight;
+                }, 300);
+            });
+        });
+    </script>
+</body></html>

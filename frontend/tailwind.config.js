@@ -1,0 +1,80 @@
+/**
+ * Config de Tailwind portada de los mockups de /design (Material 3).
+ * Paleta de marca: primary #630ed4, primary-container #7c3aed (morado) + secondary cyan.
+ */
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      screens: {
+        xs: '400px',
+      },
+      colors: {
+        primary: '#630ed4',
+        'primary-container': '#7c3aed',
+        'on-primary': '#ffffff',
+        'on-primary-container': '#ede0ff',
+        'primary-fixed': '#eaddff',
+        'primary-fixed-dim': '#d2bbff',
+        'inverse-primary': '#d2bbff',
+        secondary: '#00687a',
+        'secondary-container': '#57dffe',
+        'on-secondary': '#ffffff',
+        'on-secondary-container': '#006172',
+        'secondary-fixed': '#acedff',
+        'secondary-fixed-dim': '#4cd7f6',
+        tertiary: '#4c4f51',
+        'tertiary-container': '#646769',
+        'on-tertiary': '#ffffff',
+        error: '#ba1a1a',
+        'error-container': '#ffdad6',
+        'on-error': '#ffffff',
+        'on-error-container': '#93000a',
+        background: '#f9f9ff',
+        'on-background': '#111c2d',
+        surface: '#f9f9ff',
+        'surface-bright': '#f9f9ff',
+        'surface-dim': '#cfdaf2',
+        'surface-variant': '#d8e3fb',
+        'on-surface': '#111c2d',
+        'on-surface-variant': '#4a4455',
+        'surface-container-lowest': '#ffffff',
+        'surface-container-low': '#f0f3ff',
+        'surface-container': '#e7eeff',
+        'surface-container-high': '#dee8ff',
+        'surface-container-highest': '#d8e3fb',
+        'inverse-surface': '#263143',
+        'inverse-on-surface': '#ecf1ff',
+        outline: '#7b7487',
+        'outline-variant': '#ccc3d8',
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        full: '9999px',
+      },
+      spacing: {
+        unit: '4px',
+        'stack-sm': '8px',
+        'stack-md': '16px',
+        'stack-lg': '24px',
+        'stack-xl': '32px',
+        gutter: '16px',
+        'container-mobile': '16px',
+        'container-desktop': '32px',
+      },
+      fontFamily: {
+        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(16,24,40,0.04), 0 4px 16px rgba(99,14,212,0.06)',
+        lift: '0 8px 24px rgba(99,14,212,0.12)',
+      },
+    },
+  },
+  plugins: [],
+}

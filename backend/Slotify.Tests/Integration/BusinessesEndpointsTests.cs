@@ -1,0 +1,247 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Slotify.Domain.DTOs;
+
+namespace Slotify.Tests.Integration;
+
+/// <summary>Endpoint GET /businesses (lista los negocios del owner autenticado): 200 propios, 401 sin token.</summary>
+public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture<SlotifyApiFactory>
+{
+    private readonly SlotifyApiFactory _factory = factory;
+    private readonly HttpClient _client = factory.CreateClient();
+
+    [Fact]
+    public async Task ListMine_WithoutToken_Returns401()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _client.GetAsync("/businesses")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ListMine_AsOwner_ReturnsOwnBusiness()
+    {
+        var req = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería Pepe");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", req)).Content.ReadFromJsonAsync<AuthResult>();
+        var owner = _factory.CreateClient();
+        owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+
+        Assert.Single(mine!);
+        Assert.Equal(auth.BusinessId, mine![0].Id);
+        Assert.Equal("Barbería Pepe", mine[0].Name);
+    }
+
+    [Fact]
+    public async Task ListMine_DoesNotReturnOtherOwnersBusinesses()
+    {
+        // Owner A crea su negocio.
+        var reqA = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "A", "Negocio A");
+        await _client.PostAsJsonAsync("/auth/register-owner", reqA);
+        // Owner B solo debe ver el suyo.
+        var reqB = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "B", "Negocio B");
+        var authB = await (await _client.PostAsJsonAsync("/auth/register-owner", reqB)).Content.ReadFromJsonAsync<AuthResult>();
+        var ownerB = _factory.CreateClient();
+        ownerB.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authB!.AccessToken);
+
+        var mine = await ownerB.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+
+        Assert.Single(mine!);
+        Assert.Equal("Negocio B", mine![0].Name);
+    }
+
+    // --- PUT /businesses/{id}/confirmation-mode -----------------------------
+
+    private async Task<(Guid businessId, HttpClient owner)> RegisterOwnerAsync()
+    {
+        var req = new RegisterOwnerRequest($"owner-{Guid.NewGuid():N}@test.local", "SecurePass123!", "Pepe", "Barbería");
+        var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", req)).Content.ReadFromJsonAsync<AuthResult>();
+        var owner = _factory.CreateClient();
+        owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        return (auth.BusinessId!.Value, owner);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_AsOwner_Returns200_AndPersists()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("manual", body!.ConfirmationMode);
+
+        // Persiste: lo refleja el listado del owner.
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal("manual", mine!.Single(b => b.Id == businessId).ConfirmationMode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_InvalidMode_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("nope"));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetConfirmationMode_WithoutToken_Returns401()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/confirmation-mode", new SetConfirmationModeRequest("manual"));
+        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+    }
+
+    // --- PUT /businesses/{id}/cancellation-cutoff ---------------------------
+
+    [Fact]
+    public async Task SetCancellationCutoff_AsOwner_Returns200_AndPersists()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(24));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal(24, body!.CancellationCutoffHours);
+
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal(24, mine!.Single(b => b.Id == businessId).CancellationCutoffHours);
+    }
+
+    [Fact]
+    public async Task SetCancellationCutoff_OutOfRange_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(721));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetCancellationCutoff_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/cancellation-cutoff", new SetCancellationCutoffRequest(24));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    // --- PUT /businesses/{id}/plan -------------------------------------------
+
+    [Fact]
+    public async Task NewBusiness_StartsOnFreePlan()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+
+        Assert.Equal("free", mine!.Single(b => b.Id == businessId).Plan);
+    }
+
+    [Fact]
+    public async Task ChangePlan_ToPremium_AsOwner_Returns200_AndUnblocksStaff()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        // En Free no se puede añadir empleados (el owner ocupa el único hueco).
+        var blocked = await owner.PostAsJsonAsync($"/businesses/{businessId}/staff", new CreateStaffRequest("Ana", null, null));
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+
+        // Upgrade a Premium.
+        var upgrade = await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.OK, upgrade.StatusCode);
+        var body = await upgrade.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("premium", body!.Plan);
+
+        // Persiste en el listado del owner…
+        var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");
+        Assert.Equal("premium", mine!.Single(b => b.Id == businessId).Plan);
+
+        // …y ahora sí se puede añadir un empleado.
+        var allowed = await owner.PostAsJsonAsync($"/businesses/{businessId}/staff", new CreateStaffRequest("Ana", null, null));
+        Assert.Equal(HttpStatusCode.Created, allowed.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_InvalidCode_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("gold"));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePlan_WithoutToken_Returns401()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var res = await _client.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
+        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+    }
+
+    // --- PUT /businesses/{id}/profile + filtro por categoría -----------------
+
+    [Fact]
+    public async Task UpdateProfile_AsOwner_Returns200_AndReflectedInPublicSearch()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("barberia", "https://img/x.jpg", 40.4168, -3.7038, "+34911223344", "Calle Mayor 1"));
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var body = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("barberia", body!.Category);
+        Assert.Equal(40.4168, body.Latitude);
+        Assert.Equal("+34911223344", body.Phone);
+        Assert.Equal("Calle Mayor 1", body.Address);
+
+        // Aparece en el listado público con su perfil (incl. contacto).
+        var pub = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses");
+        var found = pub!.Single(b => b.Id == businessId);
+        Assert.Equal("barberia", found.Category);
+        Assert.Equal("https://img/x.jpg", found.PhotoUrl);
+        Assert.Equal("+34911223344", found.Phone);
+        Assert.Equal("Calle Mayor 1", found.Address);
+
+        // Filtro por categoría.
+        var byCat = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=barberia");
+        Assert.Contains(byCat!, b => b.Id == businessId);
+        var other = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=spa");
+        Assert.DoesNotContain(other!, b => b.Id == businessId);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_InvalidCategory_Returns400()
+    {
+        var (businessId, owner) = await RegisterOwnerAsync();
+        var res = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("no-existe", null, null, null));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ByOtherOwner_Returns403()
+    {
+        var (businessId, _) = await RegisterOwnerAsync();
+        var (_, otherOwner) = await RegisterOwnerAsync();
+        var res = await otherOwner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest("spa", null, null, null));
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+    }
+}
