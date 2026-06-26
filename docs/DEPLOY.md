@@ -7,8 +7,13 @@ a tocar el VPS a mano.
 ```
 Tu PC ──push──> GitHub ──(CI: build+test+e2e)──> GHCR (imágenes)
                    │
-                   └──SSH──> VPS:  Caddy(HTTPS) → frontend(nginx) → backend(API) → postgres
+                   └──SSH──> VPS:  Traefik(HTTPS) → frontend(nginx) → backend(API) → postgres
 ```
+
+> **HTTPS:** Slotify se enchufa al **Traefik** ya existente del VPS (no levanta su propio
+> proxy). Requiere que en el VPS haya un Traefik con la red externa **`traefik_net`** y un
+> certresolver **`letsencrypt`** (entrypoint `websecure`). El `frontend` lleva las labels de
+> Traefik para que enrute `slotify.jjalarcon.es` → Slotify. Tus otros proyectos no se tocan.
 
 Dominio: **slotify.jjalarcon.es** · VPS user: **root**
 
