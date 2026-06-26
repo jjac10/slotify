@@ -1,6 +1,7 @@
-# Producción: usa las imágenes publicadas en GHCR (no compila aquí). Postgres NO se
-# expone a internet; Caddy es el único que abre 80/443 y gestiona el HTTPS automático.
-# Variables sensibles → /opt/slotify/.env en el VPS (ver docs/DEPLOY.md).
+# Producción. Slotify se enchufa al Traefik ya existente del VPS: red externa
+# 'traefik_net', entrypoint 'websecure' y resolver de Let's Encrypt 'letsencrypt'.
+# Traefik enruta DOMAIN → frontend (nginx) → backend → postgres. Postgres NO se expone.
+# Secretos → /opt/slotify/.env (ver docs/DEPLOY.md).
 services:
   postgres:
     image: postgres:17-alpine
@@ -16,8 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [slotify]
-    # Sin 'ports': la BD solo es accesible dentro de la red de Docker.
+    networks: [internal]
 
   backend:
     image: ghcr.io/jjac10/slotify-backend:${IMAGE_TAG:-latest}
@@ -32,36 +32,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [slotify]
+    networks: [internal]
     # Las migraciones de EF Core corren solas al arrancar (Program.cs → db.Database.Migrate()).
 
   frontend:
     image: ghcr.io/jjac10/slotify-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on: [backend]
-    networks: [slotify]
-    # nginx sirve la SPA y reenvía /api → backend:8080 (infra/nginx.conf).
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN}
-    volumes:
-      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on: [frontend]
-    networks: [slotify]
+    networks: [internal, traefik_net]   # 'internal' para hablar con el backend; 'traefik_net' para que Traefik lo alcance
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_net"
+      - "traefik.http.routers.slotify.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.slotify.entrypoints=websecure"
+      - "traefik.http.routers.slotify.tls=true"
+      - "traefik.http.routers.slotify.tls.certresolver=letsencrypt"
+      - "traefik.http.services.slotify.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
 
 networks:
-  slotify:
+  internal:
     driver: bridge
+  traefik_net:
+    external: true
