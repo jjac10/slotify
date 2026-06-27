@@ -1,4 +1,6 @@
-# Despliegue en producción (VPS Ionos + GHCR + Caddy)
+# Despliegue en producción (VPS Ionos + GHCR + Traefik)
+
+> ✅ **En vivo:** **https://slotify.jjalarcon.es** (desde 2026-06-26, release v1.0.0).
 
 **Idea en una frase:** haces `git push` a `main` → GitHub compila, prueba, construye las
 imágenes Docker, las sube a GHCR y se conecta por SSH al VPS para actualizarlo. No vuelves
@@ -22,8 +24,9 @@ Dominio: **slotify.jjalarcon.es** · VPS user: **root**
 ## Una sola vez: preparación
 
 ### 1) DNS
-Un registro **A** de `slotify.jjalarcon.es` apuntando a la **IP del VPS** (217.160.0.206).
-*(Por lo que se ve en tu panel ya apunta ahí.)* Caddy necesita esto para emitir el certificado HTTPS.
+Un registro **A** de `slotify.jjalarcon.es` apuntando a la **IP pública del VPS** (`82.223.202.114`).
+Traefik (con Let's Encrypt) necesita esto para emitir el certificado HTTPS.
+*(Verifica la IP real del VPS con `curl -s ifconfig.me` dentro del servidor; la IP que muestra el panel de Ionos para el subdominio puede NO ser la del VPS.)*
 
 ### 2) En el VPS (como root)
 Instala Docker + Compose y crea la carpeta de despliegue:
@@ -54,13 +57,13 @@ CRYPTO_BLIND_INDEX_KEY=...     # 32 bytes base64
 En tu PC:
 ```bash
 ssh-keygen -t ed25519 -f slotify_deploy -N ""
-ssh-copy-id -i slotify_deploy.pub root@217.160.0.206   # o añade slotify_deploy.pub a /root/.ssh/authorized_keys
+ssh-copy-id -i slotify_deploy.pub root@82.223.202.114   # o añade slotify_deploy.pub a /root/.ssh/authorized_keys
 ```
 
 ### 4) GitHub → Secrets (repo → Settings → Secrets and variables → Actions)
 | Secret | Valor |
 |--------|-------|
-| `VPS_HOST` | `217.160.0.206` |
+| `VPS_HOST` | `82.223.202.114` (IP pública real del VPS) |
 | `VPS_USER` | `root` |
 | `VPS_SSH_KEY` | el contenido de **`slotify_deploy`** (la privada, completa) |
 
