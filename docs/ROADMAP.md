@@ -170,12 +170,9 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 ## Siguiente paso
 
-🎯 Backend y frontend de empleados, plan y `staff_services` ya están (incluido el frontend de Plan y el de asignación de servicios). Siguientes candidatos:
-1. **Plan solo-calendario** (ver Mejoras futuras): tipo de negocio en el que el cliente NO reserva online; solo ve el negocio y llama, y el owner apunta la reserva en su calendario/agenda manualmente.
-2. **Notificaciones** (email/SMS de confirmación) y **OTP** para acciones de invitado (TODO seguridad de *PR #27*).
-3. **Business profile** (categoría/ubicación) → "negocios cercanos" y filtro por categoría en Explorar.
+🎯 **MVP completo y en producción** (`slotify.jjalarcon.es`, v1.0.0). El núcleo está cerrado: auth, reservas (usuario + invitado), horarios, disponibilidad, panel, agenda (lista + calendario), empleados, plan/`staff_services`, perfil público, reseñas, modo solo-calendario y notificaciones (envío simulado).
 
-Otras: pago real (Stripe) para el upgrade, RLS PostgreSQL, Vitest + RTL.
+Pendiente de **entrega TFM**: slides públicas (URL), vídeo. Lo demás, en **🔮 Mejoras post-entrega** (abajo).
 
 ---
 
@@ -184,3 +181,33 @@ Otras: pago real (Stripe) para el upgrade, RLS PostgreSQL, Vitest + RTL.
 - 🔮 **WebSockets para confirmaciones en tiempo real:** cuando el owner confirma una reserva desde Agenda, los clientes ven refrescada automáticamente su lista de reservas sin recargar. Implementable con SignalR o Socket.io.
 - 🔮 **Plan "solo calendario" (owner):** un tipo de negocio que NO acepta reservas online. El cliente ve la ficha del negocio y llama por teléfono; el owner apunta la reserva manualmente en su agenda. Requiere un `booking_mode` (`online` | `calendar_only`) en `businesses` y ocultar el flujo de reserva público para esos negocios.
 - 🔮 **Rol superadmin (alta controlada):** un único superadmin (el dueño de la plataforma) da de alta a los owners y sus negocios, en vez de registro abierto. Pensado para un despliegue local/pueblo donde se quiere control total del onboarding. Requiere `role=superadmin` + panel de alta de owners; el registro público de owners se desactivaría o quedaría sujeto a aprobación.
+
+---
+
+## 🔮 Mejoras post-entrega (después del TFM v1.0.0)
+
+Backlog priorizado tras la entrega. Marca: 🟢 bajo esfuerzo · 🟡 medio · 🔴 alto.
+
+### Producto / negocio
+- 🟢 **Notificaciones reales (email + WhatsApp).** La fontanería ya existe (`INotificationSender` intercambiable, hoy envío simulado y registrado). Falta enchufar proveedor: email (Resend/SendGrid) y WhatsApp (Twilio/Meta Cloud API).
+- 🟡 **Borrar negocio** desde Configuración del owner, con **borrado en cascada** de todos sus datos (servicios, equipo, horario, festivos, reservas, reseñas, notificaciones, vínculos de invitado). Pedir reconfirmación (escribir el nombre); hard-delete de datos personales por RGPD.
+- 🟡 **Rol admin de plataforma (moderación).** NO para dar de alta negocios (el registro abierto permite que cualquiera pruebe la demo), **sí para eliminar/moderar** negocios spam o de prueba. `role=superadmin` + panel de moderación + borrado en cascada.
+- 🟡 **Modo solo-calendario: mostrar horario y huecos.** En negocios `calendar_only`, enseñar en la ficha pública el horario semanal y los huecos libres (solo lectura, reaprovechando `GET /availability`) para que el cliente sepa cuándo hay sitio antes de llamar.
+- 🔴 **Pago real para Premium.** Pasarela (Stripe/Paddle) + webhook que llame a `ChangePlanAsync` tras el cobro + tabla `subscriptions`/`payments` (esqueleto ya documentado en `DATA_MODEL.md`). Hoy el upgrade es simulado.
+- 🟡 **Personalización del perfil público + más Configuración.** Logo, foto de portada, color de marca, descripción y redes del negocio; más ajustes y pulido de UX/vista.
+- 🟢 **Página de contacto / soporte.** Formulario de sugerencias y soporte que envíe email al dueño de la plataforma (o cree ticket).
+
+### Seguridad
+- 🔴 **OTP por SMS/email para acciones de invitado** *(TODO de seguridad ya apuntado)*. Hoy el lookup de invitado se verifica solo conociendo el contacto; debe pedir un código antes de mostrar/gestionar reservas.
+- 🟡 **Rotación anual de claves** (HMAC/cifrado): rotar implica recalcular hashes/blind index.
+
+### Funcionalidad
+- 🟡 **Lista de espera (`waitlists`).** Si no hay huecos, el cliente entra en cola y se le avisa al cancelarse una reserva. Esquema ya diseñado en `DATA_MODEL.md`.
+- 🟡 **Confirmaciones en tiempo real (WebSockets/SignalR).** La lista del cliente se refresca sola cuando el owner confirma.
+- 🟡 **Métricas avanzadas:** tasa de ausencias (`noShowRate`, requiere marcar asistencia) y ocupación (`occupancyRate`).
+- 🟢 **Paginación y filtros** en listados de reservas y reseñas.
+
+### Plataforma / rendimiento
+- 🟡 **CQRS-lite / vistas materializadas** para reportes (ver `DECISIONS.md` #8).
+- 🟡 **Redis** como caché cuando el rendimiento lo pida.
+- 🟡 **RLS en PostgreSQL** + **Vitest + RTL** para tests unitarios de componentes en frontend.
