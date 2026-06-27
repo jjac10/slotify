@@ -9,7 +9,8 @@
 
 ## Estado actual
 
-- **Fase activa:** 3 (Desarrollo incremental TDD).
+- **🚀 EN PRODUCCIÓN:** **https://slotify.jjalarcon.es** (release **v1.0.0**, 2026-06-26). HTTPS Let's Encrypt vía Traefik; auto-deploy en cada `merge` a `main`. Ver [`DEPLOY.md`](./DEPLOY.md).
+- **Fase activa:** 4 (Producción) — desplegado. Quedan entregables del TFM: memoria, slides y vídeo.
 
 - **Tests:** 294/294 backend en verde (xUnit + Moq + Testcontainers PostgreSQL 17 + WebApplicationFactory) + 6 e2e frontend (Playwright: auth, reserva completa, alta de servicio, horario, panel owner).
 - **Lo que ya funciona (probado):** auth completa (login devuelve `businessId` del owner), negocios + servicios (CRUD con límite Freemium), **núcleo de reservas** (invitado cifrado o usuario, anti-doble-booking robusto), **horario del negocio** (horarios + festivos), **disponibilidad** (`GET /availability` con slots = horario − festivos − reservas, paso configurable) y **panel del owner** (`GET /dashboard`: contadores + ingresos del mes + próximas reservas). Flujo de reserva completo de punta a punta.
@@ -29,7 +30,11 @@
   - ✅ CI/CD GitHub Actions (build + test en cada push/PR: backend + frontend + e2e) — *PR #20*
   - ✅ Scaffold frontend (Vite + React 19 + TS strict) — *PR #16*
 - 🚧 **Fase 3 — Desarrollo TDD** (ver detalle abajo)
-- 🔮 **Fase 4 — Producción:** despliegue Ionos, HTTPS, dominio.
+- ✅ **Fase 4 — Producción:** desplegado en VPS Ionos con dominio `slotify.jjalarcon.es` y HTTPS (Let's Encrypt).
+  - ✅ Imágenes a **GHCR** desde CI (`deploy.yml` por `workflow_run` tras CI verde en `main`)
+  - ✅ **`docker-compose.prod.yml`** (postgres + backend + frontend) enchufado al **Traefik** existente del VPS (red `traefik_net`, certresolver `letsencrypt`, entrypoint `websecure`)
+  - ✅ **Auto-deploy**: `merge` a `main` → build+push → SSH al VPS → `docker compose pull && up -d`
+  - ✅ Release **v1.0.0** etiquetada · secretos en `/opt/slotify/.env` (fuera del repo)
 
 ---
 

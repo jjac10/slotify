@@ -2,6 +2,11 @@
 
 [![CI](https://github.com/jjac10/slotify/actions/workflows/ci.yml/badge.svg)](https://github.com/jjac10/slotify/actions/workflows/ci.yml)
 
+### 🌐 Demo en vivo: **[slotify.jjalarcon.es](https://slotify.jjalarcon.es)**
+
+> Desplegada en un VPS (Ionos) con HTTPS automático. Cada `merge` a `main` reconstruye, prueba
+> y **redespliega solo** (GitHub Actions → imágenes en GHCR → SSH al VPS → Traefik). Detalles en [docs/DEPLOY.md](docs/DEPLOY.md).
+
 **Slotify** es una plataforma de reservas para negocios locales (estilo Booksy): el cliente
 descubre negocios, reserva en segundos (con cuenta o como invitado) y el dueño gestiona su
 agenda, equipo, horarios, precios y avisos. Proyecto **TFM** desarrollado con metodología
@@ -11,7 +16,8 @@ agenda, equipo, horarios, precios y avisos. Proyecto **TFM** desarrollado con me
 - **Backend:** ASP.NET Core 10 + Entity Framework Core 10 + PostgreSQL 17 (Repository Pattern + DI, BD intercambiable)
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
 - **Testing:** xUnit + Moq + Testcontainers (backend) · Playwright (frontend e2e)
-- **Infra:** Docker + Docker Compose + GitHub Actions (build + test + e2e)
+- **Infra:** Docker + Docker Compose + GitHub Actions (CI: build + test + e2e · CD: build→GHCR→deploy al VPS)
+- **Producción:** VPS Ionos + Traefik (HTTPS Let's Encrypt) — auto-deploy en cada `merge` a `main` (ver [docs/DEPLOY.md](docs/DEPLOY.md))
 - **API docs:** OpenAPI nativa + Scalar en `/scalar`
 
 ## Funcionalidades
