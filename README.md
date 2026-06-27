@@ -7,6 +7,15 @@
 > Desplegada en un VPS (Ionos) con HTTPS automático. Cada `merge` a `main` reconstruye, prueba
 > y **redespliega solo** (GitHub Actions → imágenes en GHCR → SSH al VPS → Traefik). Detalles en [docs/DEPLOY.md](docs/DEPLOY.md).
 
+**Usuarios de prueba** (funcionan en la web en vivo · contraseña común `Demo1234!`):
+
+| Rol | Usuario | Contraseña |
+|-----|---------|------------|
+| Dueño | `owner@demo.slotify` | `Demo1234!` |
+| Cliente | `cliente@demo.slotify` | `Demo1234!` |
+
+*También puedes reservar **como invitado** sin registrarte.*
+
 **Slotify** es una plataforma de reservas para negocios locales (estilo Booksy): el cliente
 descubre negocios, reserva en segundos (con cuenta o como invitado) y el dueño gestiona su
 agenda, equipo, horarios, precios y avisos. Proyecto **TFM** desarrollado con metodología
@@ -105,6 +114,12 @@ slotify/
 - **Code First + EF Core Migrations** versionadas en git
 - **Cifrado** AES-256-GCM (contacto del invitado) + blind index HMAC para búsqueda/unicidad
 - **Zonas horarias**: UTC en BD, local en UI
+
+## Presentación y vídeo
+
+- **Slides:** [docs/slides/Slotify-TFM.pdf](docs/slides/Slotify-TFM.pdf) · editable: [Slotify-TFM.pptx](docs/slides/Slotify-TFM.pptx)
+- **Presentación online:** _(pendiente: enlace público a Google Slides / Canva)_
+- **Vídeo:** _(pendiente: enlace público a YouTube / Drive)_
 
 ## Documentación
 
