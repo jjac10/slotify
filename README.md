@@ -1,6 +1,28 @@
 # Slotify
 
 [![CI](https://github.com/jjac10/slotify/actions/workflows/ci.yml/badge.svg)](https://github.com/jjac10/slotify/actions/workflows/ci.yml)
+[![Demo en vivo](https://img.shields.io/badge/demo-slotify.jjalarcon.es-06B6D4?logo=googlechrome&logoColor=white)](https://slotify.jjalarcon.es)
+![Último commit](https://img.shields.io/github/last-commit/jjac10/slotify?color=7C3AED&label=último%20commit)
+![Lenguaje principal](https://img.shields.io/github/languages/top/jjac10/slotify?color=512BD4)
+
+**Backend**
+&nbsp;![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
+![EF Core](https://img.shields.io/badge/EF%20Core-10-512BD4?logo=dotnet&logoColor=white)
+![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+
+**Frontend**
+&nbsp;![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)
+
+**Testing & DevOps**
+&nbsp;![xUnit](https://img.shields.io/badge/xUnit-512BD4?logo=dotnet&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
+![Traefik](https://img.shields.io/badge/Traefik-24A1C1?logo=traefikproxy&logoColor=white)
 
 ### 🌐 Demo en vivo: **[slotify.jjalarcon.es](https://slotify.jjalarcon.es)**
 
