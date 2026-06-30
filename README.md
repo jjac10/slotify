@@ -4,6 +4,7 @@
 [![Demo en vivo](https://img.shields.io/badge/demo-slotify.jjalarcon.es-06B6D4?logo=googlechrome&logoColor=white)](https://slotify.jjalarcon.es)
 ![Último commit](https://img.shields.io/github/last-commit/jjac10/slotify?color=7C3AED&label=último%20commit)
 ![Lenguaje principal](https://img.shields.io/github/languages/top/jjac10/slotify?color=512BD4)
+![Licencia](https://img.shields.io/github/license/jjac10/slotify?color=3DA639)
 
 **Backend**
 &nbsp;![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
@@ -137,11 +138,9 @@ slotify/
 - **Cifrado** AES-256-GCM (contacto del invitado) + blind index HMAC para búsqueda/unicidad
 - **Zonas horarias**: UTC en BD, local en UI
 
-## Presentación y vídeo
+## Presentación
 
 - **Slides:** [docs/slides/Slotify-TFM.pdf](docs/slides/Slotify-TFM.pdf) · editable: [Slotify-TFM.pptx](docs/slides/Slotify-TFM.pptx)
-- **Presentación online:** _(pendiente: enlace público a Google Slides / Canva)_
-- **Vídeo:** _(pendiente: enlace público a YouTube / Drive)_
 
 ## Documentación
 
@@ -151,3 +150,7 @@ slotify/
 - [DECISIONS](docs/DECISIONS.md) — ADRs (decisiones de arquitectura)
 - [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [DATABASE](docs/DATABASE.md)
 - [SETUP](docs/SETUP.md) · [DEVELOPMENT](docs/DEVELOPMENT.md) · [GITFLOW](GITFLOW.md)
+
+## Licencia
+
+Distribuido bajo licencia **MIT** — ver [LICENSE](LICENSE). © 2026 Jose Joaquín Alarcón.
