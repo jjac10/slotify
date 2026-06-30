@@ -73,6 +73,14 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <a
+          href="https://github.com/jjac10/slotify/releases"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-stack-sm px-3 py-1 text-[11px] font-medium text-on-surface-variant/60 hover:text-on-surface-variant"
+        >
+          Slotify v{__APP_VERSION__}
+        </a>
       </aside>
 
       {/* Top bar (logo en móvil + perfil arriba a la derecha) */}
