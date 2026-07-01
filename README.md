@@ -132,6 +132,22 @@ slotify/
 └── docker-compose.yml
 ```
 
+## Hecho con IA
+
+Este TFM es también una demostración de un **flujo de desarrollo asistido por IA** de principio a
+fin, manteniendo el criterio humano en la arquitectura, las decisiones y la revisión.
+
+| Fase | Herramienta de IA | Rol |
+|------|-------------------|-----|
+| **Diseño de UI** | [Google Stitch](https://stitch.withgoogle.com/) | Prototipos de pantallas + sistema de diseño (paleta, tipografía, componentes), trasladado a Tailwind |
+| **Desarrollo** | Claude (Claude Code) | Metodología **TDD estricta** (test → código → refactor), implementación de backend y frontend, tests, documentación, CI/CD y despliegue |
+
+**Cómo se trabajó:**
+- **TDD estricto:** primero el test (🔴 rojo), luego el mínimo código (🟢 verde), luego refactor. **300+ pruebas** automáticas.
+- **Commits atómicos** con Conventional Commits y **~30 Pull Requests** pequeños y revisables.
+- **CI en cada push/PR** (build + test + e2e) como red de seguridad, con **despliegue automático** a producción al fusionar a `main`.
+- **La dirección es humana:** arquitectura, decisiones de diseño y control de calidad los dirige el autor; la IA acelera la ejecución.
+
 ## Diseño
 
 La identidad visual y los prototipos de UI se generaron con **[Google Stitch](https://stitch.withgoogle.com/)**
