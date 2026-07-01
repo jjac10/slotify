@@ -132,6 +132,16 @@ slotify/
 └── docker-compose.yml
 ```
 
+## Diseño
+
+La identidad visual y los prototipos de UI se generaron con **[Google Stitch](https://stitch.withgoogle.com/)**
+(diseño de interfaz asistido por IA) y sirvieron de referencia para implementar el frontend. El
+sistema de diseño (paleta morado `#7C3AED` / cyan `#06B6D4`, tipografías Plus Jakarta Sans + Inter,
+tokens de espaciado y componentes) se trasladó a la configuración de Tailwind.
+
+Mockups y guía de diseño: [`docs/stitch_slotify_local_booking_platform/`](docs/stitch_slotify_local_booking_platform/)
+(landing, flujo de reserva, confirmación, panel y ajustes del dueño, logo).
+
 ## Arquitectura (resumen)
 - **Repository Pattern + DI** → la base de datos es intercambiable sin tocar la lógica de dominio
 - **Code First + EF Core Migrations** versionadas en git
