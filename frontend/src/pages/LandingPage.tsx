@@ -93,7 +93,23 @@ export function LandingPage() {
           <Logo withWordmark={false} size={20} />
           <span className="font-display font-bold">Slotify</span>
         </div>
-        <p className="mt-stack-sm">Términos · Privacidad · Contacto</p>
+        <p className="mt-stack-sm flex flex-wrap items-center justify-center gap-x-2">
+          <Link to="/legal/terminos" className="hover:text-on-surface hover:underline">
+            Términos
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/legal/privacidad" className="hover:text-on-surface hover:underline">
+            Privacidad
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/legal/cookies" className="hover:text-on-surface hover:underline">
+            Cookies
+          </Link>
+          <span aria-hidden>·</span>
+          <a href="mailto:josejua94@gmail.com" className="hover:text-on-surface hover:underline">
+            Contacto
+          </a>
+        </p>
         <p className="mt-1 text-xs">© 2026 Slotify · TFM</p>
       </footer>
     </div>
