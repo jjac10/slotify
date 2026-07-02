@@ -112,13 +112,29 @@ docker compose -f docker-compose.prod.yml logs -f backend
 API=https://slotify.jjalarcon.es/api node scripts/seed-demo.mjs
 ```
 
-### Backups de Postgres (recomendado en cuanto haya datos reales)
+### Backups de Postgres (automáticos)
+
+El servicio `backup` de `docker-compose.prod.yml` hace un **`pg_dump` diario** (al arrancar
+el contenedor y cada 24 h) en formato *custom* y lo deja en `/opt/slotify/backups/`
+(`slotify_<fecha_hora>.dump`). La retención se controla con `BACKUP_RETENTION_DAYS`
+en `/opt/slotify/.env` (por defecto **14 días**; los dumps más antiguos se borran solos).
+
 ```bash
-# copia puntual
+# ver los backups existentes (en el VPS)
+ls -lh /opt/slotify/backups/
+
+# copia puntual manual (además de la diaria)
+docker compose -f docker-compose.prod.yml exec backup \
+  sh -c 'pg_dump -Fc -f /backups/slotify_manual_$(date +%F_%H%M).dump'
+
+# restaurar un backup (¡machaca la BD actual!)
 docker compose -f docker-compose.prod.yml exec -T postgres \
-  pg_dump -U slotify_user slotify > backup_$(date +%F).sql
-# automatízalo con un cron diario en el VPS.
+  pg_restore -U slotify_user -d slotify --clean --if-exists \
+  < /opt/slotify/backups/slotify_<fecha>.dump
 ```
+
+> Consejo: copia periódicamente `/opt/slotify/backups/` fuera del VPS (rsync a tu PC u
+> otro almacenamiento) — un backup en la misma máquina no protege contra pérdida del VPS.
 
 ---
 

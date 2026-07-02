@@ -35,6 +35,39 @@ services:
     networks: [internal]
     # Las migraciones de EF Core corren solas al arrancar (Program.cs → db.Database.Migrate()).
 
+  # Backup diario de la BD: pg_dump al arrancar y cada 24 h, en formato custom
+  # (pg_restore), sobre /opt/slotify/backups. Retención configurable por .env.
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          ts=$$(date +%F_%H%M)
+          if pg_dump -Fc -f "/backups/slotify_$${ts}.dump"; then
+            echo "backup ok: slotify_$${ts}.dump"
+            find /backups -name 'slotify_*.dump' -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
+          else
+            echo "backup FAILED ($${ts})" >&2
+          fi
+          sleep 86400
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
   frontend:
     image: ghcr.io/jjac10/slotify-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
