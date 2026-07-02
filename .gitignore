@@ -427,3 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Claude Code (IA): se versionan los skills y subagentes del proyecto;
+# la configuración local (settings.local.json, worktrees, launch) no.
+.claude/*
+!.claude/agents/
+!.claude/skills/
