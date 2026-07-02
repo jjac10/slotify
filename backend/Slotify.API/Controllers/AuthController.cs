@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Slotify.Domain.DTOs;
 using Slotify.Domain.Exceptions;
 using Slotify.Domain.Services;
@@ -14,6 +15,7 @@ public class AuthController(AuthService auth) : ControllerBase
     /// <summary>Registra un cliente (sin negocio).</summary>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Register(RegisterCustomerRequest request, CancellationToken ct)
     {
         try
@@ -92,6 +94,7 @@ public class AuthController(AuthService auth) : ControllerBase
     /// <summary>Autentica con email + contraseña.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Login(LoginRequest request, CancellationToken ct)
     {
         try

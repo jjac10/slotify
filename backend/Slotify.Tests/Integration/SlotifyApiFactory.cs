@@ -30,6 +30,11 @@ public class SlotifyApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _container.GetConnectionString(),
+                // Límite de rate limiting muy alto por defecto: la suite hace login/register
+                // decenas de veces desde la misma "IP". Los tests de rate limiting lo bajan
+                // explícitamente en su propia factory (RateLimitingTests).
+                ["RateLimiting:AuthPermitLimit"] = "100000",
+                ["RateLimiting:AuthWindowSeconds"] = "60",
             });
         });
     }
