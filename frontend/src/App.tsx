@@ -11,6 +11,8 @@ import { ReserveFlowPage } from './pages/ReserveFlowPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
 import { MyReviewsPage } from './pages/MyReviewsPage'
 import { AcceptInvitePage } from './pages/AcceptInvitePage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
@@ -27,6 +29,9 @@ export function App() {
         <Route path="reservar" element={<ReserveFlowPage />} />
         {/* Enlace de invitación de empleado (público): crear cuenta + entrar */}
         <Route path="invitacion/:token" element={<AcceptInvitePage />} />
+        {/* Recuperación de contraseña (público): pedir enlace y restablecer */}
+        <Route path="recuperar" element={<ForgotPasswordPage />} />
+        <Route path="restablecer" element={<ResetPasswordPage />} />
         {/* Público: logueado ve sus reservas; invitado busca por teléfono/email */}
         <Route path="mis-reservas" element={<MyReservationsPage />} />
         {/* Páginas legales públicas (RGPD): /legal/terminos · /legal/privacidad · /legal/cookies */}

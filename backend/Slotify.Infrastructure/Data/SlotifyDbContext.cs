@@ -17,6 +17,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<BusinessHoliday> BusinessHolidays => Set<BusinessHoliday>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -36,6 +37,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureBusinessHolidays(modelBuilder);
         ConfigureAuditLogs(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
+        ConfigurePasswordResetTokens(modelBuilder);
         ConfigureReviews(modelBuilder);
         ConfigureNotifications(modelBuilder);
         SeedPricingTiers(modelBuilder);
@@ -438,6 +440,30 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
 
             e.HasIndex(r => r.TokenHash).IsUnique();
             e.HasIndex(r => new { r.UserId, r.ExpiresAt });
+        });
+    }
+
+    private static void ConfigurePasswordResetTokens(ModelBuilder mb)
+    {
+        mb.Entity<PasswordResetToken>(e =>
+        {
+            e.ToTable("password_reset_tokens");
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(t => t.UserId).HasColumnName("user_id").IsRequired();
+            // SHA-256 hex = 64 chars; nunca se guarda el token en claro.
+            e.Property(t => t.TokenHash).HasColumnName("token_hash").HasMaxLength(64).IsRequired();
+            e.Property(t => t.ExpiresAt).HasColumnName("expires_at").IsRequired();
+            e.Property(t => t.UsedAt).HasColumnName("used_at");
+            e.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasIndex(t => new { t.UserId, t.ExpiresAt });
         });
     }
 

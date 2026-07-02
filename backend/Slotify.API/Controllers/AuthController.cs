@@ -10,8 +10,11 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("auth")]
-public class AuthController(AuthService auth) : ControllerBase
+public class AuthController(AuthService auth, PasswordResetService passwordReset) : ControllerBase
 {
+    private const string ForgotPasswordGenericMessage =
+        "Si el email existe, recibirás instrucciones para restablecer tu contraseña.";
+
     /// <summary>Registra un cliente (sin negocio).</summary>
     [HttpPost("register")]
     [AllowAnonymous]
@@ -104,6 +107,41 @@ public class AuthController(AuthService auth) : ControllerBase
         catch (InvalidCredentialsException ex)
         {
             return Unauthorized(new { error = "invalid_credentials", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Solicita la recuperación de contraseña. Responde SIEMPRE 200 con un mensaje
+    /// genérico (exista o no el email) para no permitir enumerar usuarios; el token
+    /// viaja solo en el email (simulado), nunca en esta respuesta.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await passwordReset.RequestResetAsync(request.Email, ct);
+        return Ok(new { message = ForgotPasswordGenericMessage });
+    }
+
+    /// <summary>Restablece la contraseña con un token de recuperación válido (1 h, un solo uso).</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await passwordReset.ResetPasswordAsync(request.Token, request.NewPassword, ct);
+            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
+        }
+        catch (InvalidPasswordResetTokenException ex)
+        {
+            return BadRequest(new { error = "invalid_reset_token", message = ex.Message });
+        }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
         }
     }
 

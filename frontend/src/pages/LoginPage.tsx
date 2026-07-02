@@ -13,6 +13,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // Mensaje informativo (p. ej. tras restablecer la contraseña con éxito).
+  const notice = (location.state as { message?: string } | null)?.message ?? null
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -38,6 +40,14 @@ export function LoginPage() {
       </div>
 
       <div className="card">
+        {notice && (
+          <p
+            className="mb-stack-md rounded-xl border border-primary-container/20 bg-surface-container-high px-4 py-3 text-sm font-medium text-primary"
+            data-testid="login-notice"
+          >
+            {notice}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
           <div className="field">
             <label className="field-label" htmlFor="login-email">Email</label>
@@ -68,6 +78,15 @@ export function LoginPage() {
               {error}
             </p>
           )}
+          <p className="text-right text-sm">
+            <Link
+              to="/recuperar"
+              className="font-medium text-primary hover:underline"
+              data-testid="forgot-password-link"
+            >
+              ¿Has olvidado tu contraseña?
+            </Link>
+          </p>
           <button type="submit" className="btn-primary w-full" data-testid="login-submit" disabled={submitting}>
             {submitting ? 'Entrando…' : 'Entrar'}
           </button>

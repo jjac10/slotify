@@ -1,10 +1,12 @@
 import { api } from './apiClient'
 import type {
   AuthResult,
+  ForgotPasswordRequest,
   LoginRequest,
   MeResponse,
   RegisterCustomerRequest,
   RegisterOwnerRequest,
+  ResetPasswordRequest,
   StaffInviteInfoResponse,
 } from '../types/api'
 
@@ -39,5 +41,15 @@ export const authService = {
   async acceptStaffInvite(token: string, password: string): Promise<AuthResult> {
     const { data } = await api.post<AuthResult>(`/auth/staff-invite/${token}/accept`, { password })
     return data
+  },
+
+  /** POST /auth/forgot-password — el backend responde SIEMPRE 200 genérico (anti-enumeración). */
+  async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
+    await api.post('/auth/forgot-password', request)
+  },
+
+  /** POST /auth/reset-password — restablece la contraseña con el token del email. */
+  async resetPassword(request: ResetPasswordRequest): Promise<void> {
+    await api.post('/auth/reset-password', request)
   },
 }

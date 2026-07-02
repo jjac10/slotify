@@ -11,4 +11,10 @@ public interface IRefreshTokenRepository
     /// Devuelve el userId si era válido; null si no existe o está caducado.
     /// </summary>
     Task<Guid?> ConsumeAsync(string token, CancellationToken ct = default);
+
+    /// <summary>
+    /// Revoca todos los refresh tokens del usuario (cierre de sesiones, p. ej. al
+    /// restablecer la contraseña).
+    /// </summary>
+    Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default);
 }

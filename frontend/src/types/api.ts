@@ -50,6 +50,17 @@ export interface LoginRequest {
   password: string
 }
 
+/** POST /auth/forgot-password — siempre responde 200 con mensaje genérico. */
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+/** POST /auth/reset-password — token del email + nueva contraseña. */
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
+}
+
 /** GET /auth/me */
 export interface MeResponse {
   userId: string

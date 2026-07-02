@@ -24,6 +24,12 @@ public class AuthRepository(SlotifyDbContext db) : IAuthRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateUserAsync(User user, CancellationToken ct = default)
+    {
+        db.Users.Update(user);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task<User?> FindActiveUserByContactAsync(string? normalizedEmail, string? normalizedPhone, CancellationToken ct = default)
     {
         if (normalizedEmail is not null)

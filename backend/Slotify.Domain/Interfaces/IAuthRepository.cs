@@ -14,6 +14,9 @@ public interface IAuthRepository
     /// <summary>Da de alta un usuario (p. ej. customer, sin negocio).</summary>
     Task AddUserAsync(User user, CancellationToken ct = default);
 
+    /// <summary>Persiste cambios en un usuario ya cargado (p. ej. nueva contraseña).</summary>
+    Task UpdateUserAsync(User user, CancellationToken ct = default);
+
     /// <summary>
     /// Busca un usuario activo cuyo contacto coincida con el email (normalizado,
     /// minúsculas) o el teléfono (normalizado) dado, para vincular a su cuenta una

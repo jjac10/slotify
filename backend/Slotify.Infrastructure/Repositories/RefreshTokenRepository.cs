@@ -38,6 +38,9 @@ public class RefreshTokenRepository(SlotifyDbContext db, JwtOptions options) : I
         return entity.UserId;
     }
 
+    public Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default)
+        => db.RefreshTokens.Where(r => r.UserId == userId).ExecuteDeleteAsync(ct);
+
     private static string Hash(string token)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
