@@ -33,6 +33,12 @@ services:
       postgres:
         condition: service_healthy
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     # Las migraciones de EF Core corren solas al arrancar (Program.cs → db.Database.Migrate()).
 
   # Backup diario de la BD: pg_dump al arrancar y cada 24 h, en formato custom
@@ -71,7 +77,9 @@ services:
   frontend:
     image: ghcr.io/jjac10/slotify-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    depends_on: [backend]
+    depends_on:
+      backend:
+        condition: service_healthy
     networks: [internal, traefik_net]   # 'internal' para hablar con el backend; 'traefik_net' para que Traefik lo alcance
     labels:
       - "traefik.enable=true"

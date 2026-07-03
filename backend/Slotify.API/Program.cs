@@ -1,10 +1,13 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Formatting.Compact;
 using Slotify.Domain.Interfaces;
 using Slotify.Domain.Services;
 using Scalar.AspNetCore;
@@ -15,6 +18,21 @@ using Slotify.Infrastructure.Security;
 using Slotify.API;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Logging estructurado (Serilog) ---
+// Niveles desde la sección "Serilog" de appsettings (Microsoft.AspNetCore → Warning).
+// Sink de consola según entorno: JSON compacto (CLEF) en Production para que Docker
+// recoja stdout estructurado; texto plano legible en Development/tests.
+// Privacidad: nunca loguear bodies ni query strings (datos personales cifrados en BD).
+builder.Host.UseSerilog((context, loggerConfiguration) =>
+{
+    loggerConfiguration.ReadFrom.Configuration(context.Configuration);
+    if (context.HostingEnvironment.IsProduction())
+        loggerConfiguration.WriteTo.Console(new CompactJsonFormatter());
+    else
+        loggerConfiguration.WriteTo.Console(
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+});
 
 // --- Persistencia ---
 builder.Services.AddDbContext<SlotifyDbContext>(options =>
@@ -139,6 +157,11 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+// --- Health checks (observabilidad) ---
+// "database" (tag ready) verifica conectividad real con PostgreSQL vía el DbContext.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SlotifyDbContext>("database", tags: ["ready"]);
+
 // --- API / OpenAPI ---
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(options =>
@@ -159,11 +182,24 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();                       // UI interactiva en /scalar
 }
 
+// Un evento INFO por petición HTTP (método, path, status, duración). La plantilla por
+// defecto usa RequestPath SIN query string ni body: no se filtran datos personales.
+app.UseSerilogRequestLogging();
+
 app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// --- Health checks: anónimos y fuera del rate limiting (no hay limitador global) ---
+// Liveness: proceso vivo, sin tocar la BD (un parpadeo de la BD no debe tumbar el contenedor).
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+// Readiness: incluye el check de la BD.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready"),
+});
 
 app.Run();
 
