@@ -236,6 +236,56 @@ public class BusinessServiceTests
         _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // --- Búsqueda pública paginada -------------------------------------------
+
+    private static Business PublicBusiness(string name) =>
+        new() { Id = Guid.NewGuid(), OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = name };
+
+    [Fact]
+    public async Task SearchPublicAsync_MapsItemsAndTotal_IntoPagedResponse()
+    {
+        var items = new List<Business> { PublicBusiness("A"), PublicBusiness("B") };
+        _repo.Setup(r => r.SearchPublicAsync("bar", "barberia", 20, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((items, 42));
+
+        var result = await CreateService().SearchPublicAsync("bar", "barberia", page: 2, pageSize: 20);
+
+        Assert.Equal(42, result.Total);
+        Assert.Equal(2, result.Page);
+        Assert.Equal(20, result.PageSize);
+        Assert.Equal(["A", "B"], result.Items.Select(b => b.Name));
+    }
+
+    [Theory]
+    [InlineData(0, 20)]    // 0 → default
+    [InlineData(-5, 20)]   // negativo → default
+    [InlineData(500, 50)]  // por encima del máximo → 50
+    [InlineData(50, 50)]   // el máximo se respeta
+    public async Task SearchPublicAsync_ClampsPageSize(int requested, int expected)
+    {
+        _repo.Setup(r => r.SearchPublicAsync(null, null, 0, expected, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<Business>(), 0));
+
+        var result = await CreateService().SearchPublicAsync(null, null, page: 1, pageSize: requested);
+
+        Assert.Equal(expected, result.PageSize);
+        _repo.Verify(r => r.SearchPublicAsync(null, null, 0, expected, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-3)]
+    public async Task SearchPublicAsync_ClampsPageToOne(int requestedPage)
+    {
+        _repo.Setup(r => r.SearchPublicAsync(null, null, 0, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<Business>(), 0));
+
+        var result = await CreateService().SearchPublicAsync(null, null, page: requestedPage, pageSize: 20);
+
+        Assert.Equal(1, result.Page);
+        _repo.Verify(r => r.SearchPublicAsync(null, null, 0, 20, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // --- Perfil público -----------------------------------------------------
 
     [Fact]

@@ -70,8 +70,8 @@ public class ReviewsEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sl
     private async Task<double?> GetPublicRatingAsync(string businessName, Guid businessId)
     {
         var list = await (await _client.GetAsync($"/public/businesses?q={Uri.EscapeDataString(businessName)}"))
-            .Content.ReadFromJsonAsync<List<BusinessResponse>>();
-        return list!.First(b => b.Id == businessId).Rating;
+            .Content.ReadFromJsonAsync<PagedResponse<BusinessResponse>>();
+        return list!.Items.First(b => b.Id == businessId).Rating;
     }
 
     [Fact]

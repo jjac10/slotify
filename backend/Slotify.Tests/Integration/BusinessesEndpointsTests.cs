@@ -212,18 +212,19 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         Assert.Equal("Calle Mayor 1", body.Address);
 
         // Aparece en el listado público con su perfil (incl. contacto).
-        var pub = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses");
-        var found = pub!.Single(b => b.Id == businessId);
+        // pageSize=50: la suite de la clase registra decenas de negocios en el mismo contenedor.
+        var pub = await _client.GetFromJsonAsync<PagedResponse<BusinessResponse>>("/public/businesses?pageSize=50");
+        var found = pub!.Items.Single(b => b.Id == businessId);
         Assert.Equal("barberia", found.Category);
         Assert.Equal("https://img/x.jpg", found.PhotoUrl);
         Assert.Equal("+34911223344", found.Phone);
         Assert.Equal("Calle Mayor 1", found.Address);
 
         // Filtro por categoría.
-        var byCat = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=barberia");
-        Assert.Contains(byCat!, b => b.Id == businessId);
-        var other = await _client.GetFromJsonAsync<List<BusinessResponse>>("/public/businesses?category=spa");
-        Assert.DoesNotContain(other!, b => b.Id == businessId);
+        var byCat = await _client.GetFromJsonAsync<PagedResponse<BusinessResponse>>("/public/businesses?category=barberia&pageSize=50");
+        Assert.Contains(byCat!.Items, b => b.Id == businessId);
+        var other = await _client.GetFromJsonAsync<PagedResponse<BusinessResponse>>("/public/businesses?category=spa&pageSize=50");
+        Assert.DoesNotContain(other!.Items, b => b.Id == businessId);
     }
 
     [Fact]

@@ -46,11 +46,26 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         return list.Select(BusinessResponse.From).ToList();
     }
 
-    /// <summary>Listado/búsqueda pública de negocios (nombre + categoría opcional).</summary>
-    public async Task<IReadOnlyList<BusinessResponse>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default)
+    /// <summary>Tamaño de página por defecto del listado público.</summary>
+    public const int DefaultPageSize = 20;
+
+    /// <summary>Tamaño de página máximo del listado público (protege la BD de peticiones absurdas).</summary>
+    public const int MaxPageSize = 50;
+
+    /// <summary>
+    /// Listado/búsqueda pública de negocios (nombre + categoría opcional), paginado en BD.
+    /// Clampa los valores absurdos: <paramref name="page"/> &lt; 1 → 1;
+    /// <paramref name="pageSize"/> ≤ 0 → 20 (default); &gt; 50 → 50.
+    /// </summary>
+    public async Task<PagedResponse<BusinessResponse>> SearchPublicAsync(
+        string? query, string? category = null, int page = 1, int pageSize = DefaultPageSize,
+        CancellationToken ct = default)
     {
-        var list = await repository.SearchPublicAsync(query, category, ct);
-        return list.Select(BusinessResponse.From).ToList();
+        page = Math.Max(page, 1);
+        pageSize = pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
+
+        var (items, total) = await repository.SearchPublicAsync(query, category, (page - 1) * pageSize, pageSize, ct);
+        return new PagedResponse<BusinessResponse>(items.Select(BusinessResponse.From).ToList(), total, page, pageSize);
     }
 
     /// <summary>Actualiza el perfil público del negocio (categoría/foto/ubicación). Solo el owner.</summary>

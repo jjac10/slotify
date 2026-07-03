@@ -8,6 +8,7 @@ import type {
   CreateServiceRequest,
   CreateStaffRequest,
   DashboardResponse,
+  PagedResponse,
   ReviewResponse,
   ServiceResponse,
   StaffInviteResponse,
@@ -29,14 +30,20 @@ export const businessService = {
     return data
   },
 
-  /** GET /public/businesses — listado/búsqueda pública (por nombre y/o categoría). */
-  async searchPublic(query?: string, category?: string): Promise<BusinessResponse[]> {
-    const params: Record<string, string> = {}
+  /**
+   * GET /public/businesses — listado/búsqueda pública (por nombre y/o categoría),
+   * paginado en servidor: { items, total, page, pageSize } (page 1-based; pageSize máx. 50).
+   */
+  async searchPublic(
+    query?: string,
+    category?: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<PagedResponse<BusinessResponse>> {
+    const params: Record<string, string | number> = { page, pageSize }
     if (query) params.q = query
     if (category) params.category = category
-    const { data } = await api.get<BusinessResponse[]>('/public/businesses', {
-      params: Object.keys(params).length ? params : undefined,
-    })
+    const { data } = await api.get<PagedResponse<BusinessResponse>>('/public/businesses', { params })
     return data
   },
 

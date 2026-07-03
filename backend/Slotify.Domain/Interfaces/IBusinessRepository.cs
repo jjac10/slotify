@@ -25,7 +25,9 @@ public interface IBusinessRepository
     /// <summary>
     /// Listado público de negocios activos para que un cliente busque dónde reservar.
     /// Si <paramref name="query"/> trae texto, filtra por nombre (contiene, sin distinguir
-    /// mayúsculas). Ordenado por nombre.
+    /// mayúsculas). Orden estable (nombre + id) y paginación en BD (Skip/Take) tras aplicar
+    /// los filtros. Devuelve también el total de resultados que cumplen el filtro.
     /// </summary>
-    Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default);
+    Task<(IReadOnlyList<Business> Items, int Total)> SearchPublicAsync(
+        string? query, string? category, int skip, int take, CancellationToken ct = default);
 }

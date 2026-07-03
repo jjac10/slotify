@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
@@ -28,26 +28,56 @@ function formatDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
+/** Tamaño de página del listado (el backend clampa a un máximo de 50). */
+const PAGE_SIZE = 20
+
 export function ExplorePage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [businesses, setBusinesses] = useState<BusinessResponse[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [coords, setCoords] = useState<Coords | null>(null)
   const [locating, setLocating] = useState(false)
   const [locError, setLocError] = useState<string | null>(null)
   const [selected, setSelected] = useState<BusinessResponse | null>(null)
 
+  // Clave de la búsqueda vigente: descarta respuestas de "Cargar más" que lleguen
+  // después de haber cambiado el texto o la categoría (se resetea a página 1).
+  const searchKey = `${query.trim()}|${category ?? ''}`
+  const searchKeyRef = useRef(searchKey)
+  searchKeyRef.current = searchKey
+
   useEffect(() => {
     let active = true
     const handle = setTimeout(() => {
       businessService
-        .searchPublic(query.trim() || undefined, category ?? undefined)
-        .then((data) => { if (active) { setBusinesses(data); setError(null) } })
+        .searchPublic(query.trim() || undefined, category ?? undefined, 1, PAGE_SIZE)
+        .then((data) => {
+          if (active) { setBusinesses(data.items); setTotal(data.total); setPage(1); setError(null) }
+        })
         .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudieron cargar los negocios.') })
     }, 250)
     return () => { active = false; clearTimeout(handle) }
   }, [query, category])
+
+  function loadMore() {
+    const key = searchKey
+    setLoadingMore(true)
+    businessService
+      .searchPublic(query.trim() || undefined, category ?? undefined, page + 1, PAGE_SIZE)
+      .then((data) => {
+        if (searchKeyRef.current !== key) return // la búsqueda cambió mientras cargaba
+        setBusinesses((prev) => [...(prev ?? []), ...data.items])
+        setTotal(data.total)
+        setPage(data.page)
+        setError(null)
+      })
+      .catch((err) => setError(getApiError(err)?.message ?? 'No se pudieron cargar más negocios.'))
+      .finally(() => setLoadingMore(false))
+  }
 
   function locate() {
     if (!navigator.geolocation) { setLocError('Tu navegador no permite geolocalización.'); return }
@@ -61,6 +91,11 @@ export function ExplorePage() {
   }
 
   // Distancia por negocio + orden por cercanía cuando hay ubicación.
+  // Decisión (paginación): la ordenación "cerca de mí" se mantiene en cliente y solo
+  // reordena los resultados YA cargados; las coordenadas del usuario nunca se envían
+  // al servidor (privacidad) y el orden estable entre páginas lo da el backend
+  // (nombre + id). Ordenar por distancia en BD exigiría mandar lat/lng y haversine
+  // en SQL — fuera del alcance de este slice.
   const items = useMemo(() => {
     if (!businesses) return null
     const withDist = businesses.map((b) => ({
@@ -188,6 +223,22 @@ export function ExplorePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Cargar más: mientras haya resultados sin traer (items.length < total) */}
+      {businesses !== null && businesses.length < total && (
+        <div className="mt-stack-md flex justify-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            data-testid="explore-load-more"
+            className="inline-flex items-center gap-1 rounded-full border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[18px]">expand_more</span>
+            {loadingMore ? 'Cargando…' : `Cargar más (${businesses.length} de ${total})`}
+          </button>
+        </div>
       )}
 
       {selected && <BusinessDetailsModal business={selected} onClose={() => setSelected(null)} />}

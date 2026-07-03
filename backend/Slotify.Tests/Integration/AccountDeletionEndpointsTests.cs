@@ -148,8 +148,8 @@ public class AccountDeletionEndpointsTests(SlotifyApiFactory factory) : IClassFi
             .Content.ReadFromJsonAsync<List<ReviewResponse>>();
         Assert.Empty(reviews!);
         var businesses = await (await _client.GetAsync($"/public/businesses?q={Uri.EscapeDataString(businessName)}"))
-            .Content.ReadFromJsonAsync<List<BusinessResponse>>();
-        Assert.Null(businesses!.First(b => b.Id == businessId).Rating);
+            .Content.ReadFromJsonAsync<PagedResponse<BusinessResponse>>();
+        Assert.Null(businesses!.Items.First(b => b.Id == businessId).Rating);
 
         // BD: tombstone sin datos personales, tokens fuera, invitado anonimizado, futura cancelada.
         using (var scope = _factory.Services.CreateScope())

@@ -19,7 +19,7 @@ export function MiSlotifyPage() {
 
   useEffect(() => {
     let active = true
-    businessService.searchPublic().then((b) => active && setSuggestions(b.slice(0, 4))).catch(() => active && setSuggestions([]))
+    businessService.searchPublic(undefined, undefined, 1, 4).then((b) => active && setSuggestions(b.items)).catch(() => active && setSuggestions([]))
     reservationService.listMine().then((r) => active && setReservations(r)).catch((err) => {
       getApiError(err) // swallow; mostramos lista vacía
       if (active) setReservations([])

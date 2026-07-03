@@ -78,13 +78,14 @@ public class BusinessRepositoryTests : IClassFixture<PostgresFixture>, IAsyncLif
         var repo = new BusinessRepository(_db);
 
         // Sin filtro: ambos están presentes (el token es único de este test).
-        var byToken = await repo.SearchPublicAsync(token);
-        Assert.Equal(2, byToken.Count(b => b.Name.Contains(token)));
+        var byToken = await repo.SearchPublicAsync(token, null, skip: 0, take: 50);
+        Assert.Equal(2, byToken.Items.Count(b => b.Name.Contains(token)));
+        Assert.Equal(2, byToken.Total);
 
         // Filtro por nombre en MAYÚSCULAS → ILIKE insensible a mayúsculas.
-        var byName = await repo.SearchPublicAsync($"BARBERÍA {token}");
-        Assert.Single(byName.Where(b => b.Name.Contains(token)));
-        Assert.Contains(byName, b => b.Name == $"Barbería {token}");
+        var byName = await repo.SearchPublicAsync($"BARBERÍA {token}", null, skip: 0, take: 50);
+        Assert.Single(byName.Items, b => b.Name.Contains(token));
+        Assert.Contains(byName.Items, b => b.Name == $"Barbería {token}");
     }
 
     private async Task SeedBusinessAsync(string name)

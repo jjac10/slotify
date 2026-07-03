@@ -32,7 +32,8 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<Business>> SearchPublicAsync(string? query, string? category = null, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<Business> Items, int Total)> SearchPublicAsync(
+        string? query, string? category, int skip, int take, CancellationToken ct = default)
     {
         // Todos los negocios activos salen en Explorar; los de 'solo calendario' aparecen
         // pero la UI los marca como "cita en persona" (sin reserva online).
@@ -47,6 +48,12 @@ public class BusinessRepository(SlotifyDbContext db) : IBusinessRepository
         if (!string.IsNullOrWhiteSpace(category))
             q = q.Where(b => b.Category == category);
 
-        return await q.OrderBy(b => b.Name).ToListAsync(ct);
+        // Total con los filtros aplicados + página en BD (Skip/Take, nunca en memoria).
+        // ThenBy(Id) desempata nombres repetidos → orden estable entre páginas.
+        var total = await q.CountAsync(ct);
+        var items = await q.OrderBy(b => b.Name).ThenBy(b => b.Id)
+            .Skip(skip).Take(take)
+            .ToListAsync(ct);
+        return (items, total);
     }
 }

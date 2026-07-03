@@ -163,10 +163,14 @@ public class BusinessesController(BusinessService businesses) : ApiControllerBas
     /// <summary>
     /// Listado/búsqueda pública de negocios activos (para que un cliente elija dónde
     /// reservar). Filtro opcional por nombre con <c>?q=</c> y por categoría con <c>?category=</c>.
+    /// Paginado en BD con <c>?page=</c> (1-based, default 1) y <c>?pageSize=</c> (default 20,
+    /// máx. 50); responde <c>{ items, total, page, pageSize }</c>.
     /// </summary>
     [HttpGet("/public/businesses")]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<BusinessResponse>>> SearchPublic(
-        [FromQuery] string? q, [FromQuery] string? category, CancellationToken ct)
-        => Ok(await businesses.SearchPublicAsync(q, category, ct));
+    public async Task<ActionResult<PagedResponse<BusinessResponse>>> SearchPublic(
+        [FromQuery] string? q, [FromQuery] string? category,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = BusinessService.DefaultPageSize,
+        CancellationToken ct = default)
+        => Ok(await businesses.SearchPublicAsync(q, category, page, pageSize, ct));
 }

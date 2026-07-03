@@ -76,6 +76,16 @@ export interface VerifyEmailRequest {
   token: string
 }
 
+/** Envoltorio estándar de respuestas paginadas: { items, total, page, pageSize }. */
+export interface PagedResponse<T> {
+  items: T[]
+  /** Total de resultados que cumplen el filtro (no solo los de esta página). */
+  total: number
+  /** Página 1-based. */
+  page: number
+  pageSize: number
+}
+
 /** GET /businesses (negocios del owner autenticado). */
 export interface BusinessResponse {
   id: string
