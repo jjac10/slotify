@@ -172,7 +172,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 
 🎯 **MVP completo y en producción** (`slotify.jjalarcon.es`, v1.0.0). El núcleo está cerrado: auth, reservas (usuario + invitado), horarios, disponibilidad, panel, agenda (lista + calendario), empleados, plan/`staff_services`, perfil público, reseñas, modo solo-calendario y notificaciones (envío simulado).
 
-Pendiente de **entrega TFM**: slides públicas (URL), vídeo. Lo demás, en **🔮 Mejoras post-entrega** (abajo).
+**Entrega TFM completada** (jul 2026): slides en `docs/slides/`, vídeo enviado. Lo demás, en **🔮 Mejoras post-entrega** (abajo).
 
 ---
 
@@ -187,6 +187,21 @@ Pendiente de **entrega TFM**: slides públicas (URL), vídeo. Lo demás, en **�
 ## 🔮 Mejoras post-entrega (después del TFM v1.0.0)
 
 Backlog priorizado tras la entrega. Marca: 🟢 bajo esfuerzo · 🟡 medio · 🔴 alto.
+
+### ✅ Hecho en la rama `v2` (jul 2026, pendiente de merge tras la revisión del TFM)
+
+Primer bloque de "corteza de producto" para comercializar, implementado con TDD por
+subagentes de Claude Code (definidos en `.claude/agents/` + skill `.claude/skills/tdd-slice`):
+
+- ✅ **Recuperación de contraseña** (`/recuperar`, `/restablecer`) — token 256-bit un solo uso (solo hash en BD), email **simulado** vía `IAccountEmailSender` (swappable por proveedor real), anti-enumeración, revoca sesiones al resetear.
+- ✅ **Verificación de email no bloqueante** — banner descartable + `/verificar-email`; el registro nunca falla por el email.
+- ✅ **RGPD**: páginas legales (`/legal/terminos|privacidad|cookies`) + **borrado de cuenta** (`DELETE /auth/me`, tombstone anonimizado, transaccional, 409 si el owner tiene reservas futuras).
+- ✅ **Rate limiting** anti fuerza bruta en login/register (10/60s por IP, configurable, 429 + Retry-After).
+- ✅ **Paginación** del listado público de negocios (`page`/`pageSize`, envoltorio `{ items, total, page, pageSize }`, "Cargar más" en Explorar).
+- ✅ **Observabilidad**: Serilog (JSON CLEF en prod, sin datos personales) + `/health` y `/health/ready` + healthcheck Docker del backend.
+- ✅ **Backups automáticos**: sidecar `pg_dump` diario con retención configurable (ver `DEPLOY.md`).
+
+Suite al cierre de la rama: **423 tests backend + 34 pruebas e2e (22 specs), todo en verde**.
 
 ### Producto / negocio
 - 🟢 **Notificaciones reales (email + WhatsApp).** La fontanería ya existe (`INotificationSender` intercambiable, hoy envío simulado y registrado). Falta enchufar proveedor: email (Resend/SendGrid) y WhatsApp (Twilio/Meta Cloud API).

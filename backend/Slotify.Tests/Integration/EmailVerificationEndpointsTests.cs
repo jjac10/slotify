@@ -62,7 +62,7 @@ public class EmailVerificationEndpointsTests : IAsyncLifetime
             "/auth/register", new RegisterCustomerRequest(email, "SecurePass123!", "Ana"));
 
         Assert.Equal(HttpStatusCode.Created, register.StatusCode);
-        var (recipient, token) = Assert.Single(_factory.Emails.Verifications.Where(v => v.Email == email));
+        var (recipient, token) = Assert.Single(_factory.Emails.Verifications, v => v.Email == email);
         Assert.Equal(email, recipient);
         // El token viaja solo en el "email" simulado, nunca en la respuesta HTTP.
         var body = await register.Content.ReadAsStringAsync();
@@ -82,7 +82,7 @@ public class EmailVerificationEndpointsTests : IAsyncLifetime
             new RegisterOwnerRequest(email, "SecurePass123!", "Bea", "Peluquería Bea"));
 
         Assert.Equal(HttpStatusCode.Created, register.StatusCode);
-        Assert.Single(_factory.Emails.Verifications.Where(v => v.Email == email));
+        Assert.Single(_factory.Emails.Verifications, v => v.Email == email);
     }
 
     [Fact]

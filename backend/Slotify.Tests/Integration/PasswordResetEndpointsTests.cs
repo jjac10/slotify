@@ -58,7 +58,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         var response = await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var (recipient, token) = Assert.Single(_factory.Emails.PasswordResets.Where(s => s.Email == email));
+        var (recipient, token) = Assert.Single(_factory.Emails.PasswordResets, s => s.Email == email);
         Assert.Equal(email, recipient);
         // El token viaja solo en el "email" simulado, nunca en la respuesta HTTP.
         var body = await response.Content.ReadAsStringAsync();
