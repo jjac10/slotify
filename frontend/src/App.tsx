@@ -13,6 +13,7 @@ import { MyReviewsPage } from './pages/MyReviewsPage'
 import { AcceptInvitePage } from './pages/AcceptInvitePage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { OwnerAgendaPage } from './pages/OwnerAgendaPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
@@ -32,6 +33,8 @@ export function App() {
         {/* Recuperación de contraseña (público): pedir enlace y restablecer */}
         <Route path="recuperar" element={<ForgotPasswordPage />} />
         <Route path="restablecer" element={<ResetPasswordPage />} />
+        {/* Verificación de email (público): enlace del email simulado */}
+        <Route path="verificar-email" element={<VerifyEmailPage />} />
         {/* Público: logueado ve sus reservas; invitado busca por teléfono/email */}
         <Route path="mis-reservas" element={<MyReservationsPage />} />
         {/* Páginas legales públicas (RGPD): /legal/terminos · /legal/privacidad · /legal/cookies */}

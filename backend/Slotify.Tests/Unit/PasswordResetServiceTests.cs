@@ -19,7 +19,7 @@ public class PasswordResetServiceTests
     private readonly Mock<IPasswordResetTokenRepository> _resetTokens = new();
     private readonly Mock<IPasswordHasher> _hasher = new();
     private readonly Mock<IRefreshTokenRepository> _refreshTokens = new();
-    private readonly Mock<IPasswordResetEmailSender> _mailer = new();
+    private readonly Mock<IAccountEmailSender> _mailer = new();
 
     private PasswordResetService CreateService() =>
         new(_auth.Object, _resetTokens.Object, _hasher.Object, _refreshTokens.Object, _mailer.Object);
@@ -50,7 +50,7 @@ public class PasswordResetServiceTests
             .Returns(Task.CompletedTask);
 
         string? sentToken = null;
-        _mailer.Setup(m => m.SendAsync(user.Email, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _mailer.Setup(m => m.SendPasswordResetAsync(user.Email, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, CancellationToken>((_, token, _) => sentToken = token)
             .Returns(Task.CompletedTask);
 
@@ -76,7 +76,7 @@ public class PasswordResetServiceTests
         _auth.Setup(a => a.GetByEmailAsync(user.Email, It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var sent = new List<string>();
-        _mailer.Setup(m => m.SendAsync(user.Email, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _mailer.Setup(m => m.SendPasswordResetAsync(user.Email, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, CancellationToken>((_, token, _) => sent.Add(token))
             .Returns(Task.CompletedTask);
 
@@ -98,7 +98,7 @@ public class PasswordResetServiceTests
         await CreateService().RequestResetAsync("noexiste@example.com");
 
         _resetTokens.Verify(r => r.AddAsync(It.IsAny<PasswordResetToken>(), It.IsAny<CancellationToken>()), Times.Never);
-        _mailer.Verify(m => m.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mailer.Verify(m => m.SendPasswordResetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // --- ResetPasswordAsync ---

@@ -19,6 +19,12 @@ public class User
     /// <summary>'active', 'inactive', 'deleted'.</summary>
     public string Status { get; set; } = "active";
 
+    /// <summary>
+    /// Cuándo verificó su email (null = sin verificar). NO bloquea el uso de la app:
+    /// solo alimenta el aviso "verifica tu email" del frontend.
+    /// </summary>
+    public DateTime? EmailVerifiedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }

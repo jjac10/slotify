@@ -1,6 +1,3 @@
-using System.Buffers.Text;
-using System.Security.Cryptography;
-using System.Text;
 using Slotify.Domain.Entities;
 using Slotify.Domain.Exceptions;
 using Slotify.Domain.Interfaces;
@@ -17,12 +14,10 @@ public class PasswordResetService(
     IPasswordResetTokenRepository resetTokens,
     IPasswordHasher hasher,
     IRefreshTokenRepository refreshTokens,
-    IPasswordResetEmailSender mailer)
+    IAccountEmailSender mailer)
 {
     /// <summary>Vida útil del token de recuperación.</summary>
     public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(1);
-
-    private const int TokenBytes = 32; // 256 bits aleatorios criptográficos
 
     /// <summary>
     /// Genera un token para el email dado y lo "envía" (simulado). Si el email no
@@ -35,16 +30,16 @@ public class PasswordResetService(
         if (user is null)
             return; // silencioso: anti-enumeración
 
-        var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(TokenBytes));
+        var token = AccountTokens.NewToken();
         await resetTokens.AddAsync(new PasswordResetToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            TokenHash = Hash(token),
+            TokenHash = AccountTokens.Sha256Hex(token),
             ExpiresAt = DateTime.UtcNow.Add(TokenLifetime),
         }, ct);
 
-        await mailer.SendAsync(user.Email, token, ct);
+        await mailer.SendPasswordResetAsync(user.Email, token, ct);
     }
 
     /// <summary>
@@ -55,7 +50,7 @@ public class PasswordResetService(
     {
         PasswordPolicy.Validate(newPassword);
 
-        var entity = await resetTokens.GetByHashAsync(Hash(token), ct);
+        var entity = await resetTokens.GetByHashAsync(AccountTokens.Sha256Hex(token), ct);
         if (entity is null || entity.UsedAt is not null || entity.ExpiresAt <= DateTime.UtcNow)
             throw new InvalidPasswordResetTokenException();
 
@@ -71,7 +66,4 @@ public class PasswordResetService(
         // Cambiar la contraseña cierra las sesiones abiertas (mismo criterio que ADR #3).
         await refreshTokens.RevokeAllForUserAsync(user.Id, ct);
     }
-
-    private static string Hash(string token)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

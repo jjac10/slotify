@@ -10,7 +10,10 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("auth")]
-public class AuthController(AuthService auth, PasswordResetService passwordReset) : ControllerBase
+public class AuthController(
+    AuthService auth,
+    PasswordResetService passwordReset,
+    EmailVerificationService emailVerification) : ControllerBase
 {
     private const string ForgotPasswordGenericMessage =
         "Si el email existe, recibirás instrucciones para restablecer tu contraseña.";
@@ -24,6 +27,8 @@ public class AuthController(AuthService auth, PasswordResetService passwordReset
         try
         {
             var result = await auth.RegisterCustomerAsync(request, ct);
+            // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
+            await emailVerification.TrySendAsync(result.UserId, ct);
             return StatusCode(StatusCodes.Status201Created, result);
         }
         catch (WeakPasswordException ex)
@@ -44,6 +49,8 @@ public class AuthController(AuthService auth, PasswordResetService passwordReset
         try
         {
             var result = await auth.RegisterOwnerAsync(request, ct);
+            // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
+            await emailVerification.TrySendAsync(result.UserId, ct);
             return StatusCode(StatusCodes.Status201Created, result);
         }
         catch (WeakPasswordException ex)
@@ -145,6 +152,44 @@ public class AuthController(AuthService auth, PasswordResetService passwordReset
         }
     }
 
+    /// <summary>Verifica el email con el token del enlace (24 h, un solo uso). Público.</summary>
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await emailVerification.VerifyAsync(request.Token, ct);
+            return Ok(new { message = "Email verificado. ¡Gracias!" });
+        }
+        catch (InvalidEmailVerificationTokenException ex)
+        {
+            return BadRequest(new { error = "invalid_verification_token", message = ex.Message });
+        }
+    }
+
+    /// <summary>Reenvía el email de verificación al usuario autenticado (regenera el token).</summary>
+    [HttpPost("resend-verification")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendVerification(CancellationToken ct)
+    {
+        var id = User.FindFirstValue("sub");
+        if (id is null)
+            return Unauthorized();
+
+        try
+        {
+            await emailVerification.ResendAsync(Guid.Parse(id), ct);
+            return Ok(new { message = "Te hemos reenviado el enlace de verificación." });
+        }
+        catch (EmailAlreadyVerifiedException ex)
+        {
+            return BadRequest(new { error = "email_already_verified", message = ex.Message });
+        }
+    }
+
     /// <summary>Renueva el access token a partir de un refresh token válido.</summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
@@ -163,15 +208,17 @@ public class AuthController(AuthService auth, PasswordResetService passwordReset
     /// <summary>Datos del usuario autenticado (requiere Bearer token).</summary>
     [HttpGet("me")]
     [Authorize]
-    public ActionResult<MeResponse> Me()
+    public async Task<ActionResult<MeResponse>> Me(CancellationToken ct)
     {
         var id = User.FindFirstValue("sub");
         var email = User.FindFirstValue("email");
         if (id is null)
             return Unauthorized();
 
-        return Ok(new MeResponse(Guid.Parse(id), email ?? string.Empty));
+        var userId = Guid.Parse(id);
+        var emailVerified = await emailVerification.IsVerifiedAsync(userId, ct);
+        return Ok(new MeResponse(userId, email ?? string.Empty, emailVerified));
     }
 }
 
-public record MeResponse(Guid UserId, string Email);
+public record MeResponse(Guid UserId, string Email, bool EmailVerified);

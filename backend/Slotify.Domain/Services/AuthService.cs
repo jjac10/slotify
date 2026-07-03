@@ -194,7 +194,8 @@ public class AuthService(
         var accessToken = tokens.CreateAccessToken(user);
         var refreshToken = tokens.CreateRefreshToken();
         await refreshTokens.IssueAsync(user.Id, refreshToken, ct);
-        return new AuthResult(user.Id, businessId, accessToken, refreshToken, role);
+        return new AuthResult(user.Id, businessId, accessToken, refreshToken, role,
+            EmailVerified: user.EmailVerifiedAt is not null);
     }
 
     /// <summary>

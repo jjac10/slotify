@@ -21,6 +21,8 @@ import type {
 export interface AuthUser {
   userId: string
   email: string
+  /** false ⇒ banner "verifica tu email" (no bloquea nada). */
+  emailVerified: boolean
 }
 
 type AuthStatus = 'loading' | 'authenticated' | 'anonymous'
@@ -82,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .me()
       .then((me) => {
         if (active) {
-          setUser({ userId: me.userId, email: me.email })
+          setUser({ userId: me.userId, email: me.email, emailVerified: me.emailVerified })
           setStatus('authenticated')
         }
       })
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applySession = useCallback((result: AuthResult, email: string) => {
     tokenStorage.setSession(result)
-    setUser({ userId: result.userId, email })
+    setUser({ userId: result.userId, email, emailVerified: result.emailVerified })
     setBusinessId(result.businessId)
     setBusinessRole(result.businessRole ?? null)
     setStatus('authenticated')

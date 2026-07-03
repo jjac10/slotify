@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -48,7 +47,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("instrucciones", body, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(_factory.Emails.Sent); // y no se "envía" nada
+        Assert.Empty(_factory.Emails.PasswordResets); // y no se "envía" nada
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         var response = await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var (recipient, token) = Assert.Single(_factory.Emails.Sent.Where(s => s.Email == email));
+        var (recipient, token) = Assert.Single(_factory.Emails.PasswordResets.Where(s => s.Email == email));
         Assert.Equal(email, recipient);
         // El token viaja solo en el "email" simulado, nunca en la respuesta HTTP.
         var body = await response.Content.ReadAsStringAsync();
@@ -73,7 +72,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
 
         (await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email)))
             .EnsureSuccessStatusCode();
-        var token = _factory.Emails.Sent.Single(s => s.Email == email).Token;
+        var token = _factory.Emails.PasswordResets.Single(s => s.Email == email).Token;
 
         var reset = await _client.PostAsJsonAsync(
             "/auth/reset-password", new ResetPasswordRequest(token, "NewSecure456!"));
@@ -92,7 +91,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         var email = await RegisterCustomerAsync(UniqueEmail(), "OldSecure123!");
         (await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email)))
             .EnsureSuccessStatusCode();
-        var token = _factory.Emails.Sent.Single(s => s.Email == email).Token;
+        var token = _factory.Emails.PasswordResets.Single(s => s.Email == email).Token;
 
         (await _client.PostAsJsonAsync("/auth/reset-password", new ResetPasswordRequest(token, "NewSecure456!")))
             .EnsureSuccessStatusCode();
@@ -117,7 +116,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         var email = await RegisterCustomerAsync(UniqueEmail(), "OldSecure123!");
         (await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email)))
             .EnsureSuccessStatusCode();
-        var token = _factory.Emails.Sent.Single(s => s.Email == email).Token;
+        var token = _factory.Emails.PasswordResets.Single(s => s.Email == email).Token;
 
         var response = await _client.PostAsJsonAsync(
             "/auth/reset-password", new ResetPasswordRequest(token, "weak"));
@@ -135,7 +134,7 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
 
         (await _client.PostAsJsonAsync("/auth/forgot-password", new ForgotPasswordRequest(email)))
             .EnsureSuccessStatusCode();
-        var token = _factory.Emails.Sent.Single(s => s.Email == email).Token;
+        var token = _factory.Emails.PasswordResets.Single(s => s.Email == email).Token;
         (await _client.PostAsJsonAsync("/auth/reset-password", new ResetPasswordRequest(token, "NewSecure456!")))
             .EnsureSuccessStatusCode();
 
@@ -144,30 +143,18 @@ public class PasswordResetEndpointsTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, refresh.StatusCode);
     }
 
-    /// <summary>Sender de test: captura los "emails" de recuperación en memoria.</summary>
-    public sealed class CapturingPasswordResetEmailSender : IPasswordResetEmailSender
-    {
-        public ConcurrentQueue<(string Email, string Token)> Sent { get; } = new();
-
-        public Task SendAsync(string email, string token, CancellationToken ct = default)
-        {
-            Sent.Enqueue((email, token));
-            return Task.CompletedTask;
-        }
-    }
-
     /// <summary>Factory que sustituye el sender simulado (logged) por el capturador.</summary>
     private sealed class CapturingFactory : SlotifyApiFactory
     {
-        public CapturingPasswordResetEmailSender Emails { get; } = new();
+        public CapturingAccountEmailSender Emails { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll<IPasswordResetEmailSender>();
-                services.AddSingleton<IPasswordResetEmailSender>(Emails);
+                services.RemoveAll<IAccountEmailSender>();
+                services.AddSingleton<IAccountEmailSender>(Emails);
             });
         }
     }

@@ -49,7 +49,8 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
-builder.Services.AddScoped<IPasswordResetEmailSender, LoggedPasswordResetEmailSender>();
+builder.Services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
+builder.Services.AddScoped<IAccountEmailSender, LoggedAccountEmailSender>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IFreemiumLimitService, FreemiumLimitService>();
@@ -68,6 +69,7 @@ builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddScoped<EmailVerificationService>();
 
 // --- URL pública del frontend (para los enlaces de los emails simulados) ---
 builder.Services.AddSingleton(

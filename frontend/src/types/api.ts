@@ -14,6 +14,8 @@ export interface AuthResult {
   refreshToken: string
   /** 'owner' | 'staff' | null — distingue al dueño del empleado. */
   businessRole: string | null
+  /** false ⇒ aviso "verifica tu email" (NO bloquea el uso de la app). */
+  emailVerified: boolean
 }
 
 /** GET /auth/staff-invite/{token} — datos de una invitación de empleado pendiente. */
@@ -65,6 +67,13 @@ export interface ResetPasswordRequest {
 export interface MeResponse {
   userId: string
   email: string
+  /** false ⇒ aviso "verifica tu email" (NO bloquea el uso de la app). */
+  emailVerified: boolean
+}
+
+/** POST /auth/verify-email — token del email de verificación (24 h, un solo uso). */
+export interface VerifyEmailRequest {
+  token: string
 }
 
 /** GET /businesses (negocios del owner autenticado). */

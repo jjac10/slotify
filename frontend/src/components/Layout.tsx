@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Logo } from './Logo'
+import { VerifyEmailBanner } from './VerifyEmailBanner'
 
 interface NavItem {
   to: string
@@ -146,6 +147,8 @@ export function Layout() {
       {/* Contenido */}
       <main className="md:pl-56">
         <div className="mx-auto max-w-md md:max-w-3xl px-container-mobile md:px-container-desktop py-stack-lg pb-28 md:pb-stack-xl">
+          {/* Aviso no bloqueante de email sin verificar (en el flujo: no tapa nada) */}
+          <VerifyEmailBanner />
           {/* key cambia al re-pulsar el nav de la ruta actual → remonta y recarga */}
           <Outlet key={reloadKey} />
         </div>

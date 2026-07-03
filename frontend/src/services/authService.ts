@@ -8,6 +8,7 @@ import type {
   RegisterOwnerRequest,
   ResetPasswordRequest,
   StaffInviteInfoResponse,
+  VerifyEmailRequest,
 } from '../types/api'
 
 export const authService = {
@@ -51,5 +52,15 @@ export const authService = {
   /** POST /auth/reset-password — restablece la contraseña con el token del email. */
   async resetPassword(request: ResetPasswordRequest): Promise<void> {
     await api.post('/auth/reset-password', request)
+  },
+
+  /** POST /auth/verify-email — verifica el email con el token del enlace (público). */
+  async verifyEmail(request: VerifyEmailRequest): Promise<void> {
+    await api.post('/auth/verify-email', request)
+  },
+
+  /** POST /auth/resend-verification — reenvía el enlace al usuario autenticado. */
+  async resendVerification(): Promise<void> {
+    await api.post('/auth/resend-verification')
   },
 }
