@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 
 const FEATURES = [
@@ -20,8 +20,21 @@ const FEATURES = [
 ]
 
 export function LandingPage() {
+  // Mensaje de despedida tras eliminar la cuenta (useAuth navega aquí con este state).
+  const accountDeleted = Boolean((useLocation().state as { accountDeleted?: boolean } | null)?.accountDeleted)
+
   return (
     <div className="min-h-screen bg-background">
+      {accountDeleted && (
+        <div
+          className="flex items-center justify-center gap-2 bg-secondary-container px-4 py-3 text-sm font-semibold text-on-secondary-container"
+          data-testid="account-deleted-banner"
+          role="status"
+        >
+          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+          Tu cuenta se ha eliminado. Sentimos verte marchar: aquí tienes tu casa si vuelves.
+        </div>
+      )}
       {/* Hero */}
       <header className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-container to-secondary text-on-primary">
         <div className="mx-auto max-w-5xl px-container-mobile md:px-container-desktop">

@@ -63,4 +63,13 @@ export const authService = {
   async resendVerification(): Promise<void> {
     await api.post('/auth/resend-verification')
   },
+
+  /**
+   * DELETE /auth/me — borra la cuenta (derecho de supresión RGPD) confirmando con
+   * la contraseña actual. 400 si la contraseña no es correcta; 409 si es un owner
+   * con reservas futuras de clientes.
+   */
+  async deleteAccount(password: string): Promise<void> {
+    await api.delete('/auth/me', { data: { password } })
+  },
 }

@@ -41,6 +41,8 @@ interface AuthContextValue {
   /** El empleado acepta su invitación (fija contraseña) y queda logueado. */
   acceptStaffInvite: (token: string, password: string, email: string) => Promise<void>
   logout: () => void
+  /** Borra la cuenta (RGPD) confirmando con la contraseña; cierra sesión y va a la landing. */
+  deleteAccount: (password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -132,6 +134,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession],
   )
 
+  // Borrado de cuenta (RGPD): si el backend acepta, la sesión ya no vale para nada
+  // → limpiar y volver a la landing con un mensaje de despedida.
+  const deleteAccount = useCallback(
+    async (password: string) => {
+      await authService.deleteAccount(password)
+      clearSession()
+      navigate('/', { state: { accountDeleted: true } })
+    },
+    [clearSession, navigate],
+  )
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -146,8 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerOwner,
       acceptStaffInvite,
       logout,
+      deleteAccount,
     }),
-    [user, businessId, businessRole, status, login, registerCustomer, registerOwner, acceptStaffInvite, logout],
+    [user, businessId, businessRole, status, login, registerCustomer, registerOwner, acceptStaffInvite, logout, deleteAccount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

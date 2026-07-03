@@ -5,6 +5,7 @@ import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
+import { DeleteAccountSection } from '../components/DeleteAccountSection'
 import type { BusinessResponse, ReservationResponse } from '../types/api'
 
 function formatDateTime(iso: string): string {
@@ -112,6 +113,12 @@ export function MiSlotifyPage() {
           </ul>
         </div>
       )}
+
+      {/* Zona de peligro: eliminar la cuenta (RGPD). Los owners también la tienen en Configuración. */}
+      <div className="card border border-error/20">
+        <h2 className="!mt-0 mb-stack-sm text-base font-bold text-error">Zona de peligro</h2>
+        <DeleteAccountSection />
+      </div>
     </section>
   )
 }

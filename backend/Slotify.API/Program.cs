@@ -70,6 +70,8 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<EmailVerificationService>();
+builder.Services.AddScoped<IAccountDeletionRepository, AccountDeletionRepository>();
+builder.Services.AddScoped<AccountDeletionService>();
 
 // --- URL pública del frontend (para los enlaces de los emails simulados) ---
 builder.Services.AddSingleton(

@@ -13,7 +13,8 @@ namespace Slotify.API.Controllers;
 public class AuthController(
     AuthService auth,
     PasswordResetService passwordReset,
-    EmailVerificationService emailVerification) : ControllerBase
+    EmailVerificationService emailVerification,
+    AccountDeletionService accountDeletion) : ControllerBase
 {
     private const string ForgotPasswordGenericMessage =
         "Si el email existe, recibirás instrucciones para restablecer tu contraseña.";
@@ -202,6 +203,36 @@ public class AuthController(
         catch (InvalidRefreshTokenException ex)
         {
             return Unauthorized(new { error = "invalid_refresh_token", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Borra la cuenta del usuario autenticado (derecho de supresión RGPD), previa
+    /// confirmación con su contraseña actual. La contraseña incorrecta devuelve 400
+    /// (no 401: el JWT es válido y un 401 haría que el frontend cerrara la sesión).
+    /// Un owner con reservas futuras de clientes recibe 409.
+    /// </summary>
+    [HttpDelete("me")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> DeleteMe(DeleteAccountRequest request, CancellationToken ct)
+    {
+        var id = User.FindFirstValue("sub");
+        if (id is null)
+            return Unauthorized();
+
+        try
+        {
+            await accountDeletion.DeleteAccountAsync(Guid.Parse(id), request.Password, ct);
+            return NoContent();
+        }
+        catch (InvalidCredentialsException)
+        {
+            return BadRequest(new { error = "invalid_password", message = "La contraseña no es correcta." });
+        }
+        catch (BusinessHasFutureReservationsException ex)
+        {
+            return Conflict(new { error = "business_has_future_reservations", message = ex.Message });
         }
     }
 

@@ -5,6 +5,7 @@ import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES } from '../constants/categories'
 import { MonthCalendar } from '../components/MonthCalendar'
+import { DeleteAccountSection } from '../components/DeleteAccountSection'
 import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -1403,6 +1404,11 @@ export function BusinessSettingsPage() {
             En esta versión el cambio de plan es inmediato y sin pago (demo).
           </p>
         </div>
+      </SectionCard>
+
+      {/* Zona de peligro: eliminar cuenta + negocio (RGPD) */}
+      <SectionCard id="danger" title="Zona de peligro" icon="warning">
+        <DeleteAccountSection />
       </SectionCard>
       </div>
     </section>
