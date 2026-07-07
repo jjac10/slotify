@@ -67,6 +67,25 @@
   }
 }
 
+/* Landing pública: degradado radial del hero (mockup Stitch) */
+.hero-gradient {
+  background: radial-gradient(circle at top right, #7c3aed 0%, #630ed4 100%);
+}
+
+/* Landing pública: tarjeta ilustrativa flotante */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
 /* Iconos Material Symbols */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
