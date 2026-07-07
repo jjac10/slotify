@@ -1,15 +1,38 @@
 import { api } from './apiClient'
-import type { CreateReservationRequest, CreateReviewRequest, ReservationResponse, ReviewResponse } from '../types/api'
+import type {
+  CreateReservationRequest,
+  CreateReviewRequest,
+  PagedResponse,
+  ReservationResponse,
+  ReservationScope,
+  ReviewResponse,
+} from '../types/api'
+
+interface MyReservationsQuery {
+  /** 'upcoming' | 'past' | 'all' (default del backend: 'all'). */
+  scope?: ReservationScope
+  /** 1-based (default del backend: 1). */
+  page?: number
+  /** Default del backend: 20; máx. 50. */
+  pageSize?: number
+}
 
 interface BusinessReservationsQuery {
   date?: string
   staffId?: string
+  /** 1-based (default del backend: 1). */
+  page?: number
+  /** Default del backend: 20; máx. 50. */
+  pageSize?: number
 }
 
 export const reservationService = {
-  /** GET /reservations/mine — reservas del usuario autenticado. */
-  async listMine(): Promise<ReservationResponse[]> {
-    const { data } = await api.get<ReservationResponse[]>('/reservations/mine')
+  /**
+   * GET /reservations/mine — reservas del usuario autenticado, paginadas en servidor:
+   * { items, total, page, pageSize }. `scope` acota por inicio (upcoming/past/all).
+   */
+  async listMine(query: MyReservationsQuery = {}): Promise<PagedResponse<ReservationResponse>> {
+    const { data } = await api.get<PagedResponse<ReservationResponse>>('/reservations/mine', { params: query })
     return data
   },
 
@@ -25,12 +48,15 @@ export const reservationService = {
     return data
   },
 
-  /** GET /businesses/{id}/reservations — agenda del negocio (owner/staff). */
+  /**
+   * GET /businesses/{id}/reservations — agenda del negocio (owner/staff), paginada en
+   * servidor: { items, total, page, pageSize }. Filtros opcionales por día (UTC) y trabajador.
+   */
   async listForBusiness(
     businessId: string,
     query: BusinessReservationsQuery = {},
-  ): Promise<ReservationResponse[]> {
-    const { data } = await api.get<ReservationResponse[]>(
+  ): Promise<PagedResponse<ReservationResponse>> {
+    const { data } = await api.get<PagedResponse<ReservationResponse>>(
       `/businesses/${businessId}/reservations`,
       { params: query },
     )

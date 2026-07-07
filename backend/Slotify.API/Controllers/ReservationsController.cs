@@ -76,11 +76,44 @@ public class ReservationsController(
         return reservation is null ? NotFound() : Ok(reservation);
     }
 
-    /// <summary>Reservas del usuario autenticado ("mis reservas").</summary>
+    /// <summary>
+    /// Reservas del usuario autenticado ("mis reservas"). <c>?scope=</c> acota por inicio:
+    /// <c>upcoming</c> (próximas, ascendente), <c>past</c> (pasadas, la más reciente primero)
+    /// o <c>all</c> (default). Paginado en BD con <c>?page=</c> (1-based, default 1) y
+    /// <c>?pageSize=</c> (default 20, máx. 50); responde <c>{ items, total, page, pageSize }</c>.
+    /// </summary>
     [HttpGet("mine")]
     [Authorize]
-    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListMine(CancellationToken ct)
-        => Ok(await management.ListMineAsync(CurrentUserId, ct));
+    public async Task<ActionResult<PagedResponse<ReservationResponse>>> ListMine(
+        [FromQuery] string? scope,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = ReservationManagementService.DefaultPageSize,
+        CancellationToken ct = default)
+    {
+        if (!TryParseScope(scope, out var parsedScope))
+            return BadRequest(new { error = "invalid_scope", message = "scope debe ser 'upcoming', 'past' o 'all'." });
+
+        try
+        {
+            return Ok(await management.ListMineAsync(CurrentUserId, parsedScope, page, pageSize, ct));
+        }
+        catch (InvalidPaginationException ex)
+        {
+            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
+        }
+    }
+
+    /// <summary>Mapea <c>?scope=</c> (case-insensitive; vacío → All) a <see cref="ReservationScope"/>.</summary>
+    private static bool TryParseScope(string? scope, out ReservationScope parsed)
+    {
+        (var ok, parsed) = scope?.ToLowerInvariant() switch
+        {
+            null or "" or "all" => (true, ReservationScope.All),
+            "upcoming" => (true, ReservationScope.Upcoming),
+            "past" => (true, ReservationScope.Past),
+            _ => (false, ReservationScope.All),
+        };
+        return ok;
+    }
 
     /// <summary>
     /// Reservas de un invitado por su teléfono o email (sin cuenta). Público. El contacto
@@ -91,15 +124,25 @@ public class ReservationsController(
     public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> Lookup(LookupGuestReservationsRequest request, CancellationToken ct)
         => Ok(await guestLookup.LookupAsync(request.Contact, ct));
 
-    /// <summary>Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.</summary>
+    /// <summary>
+    /// Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.
+    /// Paginado en BD con <c>?page=</c> (1-based, default 1) y <c>?pageSize=</c> (default 20,
+    /// máx. 50); responde <c>{ items, total, page, pageSize }</c>.
+    /// </summary>
     [HttpGet("/businesses/{businessId:guid}/reservations")]
     [Authorize]
-    public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> ListForBusiness(
-        Guid businessId, [FromQuery] DateOnly? date, [FromQuery] Guid? staffId, CancellationToken ct)
+    public async Task<ActionResult<PagedResponse<ReservationResponse>>> ListForBusiness(
+        Guid businessId, [FromQuery] DateOnly? date, [FromQuery] Guid? staffId,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = ReservationManagementService.DefaultPageSize,
+        CancellationToken ct = default)
     {
         try
         {
-            return Ok(await management.ListForBusinessAsync(businessId, CurrentUserId, date, staffId, ct));
+            return Ok(await management.ListForBusinessAsync(businessId, CurrentUserId, date, staffId, page, pageSize, ct));
+        }
+        catch (InvalidPaginationException ex)
+        {
+            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
         }
         catch (ReservationForbiddenException ex)
         {

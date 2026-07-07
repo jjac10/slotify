@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
@@ -8,7 +8,7 @@ import { RescheduleModal } from '../components/RescheduleModal'
 import { ReviewModal } from '../components/ReviewModal'
 import { reviewService } from '../services/reviewService'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
-import type { MyReviewResponse, ReservationResponse } from '../types/api'
+import type { MyReviewResponse, ReservationResponse, ReservationScope } from '../types/api'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -161,25 +161,59 @@ export function MyReservationsPage() {
   return status === 'authenticated' ? <AuthedReservations /> : <GuestLookup />
 }
 
-type Tab = 'upcoming' | 'past'
+/** Tamaño de página del listado (el backend clampa a un máximo de 50). */
+const PAGE_SIZE = 20
+
+const SCOPE_EMPTY: Record<ReservationScope, { icon: string; text: string }> = {
+  upcoming: { icon: 'event_busy', text: 'No tienes reservas próximas.' },
+  past: { icon: 'history', text: 'No tienes reservas pasadas.' },
+  all: { icon: 'event', text: 'Todavía no tienes reservas.' },
+}
 
 function AuthedReservations() {
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('upcoming')
+  const [scope, setScope] = useState<ReservationScope>('upcoming')
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
   const [reviewTarget, setReviewTarget] = useState<ReservationResponse | null>(null)
   // Reseña del cliente por negocio (una por negocio): para mostrar "ya valoraste"/editar.
   const [reviewsByBusiness, setReviewsByBusiness] = useState<Map<string, MyReviewResponse>>(new Map())
 
+  // Pestaña vigente: descarta respuestas de "Cargar más" que lleguen después de
+  // haber cambiado de pestaña (el cambio resetea a página 1).
+  const scopeRef = useRef(scope)
+  scopeRef.current = scope
+
   useEffect(() => {
     let active = true
+    setReservations(null)
+    setError(null)
     reservationService
-      .listMine()
-      .then((data) => active && setReservations(data))
+      .listMine({ scope, page: 1, pageSize: PAGE_SIZE })
+      .then((data) => {
+        if (active) { setReservations(data.items); setTotal(data.total); setPage(1) }
+      })
       .catch((err) => active && setError(getApiError(err)?.message ?? 'No se pudieron cargar tus reservas.'))
     return () => { active = false }
-  }, [])
+  }, [scope])
+
+  function loadMore() {
+    const current = scope
+    setLoadingMore(true)
+    reservationService
+      .listMine({ scope: current, page: page + 1, pageSize: PAGE_SIZE })
+      .then((data) => {
+        if (scopeRef.current !== current) return // la pestaña cambió mientras cargaba
+        setReservations((prev) => [...(prev ?? []), ...data.items])
+        setTotal(data.total)
+        setPage(data.page)
+      })
+      .catch((err) => setError(getApiError(err)?.message ?? 'No se pudieron cargar más reservas.'))
+      .finally(() => setLoadingMore(false))
+  }
 
   function loadMyReviews() {
     reviewService.listMine()
@@ -189,22 +223,9 @@ function AuthedReservations() {
 
   useEffect(loadMyReviews, [])
 
-  const visible = useMemo(() => {
-    if (!reservations) return null
-    const now = Date.now()
-    return reservations
-      .filter((r) =>
-        tab === 'upcoming' ? new Date(r.startTime).getTime() >= now : new Date(r.startTime).getTime() < now,
-      )
-      // Próximas: la cita más cercana primero; pasadas: la más reciente primero.
-      .sort((a, b) => {
-        const diff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        return tab === 'upcoming' ? diff : -diff
-      })
-  }, [reservations, tab])
-
   function handleCancelled(id: string) {
     setReservations((prev) => prev?.filter((r) => r.id !== id) ?? null)
+    setTotal((t) => Math.max(0, t - 1))
   }
 
   function handleRescheduled(updated: ReservationResponse) {
@@ -223,17 +244,19 @@ function AuthedReservations() {
       <h1>Mis reservas</h1>
       <p className="text-on-surface-variant mb-stack-md">Gestiona tus citas e historial.</p>
 
-      <div className="mb-stack-md flex items-center gap-stack-sm">
-        {(['upcoming', 'past'] as const).map((t) => (
+      {/* Toggle segmentado Próximas | Pasadas | Todas → ?scope= del backend */}
+      <div className="mb-stack-md inline-flex gap-1 rounded-full bg-surface-container p-1" data-testid="reservations-scope">
+        {([['upcoming', 'Próximas'], ['past', 'Pasadas'], ['all', 'Todas']] as const).map(([value, label]) => (
           <button
-            key={t}
+            key={value}
             type="button"
-            onClick={() => setTab(t)}
-            className={`rounded-full px-5 py-2 text-sm font-bold transition-colors ${
-              tab === t ? 'bg-primary-container text-on-primary shadow-card' : 'text-on-surface-variant hover:bg-surface-container-low'
+            onClick={() => setScope(value)}
+            data-testid={`scope-${value}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+              scope === value ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
             }`}
           >
-            {t === 'upcoming' ? 'Próximas' : 'Pasadas'}
+            {label}
           </button>
         ))}
       </div>
@@ -243,30 +266,49 @@ function AuthedReservations() {
           {error}
         </p>
       )}
-      {visible === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
-      {visible !== null && visible.length === 0 && (
+      {reservations === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
+      {reservations !== null && reservations.length === 0 && (
         <div className="card flex flex-col items-center text-center py-stack-xl" data-testid="my-reservations-empty">
           <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">
-            {tab === 'upcoming' ? 'event_busy' : 'history'}
+            {SCOPE_EMPTY[scope].icon}
           </span>
-          <p className="mt-stack-sm font-semibold">
-            {tab === 'upcoming' ? 'No tienes reservas próximas.' : 'No tienes reservas pasadas.'}
-          </p>
+          <p className="mt-stack-sm font-semibold">{SCOPE_EMPTY[scope].text}</p>
         </div>
       )}
-      {visible !== null && visible.length > 0 && (
+      {reservations !== null && reservations.length > 0 && (
         <ul className="flex flex-col gap-stack-sm" data-testid="my-reservations-list">
-          {visible.map((r) => (
-            <ReservationCard
-              key={r.id}
-              r={r}
-              onCancelled={tab === 'upcoming' ? handleCancelled : undefined}
-              onReschedule={tab === 'upcoming' ? () => setRescheduleTarget(r) : undefined}
-              onReview={tab === 'past' ? () => setReviewTarget(r) : undefined}
-              existingReview={reviewsByBusiness.get(r.businessId)}
-            />
-          ))}
+          {reservations.map((r) => {
+            // En "Todas" conviven citas pasadas y futuras: las acciones dependen
+            // de cada reserva (futura → cancelar/reprogramar; pasada → valorar).
+            const isPast = new Date(r.startTime).getTime() < Date.now()
+            return (
+              <ReservationCard
+                key={r.id}
+                r={r}
+                onCancelled={!isPast ? handleCancelled : undefined}
+                onReschedule={!isPast ? () => setRescheduleTarget(r) : undefined}
+                onReview={isPast ? () => setReviewTarget(r) : undefined}
+                existingReview={reviewsByBusiness.get(r.businessId)}
+              />
+            )
+          })}
         </ul>
+      )}
+
+      {/* Cargar más: mientras haya reservas sin traer (items.length < total) */}
+      {reservations !== null && reservations.length < total && (
+        <div className="mt-stack-md flex justify-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            data-testid="load-more-reservations"
+            className="inline-flex items-center gap-1 rounded-full border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[18px]">expand_more</span>
+            {loadingMore ? 'Cargando…' : `Cargar más (${reservations.length} de ${total})`}
+          </button>
+        </div>
       )}
 
       {rescheduleTarget && (

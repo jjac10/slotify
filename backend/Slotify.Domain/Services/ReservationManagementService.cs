@@ -124,14 +124,23 @@ public class ReservationManagementService(
 
     // --- Listados ------------------------------------------------------------
 
+    /// <summary>Tamaño de página por defecto de los listados de reservas.</summary>
+    public const int DefaultPageSize = 20;
+
+    /// <summary>Tamaño de página máximo de los listados de reservas (protege la BD).</summary>
+    public const int MaxPageSize = 50;
+
     /// <summary>
-    /// Agenda del negocio: reservas (no canceladas) ordenadas por inicio, con filtros
-    /// opcionales por día y trabajador. El owner ve todas (con su filtro); un empleado
-    /// solo ve SUS reservas (se fuerza el filtro a su propio staffId).
+    /// Agenda del negocio: reservas (no canceladas) ordenadas por inicio, paginadas en BD,
+    /// con filtros opcionales por día y trabajador. El owner ve todas (con su filtro); un
+    /// empleado solo ve SUS reservas (se fuerza el filtro a su propio staffId).
     /// </summary>
-    public async Task<IReadOnlyList<ReservationResponse>> ListForBusinessAsync(
-        Guid businessId, Guid currentUserId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
+    public async Task<PagedResponse<ReservationResponse>> ListForBusinessAsync(
+        Guid businessId, Guid currentUserId, DateOnly? date, Guid? staffId,
+        int page = 1, int pageSize = DefaultPageSize, CancellationToken ct = default)
     {
+        EnsureValidPagination(page, pageSize);
+
         var business = await businesses.GetByIdAsync(businessId, ct)
             ?? throw new ReservationForbiddenException();
 
@@ -144,26 +153,36 @@ public class ReservationManagementService(
             staffId = membership.Id;
         }
 
-        var list = await reservations.ListByBusinessAsync(businessId, date, staffId, ct);
-        return list.Select(ReservationResponse.From).ToList();
+        var (items, total) = await reservations.ListByBusinessAsync(
+            businessId, date, staffId, (page - 1) * pageSize, pageSize, ct);
+        return new PagedResponse<ReservationResponse>(
+            items.Select(ReservationResponse.From).ToList(), total, page, pageSize);
     }
 
-    /// <summary>"Mis reservas": las del usuario autenticado, ordenadas por inicio.</summary>
-    public async Task<IReadOnlyList<ReservationResponse>> ListMineAsync(Guid currentUserId, CancellationToken ct = default)
+    /// <summary>
+    /// "Mis reservas": las hechas con la cuenta + las que hizo como invitado y se
+    /// vincularon a ella al registrarse (mismo teléfono/email), en una sola consulta
+    /// paginada en BD. <paramref name="scope"/> acota por inicio respecto a ahora (UTC):
+    /// Upcoming (próximas, ascendente), Past (pasadas, la más reciente primero) o All.
+    /// </summary>
+    public async Task<PagedResponse<ReservationResponse>> ListMineAsync(
+        Guid currentUserId, ReservationScope scope = ReservationScope.All,
+        int page = 1, int pageSize = DefaultPageSize, CancellationToken ct = default)
     {
-        // Reservas hechas con la cuenta + las que hizo como invitado y se vincularon a ella
-        // al registrarse (mismo teléfono/email). Se unen, deduplican y ordenan por inicio.
-        var direct = await reservations.ListByUserAsync(currentUserId, ct);
-        var guestIds = await guests.ListIdsByUserAsync(currentUserId, ct);
-        var viaGuest = guestIds is { Count: > 0 }
-            ? await reservations.ListByGuestIdsAsync(guestIds, ct)
-            : [];
+        EnsureValidPagination(page, pageSize);
 
-        return direct.Concat(viaGuest)
-            .DistinctBy(r => r.Id)
-            .OrderBy(r => r.StartTime)
-            .Select(ReservationResponse.From)
-            .ToList();
+        var guestIds = await guests.ListIdsByUserAsync(currentUserId, ct);
+        var (items, total) = await reservations.ListByUserAsync(
+            currentUserId, guestIds, scope, DateTime.UtcNow, (page - 1) * pageSize, pageSize, ct);
+        return new PagedResponse<ReservationResponse>(
+            items.Select(ReservationResponse.From).ToList(), total, page, pageSize);
+    }
+
+    /// <summary>page &lt; 1 o pageSize fuera de [1, 50] → <see cref="InvalidPaginationException"/> (400).</summary>
+    private static void EnsureValidPagination(int page, int pageSize)
+    {
+        if (page < 1 || pageSize < 1 || pageSize > MaxPageSize)
+            throw new InvalidPaginationException(page, pageSize, MaxPageSize);
     }
 
     // --- Núcleo compartido ---------------------------------------------------

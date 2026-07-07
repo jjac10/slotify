@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Slotify.Domain.DTOs;
 using Slotify.Domain.Entities;
 using Slotify.Domain.Exceptions;
 using Slotify.Infrastructure.Data;
@@ -161,43 +162,109 @@ public class ReservationRepositoryTests : IClassFixture<PostgresFixture>, IAsync
     }
 
     [Fact]
-    public async Task ListByBusinessAsync_FiltersByDateAndStaff()
+    public async Task ListByBusinessAsync_FiltersByDateAndStaff_WithTotal()
     {
         var ctx = await SeedAsync();
         var repo = new ReservationRepository(_db);
         await repo.AddAsync(NewReservation(ctx, At10, At10.AddMinutes(30)));                       // 20-jun 10:00
         await repo.AddAsync(NewReservation(ctx, At10.AddDays(1), At10.AddDays(1).AddMinutes(30))); // 21-jun 10:00
 
-        var all = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: null);
+        var (all, allTotal) = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: null, skip: 0, take: 20);
         Assert.Equal(2, all.Count);
+        Assert.Equal(2, allTotal);
 
-        var onlyDay = await repo.ListByBusinessAsync(ctx.businessId, date: DateOnly.FromDateTime(At10), staffId: null);
+        var (onlyDay, dayTotal) = await repo.ListByBusinessAsync(ctx.businessId, date: DateOnly.FromDateTime(At10), staffId: null, skip: 0, take: 20);
         Assert.Single(onlyDay);
+        Assert.Equal(1, dayTotal);
 
-        var byStaff = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: ctx.staffId);
+        var (byStaff, _) = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: ctx.staffId, skip: 0, take: 20);
         Assert.Equal(2, byStaff.Count);
-        var otherStaff = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: Guid.NewGuid());
+        var (otherStaff, otherTotal) = await repo.ListByBusinessAsync(ctx.businessId, date: null, staffId: Guid.NewGuid(), skip: 0, take: 20);
         Assert.Empty(otherStaff);
+        Assert.Equal(0, otherTotal);
     }
 
     [Fact]
-    public async Task ListByUserAsync_ReturnsOnlyThatUsersReservations()
+    public async Task ListByBusinessAsync_PaginatesInDb_WithFilterTotal()
     {
         var ctx = await SeedAsync();
         var repo = new ReservationRepository(_db);
-        // Una reserva de usuario y otra de invitado en el mismo negocio/staff.
+        for (var i = 0; i < 3; i++)
+            await repo.AddAsync(NewReservation(ctx, At10.AddHours(i), At10.AddHours(i).AddMinutes(30)));
+
+        var (page1, total1) = await repo.ListByBusinessAsync(ctx.businessId, null, null, skip: 0, take: 2);
+        var (page2, total2) = await repo.ListByBusinessAsync(ctx.businessId, null, null, skip: 2, take: 2);
+
+        // Total del filtro en TODAS las páginas; sin solapes y orden por inicio.
+        Assert.Equal(3, total1);
+        Assert.Equal(3, total2);
+        Assert.Equal(2, page1.Count);
+        Assert.Single(page2);
+        var starts = page1.Concat(page2).Select(r => r.StartTime).ToList();
+        Assert.Equal(3, page1.Concat(page2).Select(r => r.Id).Distinct().Count());
+        Assert.Equal(starts.OrderBy(s => s), starts);
+    }
+
+    [Fact]
+    public async Task ListByUserAsync_ReturnsUserAndLinkedGuestReservations_InOneQuery()
+    {
+        var ctx = await SeedAsync();
+        var repo = new ReservationRepository(_db);
+        // Una reserva de usuario, otra de SU invitado vinculado y otra de un invitado ajeno.
         var user = new User { Id = Guid.NewGuid(), Email = $"u-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "U", Type = "customer" };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         var mine = NewReservation(ctx, At10, At10.AddMinutes(30));
         mine.GuestId = null; mine.UserId = user.Id;
         await repo.AddAsync(mine);
-        await repo.AddAsync(NewReservation(ctx, At10.AddHours(1), At10.AddHours(1).AddMinutes(30))); // invitado
+        var viaGuest = NewReservation(ctx, At10.AddHours(1), At10.AddHours(1).AddMinutes(30)); // invitado vinculado
+        await repo.AddAsync(viaGuest);
+        // Sin guestIds vinculados → solo la directa.
+        var (onlyDirect, directTotal) = await repo.ListByUserAsync(
+            user.Id, [], ReservationScope.All, DateTime.UtcNow, skip: 0, take: 20);
+        Assert.Single(onlyDirect);
+        Assert.Equal(1, directTotal);
+        Assert.Equal(mine.Id, onlyDirect[0].Id);
 
-        var result = await repo.ListByUserAsync(user.Id);
+        // Con el guest vinculado → ambas, ordenadas por inicio, con total coherente.
+        var (both, bothTotal) = await repo.ListByUserAsync(
+            user.Id, [ctx.guestId], ReservationScope.All, DateTime.UtcNow, skip: 0, take: 20);
+        Assert.Equal(2, both.Count);
+        Assert.Equal(2, bothTotal);
+        Assert.Equal(new[] { mine.Id, viaGuest.Id }, both.Select(r => r.Id).ToList());
+    }
 
-        Assert.Single(result);
-        Assert.Equal(mine.Id, result[0].Id);
+    [Fact]
+    public async Task ListByUserAsync_ScopeFiltersByStart_PastDescending_UpcomingAscending()
+    {
+        var ctx = await SeedAsync();
+        var repo = new ReservationRepository(_db);
+        var user = new User { Id = Guid.NewGuid(), Email = $"u-{Guid.NewGuid():N}@t.local", PasswordHash = "h", Name = "U", Type = "customer" };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+        // "now" fijo entre las dos pasadas y las dos futuras → test determinista.
+        var now = At10.AddDays(10);
+        var times = new[] { At10, At10.AddDays(1), now.AddDays(1), now.AddDays(2) };
+        var ids = new List<Guid>();
+        foreach (var t in times)
+        {
+            var r = NewReservation(ctx, t, t.AddMinutes(30));
+            r.GuestId = null; r.UserId = user.Id;
+            await repo.AddAsync(r);
+            ids.Add(r.Id);
+        }
+
+        var (upcoming, upTotal) = await repo.ListByUserAsync(user.Id, [], ReservationScope.Upcoming, now, 0, 20);
+        Assert.Equal(2, upTotal);
+        Assert.Equal(new[] { ids[2], ids[3] }, upcoming.Select(r => r.Id).ToList()); // ascendente
+
+        var (past, pastTotal) = await repo.ListByUserAsync(user.Id, [], ReservationScope.Past, now, 0, 20);
+        Assert.Equal(2, pastTotal);
+        Assert.Equal(new[] { ids[1], ids[0] }, past.Select(r => r.Id).ToList()); // descendente (reciente primero)
+
+        var (all, allTotal) = await repo.ListByUserAsync(user.Id, [], ReservationScope.All, now, 0, 20);
+        Assert.Equal(4, allTotal);
+        Assert.Equal(ids, all.Select(r => r.Id).ToList()); // ascendente
     }
 
     private static Reservation NewReservation((Guid businessId, Guid serviceId, Guid staffId, Guid guestId) ctx,

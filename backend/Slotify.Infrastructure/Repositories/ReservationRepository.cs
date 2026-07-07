@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Slotify.Domain.DTOs;
 using Slotify.Domain.Entities;
 using Slotify.Domain.Exceptions;
 using Slotify.Domain.Interfaces;
@@ -73,8 +74,8 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Reservation>> ListByBusinessAsync(
-        Guid businessId, DateOnly? date, Guid? staffId, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<Reservation> Items, int Total)> ListByBusinessAsync(
+        Guid businessId, DateOnly? date, Guid? staffId, int skip, int take, CancellationToken ct = default)
     {
         var query = db.Reservations.AsNoTracking()
             .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
@@ -91,15 +92,43 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
             query = query.Where(r => r.StartTime >= dayStart && r.StartTime < dayEnd);
         }
 
-        return await query.OrderBy(r => r.StartTime).ToListAsync(ct);
+        // Total con los filtros aplicados + página en BD (Skip/Take, nunca en memoria).
+        // ThenBy(Id) desempata inicios idénticos → orden estable entre páginas.
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderBy(r => r.StartTime).ThenBy(r => r.Id)
+            .Skip(skip).Take(take)
+            .ToListAsync(ct);
+        return (items, total);
     }
 
-    public async Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default)
-        => await db.Reservations.AsNoTracking()
+    public async Task<(IReadOnlyList<Reservation> Items, int Total)> ListByUserAsync(
+        Guid userId, IReadOnlyCollection<Guid> guestIds, ReservationScope scope, DateTime nowUtc,
+        int skip, int take, CancellationToken ct = default)
+    {
+        // Reservas de la cuenta + las de sus invitados vinculados, en una sola consulta
+        // (el OR dedup a nivel de fila: una reserva es de user O de guest, nunca ambos).
+        var query = db.Reservations.AsNoTracking()
             .Include(r => r.Business).Include(r => r.Service).Include(r => r.Staff)
-            .Where(r => r.UserId == userId && r.Status != "cancelled")
-            .OrderBy(r => r.StartTime)
-            .ToListAsync(ct);
+            .Where(r => r.Status != "cancelled" &&
+                (r.UserId == userId || (r.GuestId != null && guestIds.Contains(r.GuestId.Value))));
+
+        query = scope switch
+        {
+            ReservationScope.Upcoming => query.Where(r => r.StartTime >= nowUtc),
+            ReservationScope.Past => query.Where(r => r.StartTime < nowUtc),
+            _ => query,
+        };
+
+        var total = await query.CountAsync(ct);
+
+        // Past: la más reciente primero; resto: la más próxima primero. ThenBy(Id) → orden estable.
+        var ordered = scope == ReservationScope.Past
+            ? query.OrderByDescending(r => r.StartTime).ThenBy(r => r.Id)
+            : query.OrderBy(r => r.StartTime).ThenBy(r => r.Id);
+
+        var items = await ordered.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
+    }
 
     public async Task<IReadOnlyList<Reservation>> ListByGuestIdsAsync(IReadOnlyCollection<Guid> guestIds, CancellationToken ct = default)
         => await db.Reservations.AsNoTracking()

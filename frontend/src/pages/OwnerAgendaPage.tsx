@@ -191,9 +191,30 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
   )
 }
 
+/** Tamaño de página del listado: el máximo del backend, para minimizar peticiones. */
+const PAGE_SIZE = 50
+
+/**
+ * Días UTC que cubren un día local (para el filtro `date` del backend, que corta por
+ * día UTC). Si el día local abarca dos días UTC (zonas ≠ UTC), devuelve ambos y el
+ * timeline filtra después por día local.
+ */
+function utcDatesForLocalDay(localDate: string): string[] {
+  const first = new Date(`${localDate}T00:00:00`).toISOString().slice(0, 10)
+  const last = new Date(`${localDate}T23:59:59.999`).toISOString().slice(0, 10)
+  return first === last ? [first] : [first, last]
+}
+
 export function OwnerAgendaPage() {
   const { businessId, isOwner, isStaff } = useAuth()
+  // Vista Lista: páginas acumuladas del listado completo (con "Cargar más").
   const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  // Vista Día: consulta aparte filtrada por fecha en el servidor (no pagina: un día
+  // no supera el tamaño de página con los límites del plan).
+  const [dayReservations, setDayReservations] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservationResponse | null>(null)
   const [creating, setCreating] = useState(false)
@@ -203,33 +224,59 @@ export function OwnerAgendaPage() {
   const [grouping, setGrouping] = useState<'day' | 'week'>('day')
   const [view, setView] = useState<'list' | 'day'>('list')
   const [dayDate, setDayDate] = useState(() => isoDate(new Date()))
-
-  function loadReservations() {
-    if (!businessId) return
-    reservationService
-      .listForBusiness(businessId)
-      .then(setReservations)
-      .catch((err) => setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.'))
-  }
+  // Se incrementa tras crear una reserva → recarga lista y día.
+  const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     if (!businessId) return
     let active = true
     reservationService
-      .listForBusiness(businessId)
-      .then((data) => { if (active) setReservations(data) })
+      .listForBusiness(businessId, { page: 1, pageSize: PAGE_SIZE })
+      .then((data) => {
+        if (active) { setReservations(data.items); setTotal(data.total); setPage(1) }
+      })
       .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.') })
     return () => { active = false }
-  }, [businessId])
+  }, [businessId, refresh])
 
-  // Trabajadores presentes en la agenda (para el filtro), derivados de las reservas.
+  // Vista Día: pide al servidor solo las reservas del día mostrado.
+  useEffect(() => {
+    if (!businessId || view !== 'day') return
+    let active = true
+    setDayReservations(null)
+    Promise.all(
+      utcDatesForLocalDay(dayDate).map((d) =>
+        reservationService.listForBusiness(businessId, { date: d, page: 1, pageSize: PAGE_SIZE }),
+      ),
+    )
+      .then((pages) => { if (active) setDayReservations(pages.flatMap((p) => p.items)) })
+      .catch((err) => { if (active) setError(getApiError(err)?.message ?? 'No se pudo cargar la agenda.') })
+    return () => { active = false }
+  }, [businessId, view, dayDate, refresh])
+
+  function loadMore() {
+    if (!businessId) return
+    setLoadingMore(true)
+    reservationService
+      .listForBusiness(businessId, { page: page + 1, pageSize: PAGE_SIZE })
+      .then((data) => {
+        setReservations((prev) => [...(prev ?? []), ...data.items])
+        setTotal(data.total)
+        setPage(data.page)
+      })
+      .catch((err) => setError(getApiError(err)?.message ?? 'No se pudieron cargar más reservas.'))
+      .finally(() => setLoadingMore(false))
+  }
+
+  // Trabajadores presentes en la agenda (para el filtro), derivados de las reservas cargadas.
   const staffOptions = useMemo(() => {
     const byId = new Map<string, string>()
-    for (const r of reservations ?? []) if (r.staffId) byId.set(r.staffId, r.staffName ?? 'Trabajador')
+    for (const r of [...(reservations ?? []), ...(dayReservations ?? [])])
+      if (r.staffId) byId.set(r.staffId, r.staffName ?? 'Trabajador')
     return [...byId.entries()].map(([id, name]) => ({ id, name }))
-  }, [reservations])
+  }, [reservations, dayReservations])
 
-  // Resumen: reservas de hoy y de los próximos 7 días (solo futuras).
+  // Resumen: reservas de hoy y de los próximos 7 días (solo futuras), sobre lo cargado.
   const summary = useMemo(() => {
     const now = Date.now()
     const today = startOfDay(new Date())
@@ -283,24 +330,31 @@ export function OwnerAgendaPage() {
     )
   }
 
+  // Los cambios locales se aplican a ambas vistas (lista acumulada + día).
   function handleCancelled(id: string) {
-    setReservations((prev) => prev?.filter((r) => r.id !== id) ?? null)
+    const drop = (prev: ReservationResponse[] | null) => prev?.filter((r) => r.id !== id) ?? null
+    setReservations(drop)
+    setDayReservations(drop)
+    setTotal((t) => Math.max(0, t - 1))
   }
 
-  function handleConfirmed(updated: ReservationResponse) {
-    setReservations((prev) =>
-      prev?.map((r) => (r.id === updated.id ? { ...r, status: updated.status } : r)) ?? null,
-    )
-  }
-
-  function handleRescheduled(updated: ReservationResponse) {
-    setReservations((prev) =>
+  function applyUpdate(updated: ReservationResponse) {
+    const map = (prev: ReservationResponse[] | null) =>
       prev?.map((r) =>
         r.id === updated.id
           ? { ...r, startTime: updated.startTime, endTime: updated.endTime, status: updated.status }
           : r,
-      ) ?? null,
-    )
+      ) ?? null
+    setReservations(map)
+    setDayReservations(map)
+  }
+
+  function handleConfirmed(updated: ReservationResponse) {
+    applyUpdate(updated)
+  }
+
+  function handleRescheduled(updated: ReservationResponse) {
+    applyUpdate(updated)
     setRescheduleTarget(null)
   }
 
@@ -365,7 +419,9 @@ export function OwnerAgendaPage() {
         )}
       </div>
 
-      {reservations === null && !error && <p className="text-on-surface-variant">Cargando…</p>}
+      {(view === 'day' ? dayReservations : reservations) === null && !error && (
+        <p className="text-on-surface-variant">Cargando…</p>
+      )}
 
       {view === 'day' ? (
         <>
@@ -384,9 +440,9 @@ export function OwnerAgendaPage() {
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
-          {reservations !== null && (
+          {dayReservations !== null && (
             <AgendaDayTimeline
-              reservations={reservations}
+              reservations={dayReservations}
               date={dayDate}
               staffFilter={staffFilter}
               onSelect={(r) => setRescheduleTarget(r)}
@@ -479,6 +535,24 @@ export function OwnerAgendaPage() {
               ))}
             </div>
           )}
+
+          {/* Cargar más: mientras haya reservas sin traer (items.length < total).
+              Las pestañas/filtros actúan en cliente sobre lo cargado, así que cargar
+              más páginas puede revelar citas para la pestaña activa. */}
+          {reservations !== null && reservations.length < total && (
+            <div className="mt-stack-md flex justify-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                data-testid="load-more-agenda"
+                className="inline-flex items-center gap-1 rounded-full border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                {loadingMore ? 'Cargando…' : `Cargar más (${reservations.length} de ${total})`}
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -495,7 +569,7 @@ export function OwnerAgendaPage() {
           businessId={businessId}
           initialDate={view === 'day' ? dayDate : undefined}
           onClose={() => setCreating(false)}
-          onCreated={() => { setCreating(false); loadReservations() }}
+          onCreated={() => { setCreating(false); setRefresh((n) => n + 1) }}
         />
       )}
     </section>

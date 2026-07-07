@@ -1,3 +1,4 @@
+using Slotify.Domain.DTOs;
 using Slotify.Domain.Entities;
 
 namespace Slotify.Domain.Interfaces;
@@ -32,14 +33,23 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> ListByStaffOnDateAsync(Guid staffId, DateOnly date, CancellationToken ct = default);
 
     /// <summary>
-    /// Reservas de un negocio (agenda), ordenadas por inicio. Filtros opcionales por
-    /// día (UTC) y por trabajador.
+    /// Reservas de un negocio (agenda), ordenadas por inicio (desempate por id → orden
+    /// estable entre páginas). Filtros opcionales por día (UTC) y por trabajador.
+    /// Pagina en BD (Skip/Take) y devuelve también el total que cumple el filtro.
     /// </summary>
-    Task<IReadOnlyList<Reservation>> ListByBusinessAsync(
-        Guid businessId, DateOnly? date, Guid? staffId, CancellationToken ct = default);
+    Task<(IReadOnlyList<Reservation> Items, int Total)> ListByBusinessAsync(
+        Guid businessId, DateOnly? date, Guid? staffId, int skip, int take, CancellationToken ct = default);
 
-    /// <summary>Reservas de un usuario registrado ("mis reservas"), ordenadas por inicio.</summary>
-    Task<IReadOnlyList<Reservation>> ListByUserAsync(Guid userId, CancellationToken ct = default);
+    /// <summary>
+    /// "Mis reservas" de un usuario registrado: las hechas con su cuenta más las de sus
+    /// invitados vinculados (<paramref name="guestIds"/>), en UNA sola consulta paginada
+    /// en BD (Skip/Take) con su total. <paramref name="scope"/> filtra por inicio respecto
+    /// a <paramref name="nowUtc"/>: Upcoming (&gt;=, ascendente), Past (&lt;, descendente:
+    /// la más reciente primero) o All (ascendente).
+    /// </summary>
+    Task<(IReadOnlyList<Reservation> Items, int Total)> ListByUserAsync(
+        Guid userId, IReadOnlyCollection<Guid> guestIds, ReservationScope scope, DateTime nowUtc,
+        int skip, int take, CancellationToken ct = default);
 
     /// <summary>Reservas no canceladas de unos invitados (ver "mis reservas" por teléfono/email).</summary>
     Task<IReadOnlyList<Reservation>> ListByGuestIdsAsync(IReadOnlyCollection<Guid> guestIds, CancellationToken ct = default);

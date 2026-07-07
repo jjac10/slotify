@@ -138,10 +138,10 @@ public class AccountDeletionEndpointsTests(SlotifyApiFactory factory) : IClassFi
 
         // La agenda del negocio conserva la reserva histórica, anonimizada.
         var agenda = await (await owner.GetAsync($"/businesses/{businessId}/reservations"))
-            .Content.ReadFromJsonAsync<List<ReservationResponse>>();
-        var past = Assert.Single(agenda!, r => r.Id == pastId);
+            .Content.ReadFromJsonAsync<PagedResponse<ReservationResponse>>();
+        var past = Assert.Single(agenda!.Items, r => r.Id == pastId);
         Assert.Equal(AccountDeletionService.AnonymizedName, past.ClientName);
-        Assert.DoesNotContain(agenda!, r => r.Id == futureId); // la futura quedó cancelada (no aparece)
+        Assert.DoesNotContain(agenda.Items, r => r.Id == futureId); // la futura quedó cancelada (no aparece)
 
         // Reseña borrada y media del negocio recalculada.
         var reviews = await (await _client.GetAsync($"/businesses/{businessId}/reviews"))

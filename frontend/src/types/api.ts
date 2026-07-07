@@ -76,6 +76,13 @@ export interface VerifyEmailRequest {
   token: string
 }
 
+/**
+ * Filtro de "mis reservas" por fecha de inicio (GET /reservations/mine?scope=):
+ * 'upcoming' (inicio >= ahora, ascendente), 'past' (inicio < ahora, la más
+ * reciente primero) o 'all' (default, ascendente).
+ */
+export type ReservationScope = 'upcoming' | 'past' | 'all'
+
 /** Envoltorio estándar de respuestas paginadas: { items, total, page, pageSize }. */
 export interface PagedResponse<T> {
   items: T[]

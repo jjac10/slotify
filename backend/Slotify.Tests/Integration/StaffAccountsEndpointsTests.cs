@@ -82,14 +82,14 @@ public class StaffAccountsEndpointsTests(SlotifyApiFactory factory) : IClassFixt
         var employee = _factory.CreateClient();
         employee.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", empAuth.AccessToken);
         var empAgenda = await (await employee.GetAsync($"/businesses/{businessId}/reservations"))
-            .Content.ReadFromJsonAsync<List<ReservationResponse>>();
-        Assert.All(empAgenda!, r => Assert.Equal(empStaffId, r.StaffId)); // solo las suyas
-        Assert.Single(empAgenda!);
+            .Content.ReadFromJsonAsync<PagedResponse<ReservationResponse>>();
+        Assert.All(empAgenda!.Items, r => Assert.Equal(empStaffId, r.StaffId)); // solo las suyas
+        Assert.Single(empAgenda.Items);
 
         // El owner sí ve las dos.
         var ownerAgenda = await (await owner.GetAsync($"/businesses/{businessId}/reservations"))
-            .Content.ReadFromJsonAsync<List<ReservationResponse>>();
-        Assert.Equal(2, ownerAgenda!.Count);
+            .Content.ReadFromJsonAsync<PagedResponse<ReservationResponse>>();
+        Assert.Equal(2, ownerAgenda!.Items.Count);
     }
 
     [Fact]

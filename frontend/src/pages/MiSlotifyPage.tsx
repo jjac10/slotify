@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
@@ -15,25 +15,22 @@ function formatDateTime(iso: string): string {
 export function MiSlotifyPage() {
   const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<BusinessResponse[] | null>(null)
-  const [reservations, setReservations] = useState<ReservationResponse[] | null>(null)
+  const [upcoming, setUpcoming] = useState<ReservationResponse[] | null>(null)
 
   useEffect(() => {
     let active = true
     businessService.searchPublic(undefined, undefined, 1, 4).then((b) => active && setSuggestions(b.items)).catch(() => active && setSuggestions([]))
-    reservationService.listMine().then((r) => active && setReservations(r)).catch((err) => {
-      getApiError(err) // swallow; mostramos lista vacía
-      if (active) setReservations([])
-    })
+    // Solo las 3 citas más próximas: el backend filtra (scope=upcoming) y pagina.
+    reservationService.listMine({ scope: 'upcoming', page: 1, pageSize: 3 })
+      .then((r) => active && setUpcoming(r.items))
+      .catch((err) => {
+        getApiError(err) // swallow; mostramos lista vacía
+        if (active) setUpcoming([])
+      })
     return () => {
       active = false
     }
   }, [])
-
-  const upcoming = useMemo(() => {
-    if (!reservations) return null
-    const now = Date.now()
-    return reservations.filter((r) => new Date(r.startTime).getTime() >= now).slice(0, 3)
-  }, [reservations])
 
   return (
     <section className="flex flex-col gap-stack-lg">
