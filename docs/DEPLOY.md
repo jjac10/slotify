@@ -51,6 +51,10 @@ POSTGRES_PASSWORD=...          # el generado arriba
 JWT_KEY=...                    # el generado arriba
 CRYPTO_ENCRYPTION_KEY=...      # 32 bytes base64
 CRYPTO_BLIND_INDEX_KEY=...     # 32 bytes base64
+SMTP_HOST=smtp.ionos.es        # email real (STARTTLS); si se omite, envío simulado por log
+SMTP_PORT=587
+SMTP_USER=slotify@jjalarcon.es
+SMTP_PASSWORD=...              # contraseña del buzón IONOS
 ```
 
 ### 3) Clave SSH para que GitHub entre al VPS

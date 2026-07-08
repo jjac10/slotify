@@ -101,6 +101,22 @@ builder.Services.AddSingleton(
 builder.Services.AddSingleton(
     builder.Configuration.GetSection("Frontend").Get<FrontendOptions>() ?? new FrontendOptions());
 
+// --- Email real por SMTP (IONOS, STARTTLS) si hay credenciales en el entorno
+// (SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD); si faltan (desarrollo local),
+// quedan los senders simulados registrados arriba. Los avisos de WhatsApp no
+// tienen proveedor real y siguen simulados en ambos modos. ---
+var smtpOptions = SmtpOptions.FromConfiguration(builder.Configuration);
+builder.Services.AddSingleton(smtpOptions);
+if (smtpOptions.IsConfigured)
+{
+    builder.Services.AddScoped<ISmtpTransport, MailKitSmtpTransport>();
+    builder.Services.AddScoped<LoggedNotificationSender>();
+    builder.Services.AddScoped<SmtpEmailSender>();
+    builder.Services.AddScoped<IAccountEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+    builder.Services.AddScoped<INotificationSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+    builder.Services.AddScoped<ISupportEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+}
+
 // --- Autenticación JWT (ADR #3) ---
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -174,6 +190,17 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<Slotify.API.OpenApi.BearerSecuritySchemeTransformer>());
 
 var app = builder.Build();
+
+if (smtpOptions.IsConfigured)
+{
+    app.Logger.LogInformation(
+        "Emails por SMTP real: {Host}:{Port} (remitente {From})",
+        smtpOptions.Host, smtpOptions.Port, smtpOptions.FromAddress);
+}
+else
+{
+    app.Logger.LogInformation("Emails simulados por log (sin SMTP_HOST/SMTP_USER/SMTP_PASSWORD en el entorno)");
+}
 
 // --- Migraciones al arranque ---
 using (var scope = app.Services.CreateScope())

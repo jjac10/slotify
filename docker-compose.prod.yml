@@ -29,6 +29,15 @@ services:
       Crypto__EncryptionKey: ${CRYPTO_ENCRYPTION_KEY}
       Crypto__BlindIndexKey: ${CRYPTO_BLIND_INDEX_KEY}
       Cors__AllowedOrigins__0: "https://${DOMAIN}"
+      # Emails reales por SMTP (IONOS, STARTTLS). Si faltan las credenciales,
+      # el backend mantiene el envío simulado por log.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # Enlaces de los emails (restablecer/verificar) y buzón del formulario de contacto.
+      Frontend__BaseUrl: "https://${DOMAIN}"
+      Support__RecipientEmail: ${SUPPORT_RECIPIENT_EMAIL:-slotify@jjalarcon.es}
     depends_on:
       postgres:
         condition: service_healthy
