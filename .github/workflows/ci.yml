@@ -47,9 +47,9 @@ jobs:
           path: '**/test-results.trx'
           if-no-files-found: ignore
 
-  # --- Frontend: TypeScript strict + build de producción ---
+  # --- Frontend: TypeScript strict + tests de componentes + build de producción ---
   frontend:
-    name: Frontend (typecheck + build)
+    name: Frontend (typecheck + unit + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -69,6 +69,10 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # Tests unitarios de componentes (Vitest + React Testing Library, jsdom)
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: Build
         run: npm run build
