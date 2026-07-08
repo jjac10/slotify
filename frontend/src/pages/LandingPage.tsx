@@ -237,9 +237,9 @@ export function LandingPage() {
             <Link to="/legal/cookies" className="hover:text-primary hover:underline">
               Cookies
             </Link>
-            <a href="mailto:josejua94@gmail.com" className="hover:text-primary hover:underline">
+            <Link to="/contacto" className="hover:text-primary hover:underline">
               Contacto
-            </a>
+            </Link>
           </nav>
           <p className="text-xs text-on-surface-variant/70">© 2026 Slotify · TFM</p>
         </div>

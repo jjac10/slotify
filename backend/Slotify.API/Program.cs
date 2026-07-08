@@ -90,6 +90,12 @@ builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<EmailVerificationService>();
 builder.Services.AddScoped<IAccountDeletionRepository, AccountDeletionRepository>();
 builder.Services.AddScoped<AccountDeletionService>();
+builder.Services.AddScoped<ISupportEmailSender, LoggedSupportEmailSender>();
+builder.Services.AddScoped<SupportService>();
+
+// --- Formulario de contacto/soporte: destinatario del email simulado ---
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection("Support").Get<SupportOptions>() ?? new SupportOptions());
 
 // --- URL pública del frontend (para los enlaces de los emails simulados) ---
 builder.Services.AddSingleton(
