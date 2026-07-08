@@ -201,16 +201,26 @@ subagentes de Claude Code (definidos en `.claude/agents/` + skill `.claude/skill
 - ✅ **Observabilidad**: Serilog (JSON CLEF en prod, sin datos personales) + `/health` y `/health/ready` + healthcheck Docker del backend.
 - ✅ **Backups automáticos**: sidecar `pg_dump` diario con retención configurable (ver `DEPLOY.md`).
 
-Suite al cierre de la rama: **423 tests backend + 34 pruebas e2e (22 specs), todo en verde**.
+Suite al cierre del primer bloque: **423 tests backend + 34 pruebas e2e (22 specs), todo en verde**.
+
+Segundo bloque (2026-07-08):
+
+- ✅ **Landing page pública rediseñada** según `design/slotify_public_landing_page/` (header sticky, hero radial con tarjeta flotante, features, sección QR, CTA de negocio, footer legal+contacto).
+- ✅ **Paginación y filtros en listados de reservas**: `GET /reservations/mine` y agenda devuelven `PagedResponse` (`page`/`pageSize` 20/50, 400 `invalid_pagination`); filtro `scope=upcoming|past|all` en "mis reservas" (past descendente); toggle Próximas|Pasadas|Todas + "Cargar más" en el front; spec `reservations-pagination.spec.ts`.
+- ✅ **Página de contacto/soporte** (`/contacto` + `POST /support/contact`, público y rate-limited): `SupportService` + `ISupportEmailSender` swappable (simulado por log), spec `contact.spec.ts`.
+- ✅ **Email real por SMTP (MailKit)**: `SmtpEmailSender` cubre los tres seams (cuenta, avisos, soporte) vía `ISmtpTransport` (STARTTLS); config por `SMTP_HOST/PORT/USER/PASSWORD` del entorno con **fallback simulado** si faltan credenciales; `docker-compose.prod.yml` pasa las variables y fija `Frontend__BaseUrl` (enlaces de email correctos en prod). WhatsApp sigue simulado.
+- ✅ **Vitest + React Testing Library**: `npm run test:unit` (22 tests: `MonthCalendar`, `StatusPill`, `GuestContactInput`) integrado en el job de frontend de CI.
+
+Suite al cierre del segundo bloque: **267 unit tests backend + 22 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de este bloque están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en la sesión).
 
 ### Producto / negocio
-- 🟢 **Notificaciones reales (email + WhatsApp).** La fontanería ya existe (`INotificationSender` intercambiable, hoy envío simulado y registrado). Falta enchufar proveedor: email (Resend/SendGrid) y WhatsApp (Twilio/Meta Cloud API).
+- 🟢 **Notificaciones reales (email + WhatsApp).** ✅ Email hecho (SMTP IONOS vía MailKit, rama v2). ⬜ WhatsApp: falta proveedor (Twilio/Meta Cloud API) — otra implementación de `INotificationSender` para el canal 'whatsapp'.
 - 🟡 **Borrar negocio** desde Configuración del owner, con **borrado en cascada** de todos sus datos (servicios, equipo, horario, festivos, reservas, reseñas, notificaciones, vínculos de invitado). Pedir reconfirmación (escribir el nombre); hard-delete de datos personales por RGPD.
 - 🟡 **Rol admin de plataforma (moderación).** NO para dar de alta negocios (el registro abierto permite que cualquiera pruebe la demo), **sí para eliminar/moderar** negocios spam o de prueba. `role=superadmin` + panel de moderación + borrado en cascada.
 - 🟡 **Modo solo-calendario: mostrar horario y huecos.** En negocios `calendar_only`, enseñar en la ficha pública el horario semanal y los huecos libres (solo lectura, reaprovechando `GET /availability`) para que el cliente sepa cuándo hay sitio antes de llamar.
 - 🔴 **Pago real para Premium.** Pasarela (Stripe/Paddle) + webhook que llame a `ChangePlanAsync` tras el cobro + tabla `subscriptions`/`payments` (esqueleto ya documentado en `DATA_MODEL.md`). Hoy el upgrade es simulado.
 - 🟡 **Personalización del perfil público + más Configuración.** Logo, foto de portada, color de marca, descripción y redes del negocio; más ajustes y pulido de UX/vista.
-- 🟢 **Página de contacto / soporte.** Formulario de sugerencias y soporte que envíe email al dueño de la plataforma (o cree ticket).
+- ✅ **Página de contacto / soporte** (rama v2): `/contacto` → email al dueño de la plataforma.
 
 ### Seguridad
 - 🔴 **OTP por SMS/email para acciones de invitado** *(TODO de seguridad ya apuntado)*. Hoy el lookup de invitado se verifica solo conociendo el contacto; debe pedir un código antes de mostrar/gestionar reservas.
@@ -220,9 +230,9 @@ Suite al cierre de la rama: **423 tests backend + 34 pruebas e2e (22 specs), tod
 - 🟡 **Lista de espera (`waitlists`).** Si no hay huecos, el cliente entra en cola y se le avisa al cancelarse una reserva. Esquema ya diseñado en `DATA_MODEL.md`.
 - 🟡 **Confirmaciones en tiempo real (WebSockets/SignalR).** La lista del cliente se refresca sola cuando el owner confirma.
 - 🟡 **Métricas avanzadas:** tasa de ausencias (`noShowRate`, requiere marcar asistencia) y ocupación (`occupancyRate`).
-- 🟢 **Paginación y filtros** en listados de reservas y reseñas.
+- 🟢 **Paginación y filtros** en listados de reservas ✅ (rama v2) y reseñas ⬜.
 
 ### Plataforma / rendimiento
 - 🟡 **CQRS-lite / vistas materializadas** para reportes (ver `DECISIONS.md` #8).
 - 🟡 **Redis** como caché cuando el rendimiento lo pida.
-- 🟡 **RLS en PostgreSQL** + **Vitest + RTL** para tests unitarios de componentes en frontend.
+- 🟡 **RLS en PostgreSQL**. (Vitest + RTL ✅ en la rama v2.)
