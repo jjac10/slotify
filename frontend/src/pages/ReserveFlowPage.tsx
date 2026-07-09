@@ -6,7 +6,7 @@ import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
 import { MonthCalendar } from '../components/MonthCalendar'
-import type { ServiceResponse, AvailableSlot } from '../types/api'
+import type { ServiceResponse, AvailableSlot, DayAvailabilityStatus } from '../types/api'
 import { useAuth } from '../hooks/useAuth'
 
 type Step =
@@ -51,6 +51,8 @@ export function ReserveFlowPage() {
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
   const [staff, setStaff] = useState<Array<{ id: string; name: string; role: string }> | null>(null)
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null)
+  // Estado por día (verde/rojo) acumulado por mes consultado: ISO → status.
+  const [dayStatus, setDayStatus] = useState<Record<string, DayAvailabilityStatus>>({})
   const [selectedDate, setSelectedDate] = useState('')
   const [showPicker, setShowPicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -114,9 +116,40 @@ export function ReserveFlowPage() {
     }
   }, [])
 
+  // Disponibilidad de un mes (calendario verde/rojo). Silencioso: si falla, el
+  // calendario queda neutro y el flujo de reserva sigue funcionando igual.
+  const loadMonth = useCallback(async (year: number, month: number) => {
+    if (!booking.businessId || !booking.serviceId || !booking.staffId) return
+    try {
+      const days = await businessService.monthAvailability(booking.businessId, {
+        serviceId: booking.serviceId,
+        staffId: booking.staffId,
+        year,
+        month,
+      })
+      setDayStatus((prev) => ({
+        ...prev,
+        ...Object.fromEntries(days.map((d) => [d.date, d.status])),
+      }))
+    } catch {
+      // sin puntos de color; no bloquea la reserva
+    }
+  }, [booking.businessId, booking.serviceId, booking.staffId])
+
   useEffect(() => {
     if (step === 'select-service' && booking.businessId) loadServices(booking.businessId)
   }, [step, booking.businessId, loadServices])
+
+  // Al entrar al paso de fecha, cargar el mes del día ancla (y limpiar lo anterior:
+  // el estado depende del servicio/profesional elegidos).
+  useEffect(() => {
+    if (step !== 'select-datetime') return
+    setDayStatus({})
+    const base = new Date(`${anchorDate}T00:00:00`)
+    loadMonth(base.getFullYear(), base.getMonth() + 1)
+    // anchorDate fuera de las deps a propósito: solo se carga al entrar al paso
+    // (elegir un día del mismo mes no debe limpiar y recargar los puntos).
+  }, [step, loadMonth]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectDay(iso: string) {
     setSelectedDate(iso)
@@ -311,6 +344,8 @@ export function ReserveFlowPage() {
               <MonthCalendar
                 value={selectedDate}
                 min={todayIso}
+                dayStatus={dayStatus}
+                onMonthChange={loadMonth}
                 onSelect={(d) => {
                   setAnchorDate(d)
                   selectDay(d)
@@ -324,12 +359,14 @@ export function ReserveFlowPage() {
           <div className="mb-stack-md flex gap-2" data-testid="reserve-days">
             {days.map((d, i) => {
               const active = selectedDate === d.iso
+              const status = dayStatus[d.iso]
               return (
                 <button
                   key={d.iso}
                   type="button"
                   data-testid="date-card"
                   data-date={d.iso}
+                  data-status={status}
                   onClick={() => selectDay(d.iso)}
                   className={`min-w-0 flex-1 flex-col items-center rounded-xl border px-1 py-2 transition-colors ${
                     i >= 5 ? 'hidden sm:flex' : 'flex'
@@ -341,6 +378,13 @@ export function ReserveFlowPage() {
                 >
                   <span className="text-[11px] font-medium uppercase">{d.dow}</span>
                   <span className="text-lg font-bold leading-tight">{d.day}</span>
+                  {/* Punto de disponibilidad (estilo Booksy): verde = huecos, rojo = completo */}
+                  <span
+                    aria-hidden
+                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                      status === 'available' ? 'bg-emerald-500' : status === 'full' ? 'bg-error' : 'bg-transparent'
+                    }`}
+                  />
                 </button>
               )
             })}

@@ -33,6 +33,13 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> ListByStaffOnDateAsync(Guid staffId, DateOnly date, CancellationToken ct = default);
 
     /// <summary>
+    /// Reservas no canceladas de un staff cuyo inicio cae en [<paramref name="fromUtc"/>,
+    /// <paramref name="toUtc"/>). Para la disponibilidad de un mes completo en una consulta.
+    /// </summary>
+    Task<IReadOnlyList<Reservation>> ListByStaffBetweenAsync(
+        Guid staffId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
+    /// <summary>
     /// Reservas de un negocio (agenda), ordenadas por inicio (desempate por id → orden
     /// estable entre páginas). Filtros opcionales por día (UTC) y por trabajador.
     /// Pagina en BD (Skip/Take) y devuelve también el total que cumple el filtro.

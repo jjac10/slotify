@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { DayAvailabilityStatus } from '../types/api'
 
 interface Props {
   /** Fecha seleccionada en ISO "YYYY-MM-DD" (o '' si ninguna). */
@@ -6,6 +7,14 @@ interface Props {
   /** Fecha mínima seleccionable (ISO); los días anteriores se deshabilitan. */
   min?: string
   onSelect: (iso: string) => void
+  /**
+   * Estado por día (ISO → 'available' | 'full' | 'closed') para pintar el
+   * calendario estilo Booksy: punto verde = quedan huecos, punto rojo = completo
+   * (no seleccionable), atenuado = cerrado. Los días sin entrada quedan neutros.
+   */
+  dayStatus?: Record<string, DayAvailabilityStatus>
+  /** Avisa al navegar de mes (para cargar la disponibilidad de ese mes). */
+  onMonthChange?: (year: number, month: number) => void
 }
 
 function iso(y: number, m: number, d: number): string {
@@ -15,7 +24,7 @@ function iso(y: number, m: number, d: number): string {
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 /** Calendario mensual con navegación de meses, día seleccionado y días pasados deshabilitados. */
-export function MonthCalendar({ value, min, onSelect }: Props) {
+export function MonthCalendar({ value, min, onSelect, dayStatus, onMonthChange }: Props) {
   const initial = value ? new Date(`${value}T00:00:00`) : new Date()
   const [view, setView] = useState({ y: initial.getFullYear(), m: initial.getMonth() })
 
@@ -27,6 +36,7 @@ export function MonthCalendar({ value, min, onSelect }: Props) {
   function shift(delta: number) {
     const d = new Date(view.y, view.m + delta, 1)
     setView({ y: d.getFullYear(), m: d.getMonth() })
+    onMonthChange?.(d.getFullYear(), d.getMonth() + 1) // mes 1-12, como la API
   }
 
   const cells: (number | null)[] = [
@@ -54,7 +64,10 @@ export function MonthCalendar({ value, min, onSelect }: Props) {
         {cells.map((day, i) => {
           if (day === null) return <span key={`e${i}`} />
           const dateIso = iso(view.y, view.m, day)
-          const disabled = min ? dateIso < min : false
+          const pastDay = min ? dateIso < min : false
+          const status = pastDay ? undefined : dayStatus?.[dateIso]
+          // Completo o cerrado: no hay nada que elegir → no seleccionable.
+          const disabled = pastDay || status === 'full' || status === 'closed'
           const selected = dateIso === value
           return (
             <button
@@ -63,16 +76,27 @@ export function MonthCalendar({ value, min, onSelect }: Props) {
               disabled={disabled}
               data-testid="calendar-day"
               data-date={dateIso}
+              data-status={status}
               onClick={() => onSelect(dateIso)}
-              className={`h-8 rounded-md text-xs font-semibold transition-colors ${
+              className={`relative h-8 rounded-md text-xs font-semibold transition-colors ${
                 selected
                   ? 'bg-primary text-on-primary'
-                  : disabled
+                  : pastDay || status === 'closed'
                     ? 'text-on-surface-variant/30 cursor-not-allowed'
-                    : 'text-on-surface hover:bg-primary-container/30'
+                    : status === 'full'
+                      ? 'text-error/70 cursor-not-allowed'
+                      : 'text-on-surface hover:bg-primary-container/30'
               }`}
             >
               {day}
+              {!selected && (status === 'available' || status === 'full') && (
+                <span
+                  aria-hidden
+                  className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
+                    status === 'available' ? 'bg-emerald-500' : 'bg-error'
+                  }`}
+                />
+              )}
             </button>
           )
         })}

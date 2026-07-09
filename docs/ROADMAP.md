@@ -210,11 +210,13 @@ Segundo bloque (2026-07-08):
 - ✅ **Página de contacto/soporte** (`/contacto` + `POST /support/contact`, público y rate-limited): `SupportService` + `ISupportEmailSender` swappable (simulado por log), spec `contact.spec.ts`.
 - ✅ **Email real por SMTP (MailKit)**: `SmtpEmailSender` cubre los tres seams (cuenta, avisos, soporte) vía `ISmtpTransport` (STARTTLS); config por `SMTP_HOST/PORT/USER/PASSWORD` del entorno con **fallback simulado** si faltan credenciales; `docker-compose.prod.yml` pasa las variables y fija `Frontend__BaseUrl` (enlaces de email correctos en prod). WhatsApp sigue simulado.
 - ✅ **Vitest + React Testing Library**: `npm run test:unit` (22 tests: `MonthCalendar`, `StatusPill`, `GuestContactInput`) integrado en el job de frontend de CI.
+- ✅ **WhatsApp real vía Twilio** (2026-07-09): `WhatsAppNotificationSender` + `TwilioWhatsAppTransport` (sandbox en dev); config por `TWILIO_ACCOUNT_SID/AUTH_TOKEN/WHATSAPP_FROM` con fallback simulado, encadenado con la cadena de email.
+- ✅ **Calendario con disponibilidad (estilo Booksy)** (2026-07-09): `GET /businesses/{id}/availability/month` ('closed'|'full'|'available' por día, una consulta de reservas por mes) + puntos verde/rojo en `MonthCalendar` y en la tira de días del wizard; días completos/cerrados no seleccionables.
 
 Suite al cierre del segundo bloque: **267 unit tests backend + 22 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de este bloque están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en la sesión).
 
 ### Producto / negocio
-- 🟢 **Notificaciones reales (email + WhatsApp).** ✅ Email hecho (SMTP IONOS vía MailKit, rama v2). ⬜ WhatsApp: falta proveedor (Twilio/Meta Cloud API) — otra implementación de `INotificationSender` para el canal 'whatsapp'.
+- ✅ **Notificaciones reales (email + WhatsApp)** (rama v2): email por SMTP (IONOS vía MailKit) y WhatsApp por Twilio (sandbox en dev), ambos con fallback simulado si faltan credenciales.
 - 🟡 **Borrar negocio** desde Configuración del owner, con **borrado en cascada** de todos sus datos (servicios, equipo, horario, festivos, reservas, reseñas, notificaciones, vínculos de invitado). Pedir reconfirmación (escribir el nombre); hard-delete de datos personales por RGPD.
 - 🟡 **Rol admin de plataforma (moderación).** NO para dar de alta negocios (el registro abierto permite que cualquiera pruebe la demo), **sí para eliminar/moderar** negocios spam o de prueba. `role=superadmin` + panel de moderación + borrado en cascada.
 - 🟡 **Modo solo-calendario: mostrar horario y huecos.** En negocios `calendar_only`, enseñar en la ficha pública el horario semanal y los huecos libres (solo lectura, reaprovechando `GET /availability`) para que el cliente sepa cuándo hay sitio antes de llamar.

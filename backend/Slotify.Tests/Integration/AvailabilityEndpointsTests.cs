@@ -96,4 +96,50 @@ public class AvailabilityEndpointsTests(SlotifyApiFactory factory) : IClassFixtu
 
         Assert.Empty(slots!);
     }
+
+    // --- Disponibilidad por mes (calendario verde/rojo) ---
+
+    [Fact]
+    public async Task MonthAvailability_ReturnsStatusPerDay()
+    {
+        var (businessId, serviceId, staffId, _) = await SetupAsync(duration: 30);
+
+        var days = await _client.GetFromJsonAsync<List<DayAvailability>>(
+            $"/businesses/{businessId}/availability/month?serviceId={serviceId}&staffId={staffId}&year={Date.Year}&month={Date.Month}");
+
+        Assert.Equal(DateTime.DaysInMonth(Date.Year, Date.Month), days!.Count);
+        // El lunes futuro con horario está libre; el domingo anterior no tiene horario.
+        Assert.Equal("available", days.Single(d => d.Date == Date).Status);
+        Assert.Equal("closed", days.Single(d => d.Date == Date.AddDays(-1)).Status);
+    }
+
+    [Fact]
+    public async Task MonthAvailability_FullyBookedDay_IsFull()
+    {
+        var (businessId, serviceId, staffId, _) = await SetupAsync(duration: 60); // 9-12 → 3 huecos
+
+        var slotsUrl = $"/businesses/{businessId}/availability?serviceId={serviceId}&staffId={staffId}&date={Date:yyyy-MM-dd}";
+        foreach (var slot in (await _client.GetFromJsonAsync<List<AvailableSlot>>(slotsUrl))!)
+        {
+            var booking = new CreateReservationRequest(businessId, serviceId, staffId,
+                slot.Start, "Juan", "+34912345678", null);
+            (await _client.PostAsJsonAsync("/reservations", booking)).EnsureSuccessStatusCode();
+        }
+
+        var days = await _client.GetFromJsonAsync<List<DayAvailability>>(
+            $"/businesses/{businessId}/availability/month?serviceId={serviceId}&staffId={staffId}&year={Date.Year}&month={Date.Month}");
+
+        Assert.Equal("full", days!.Single(d => d.Date == Date).Status);
+    }
+
+    [Fact]
+    public async Task MonthAvailability_InvalidMonth_Returns400()
+    {
+        var (businessId, serviceId, staffId, _) = await SetupAsync();
+
+        var response = await _client.GetAsync(
+            $"/businesses/{businessId}/availability/month?serviceId={serviceId}&staffId={staffId}&year={Date.Year}&month=13");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

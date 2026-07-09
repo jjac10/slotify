@@ -55,4 +55,47 @@ describe('MonthCalendar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
     expect(screen.getByText(/enero de 2027/i)).toBeInTheDocument()
   })
+
+  it('pinta la disponibilidad por día: verde libre, rojo completo (deshabilitado), cerrado atenuado', async () => {
+    const onSelect = vi.fn()
+    render(
+      <MonthCalendar
+        value=""
+        onSelect={onSelect}
+        dayStatus={{ '2026-07-15': 'available', '2026-07-16': 'full', '2026-07-17': 'closed' }}
+      />,
+    )
+    // Sin value, el calendario abre en el mes actual; navegamos a julio 2026 si hace falta.
+    while (!screen.queryByText(/julio de 2026/i)) {
+      await userEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
+    }
+
+    const byDate = (iso: string) =>
+      screen.getAllByTestId('calendar-day').find((d) => d.getAttribute('data-date') === iso)!
+
+    expect(byDate('2026-07-15')).toHaveAttribute('data-status', 'available')
+    expect(byDate('2026-07-15')).toBeEnabled()
+
+    expect(byDate('2026-07-16')).toHaveAttribute('data-status', 'full')
+    expect(byDate('2026-07-16')).toBeDisabled()
+
+    expect(byDate('2026-07-17')).toHaveAttribute('data-status', 'closed')
+    expect(byDate('2026-07-17')).toBeDisabled()
+
+    // Un día sin entrada queda neutro y seleccionable
+    expect(byDate('2026-07-20')).not.toHaveAttribute('data-status')
+    await userEvent.click(byDate('2026-07-20'))
+    expect(onSelect).toHaveBeenCalledWith('2026-07-20')
+  })
+
+  it('avisa del cambio de mes con año y mes 1-12 (para cargar su disponibilidad)', async () => {
+    const onMonthChange = vi.fn()
+    render(<MonthCalendar value="2026-07-15" onSelect={() => {}} onMonthChange={onMonthChange} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
+    expect(onMonthChange).toHaveBeenCalledWith(2026, 8)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mes anterior' }))
+    expect(onMonthChange).toHaveBeenCalledWith(2026, 7)
+  })
 })

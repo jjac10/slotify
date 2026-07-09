@@ -8,6 +8,7 @@ import type {
   CreateServiceRequest,
   CreateStaffRequest,
   DashboardResponse,
+  DayAvailability,
   PagedResponse,
   ReviewResponse,
   ServiceResponse,
@@ -86,6 +87,21 @@ export const businessService = {
   async availability(businessId: string, query: AvailabilityQuery): Promise<AvailableSlot[]> {
     const { data } = await api.get<AvailableSlot[]>(
       `/businesses/${businessId}/availability`,
+      { params: query },
+    )
+    return data
+  },
+
+  /**
+   * GET /businesses/{id}/availability/month — estado de cada día de un mes
+   * ('available' | 'full' | 'closed') para pintar el calendario en verde/rojo.
+   */
+  async monthAvailability(
+    businessId: string,
+    query: { serviceId: string; staffId: string; year: number; month: number },
+  ): Promise<DayAvailability[]> {
+    const { data } = await api.get<DayAvailability[]>(
+      `/businesses/${businessId}/availability/month`,
       { params: query },
     )
     return data
