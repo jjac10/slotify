@@ -35,6 +35,10 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # WhatsApp real vía Twilio. Si faltan, los avisos de WhatsApp se simulan por log.
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
       # Enlaces de los emails (restablecer/verificar) y buzón del formulario de contacto.
       Frontend__BaseUrl: "https://${DOMAIN}"
       Support__RecipientEmail: ${SUPPORT_RECIPIENT_EMAIL:-slotify@jjalarcon.es}

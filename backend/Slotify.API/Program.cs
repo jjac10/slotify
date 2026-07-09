@@ -107,14 +107,32 @@ builder.Services.AddSingleton(
 // tienen proveedor real y siguen simulados en ambos modos. ---
 var smtpOptions = SmtpOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(smtpOptions);
+builder.Services.AddScoped<LoggedNotificationSender>();
 if (smtpOptions.IsConfigured)
 {
     builder.Services.AddScoped<ISmtpTransport, MailKitSmtpTransport>();
-    builder.Services.AddScoped<LoggedNotificationSender>();
     builder.Services.AddScoped<SmtpEmailSender>();
     builder.Services.AddScoped<IAccountEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
     builder.Services.AddScoped<INotificationSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
     builder.Services.AddScoped<ISupportEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+}
+
+// --- WhatsApp real vía Twilio si hay credenciales en el entorno
+// (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN/TWILIO_WHATSAPP_FROM); el wrapper manda el
+// canal 'whatsapp' por Twilio y delega el resto en la cadena de email de arriba
+// (SMTP real o simulado). Sin credenciales, WhatsApp sigue simulado por log. ---
+var twilioOptions = TwilioOptions.FromConfiguration(builder.Configuration);
+builder.Services.AddSingleton(twilioOptions);
+if (twilioOptions.IsConfigured)
+{
+    builder.Services.AddHttpClient<TwilioWhatsAppTransport>();
+    builder.Services.AddScoped<IWhatsAppTransport>(sp => sp.GetRequiredService<TwilioWhatsAppTransport>());
+    builder.Services.AddScoped<INotificationSender>(sp => new WhatsAppNotificationSender(
+        sp.GetRequiredService<IWhatsAppTransport>(),
+        smtpOptions.IsConfigured
+            ? sp.GetRequiredService<SmtpEmailSender>()
+            : sp.GetRequiredService<LoggedNotificationSender>(),
+        sp.GetRequiredService<ILogger<WhatsAppNotificationSender>>()));
 }
 
 // --- Autenticación JWT (ADR #3) ---
