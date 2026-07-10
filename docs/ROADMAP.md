@@ -211,28 +211,37 @@ Segundo bloque (2026-07-08):
 - ✅ **Email real por SMTP (MailKit)**: `SmtpEmailSender` cubre los tres seams (cuenta, avisos, soporte) vía `ISmtpTransport` (STARTTLS); config por `SMTP_HOST/PORT/USER/PASSWORD` del entorno con **fallback simulado** si faltan credenciales; `docker-compose.prod.yml` pasa las variables y fija `Frontend__BaseUrl` (enlaces de email correctos en prod). WhatsApp sigue simulado.
 - ✅ **Vitest + React Testing Library**: `npm run test:unit` (22 tests: `MonthCalendar`, `StatusPill`, `GuestContactInput`) integrado en el job de frontend de CI.
 - ✅ **WhatsApp real vía Twilio** (2026-07-09): `WhatsAppNotificationSender` + `TwilioWhatsAppTransport` (sandbox en dev); config por `TWILIO_ACCOUNT_SID/AUTH_TOKEN/WHATSAPP_FROM` con fallback simulado, encadenado con la cadena de email.
-- ✅ **Calendario con disponibilidad (estilo Booksy)** (2026-07-09): `GET /businesses/{id}/availability/month` ('closed'|'full'|'available' por día, una consulta de reservas por mes) + puntos verde/rojo en `MonthCalendar` y en la tira de días del wizard; días completos/cerrados no seleccionables.
+- ✅ **Calendario con disponibilidad (estilo Booksy)** (2026-07-09): `GET /businesses/{id}/availability/month` ('closed'|'full'|'almost_full'|'available' por día, una consulta de reservas por mes) + puntos verde/ámbar/rojo en `MonthCalendar` y en la tira de días del wizard; días completos/cerrados no seleccionables.
 
-Suite al cierre del segundo bloque: **267 unit tests backend + 22 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de este bloque están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en la sesión).
+Tercer bloque (2026-07-10):
+
+- ✅ **OTP para acciones de invitado** *(cierra el TODO de seguridad)*: código de 6 dígitos (solo hash en BD, 10 min, máx. 5 intentos, tabla `guest_otp_codes`) exigido en lookup/cancelar/reprogramar de invitado (403 `invalid_otp`); envío por email (SMTP real) o teléfono (WhatsApp/Twilio; seam `IGuestOtpSender` preparado para SMS), anti-enumeración + rate limiting; "Mis reservas" de invitado en dos pasos.
+- ✅ **Paginación de reseñas** + sección de reseñas visible por fin en la ficha de Explorar ("Ver más" de 5 en 5).
+- ✅ **Borrar negocio** con confirmación máxima (nombre exacto + contraseña, 409 con reservas futuras) + **admin de moderación** (`Admin:Email`/`ADMIN_EMAIL`, sin tocar el modelo): página `/admin` con directorio y borrado en cascada.
+- ✅ **Solo-calendario: horario y huecos** en la ficha pública (`WeeklyHours` + huecos de hoy orientativos).
+- ✅ **Personalización del perfil público**: descripción (500), web e Instagram (migración `Add_BusinessProfileCustomization`) en Configuración → Datos y en la ficha.
+- ✅ **Métricas avanzadas**: marcar "No vino" en la Agenda (POST `/reservations/{id}/no-show`) + tasa de no-shows y ocupación del mes en el panel.
+
+Suite al cierre del tercer bloque: **329 unit tests backend + 26 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de los bloques 2–3 están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en las sesiones).
 
 ### Producto / negocio
 - ✅ **Notificaciones reales (email + WhatsApp)** (rama v2): email por SMTP (IONOS vía MailKit) y WhatsApp por Twilio (sandbox en dev), ambos con fallback simulado si faltan credenciales.
-- 🟡 **Borrar negocio** desde Configuración del owner, con **borrado en cascada** de todos sus datos (servicios, equipo, horario, festivos, reservas, reseñas, notificaciones, vínculos de invitado). Pedir reconfirmación (escribir el nombre); hard-delete de datos personales por RGPD.
-- 🟡 **Rol admin de plataforma (moderación).** NO para dar de alta negocios (el registro abierto permite que cualquiera pruebe la demo), **sí para eliminar/moderar** negocios spam o de prueba. `role=superadmin` + panel de moderación + borrado en cascada.
-- 🟡 **Modo solo-calendario: mostrar horario y huecos.** En negocios `calendar_only`, enseñar en la ficha pública el horario semanal y los huecos libres (solo lectura, reaprovechando `GET /availability`) para que el cliente sepa cuándo hay sitio antes de llamar.
+- ✅ **Borrar negocio** (rama v2): cascada RGPD con confirmación máxima (nombre exacto + contraseña).
+- ✅ **Rol admin de plataforma (moderación)** (rama v2): email configurado (`ADMIN_EMAIL`) + página `/admin` con directorio y borrado en cascada. El registro sigue abierto.
+- ✅ **Modo solo-calendario: horario y huecos** en la ficha pública (rama v2).
 - 🔴 **Pago real para Premium.** Pasarela (Stripe/Paddle) + webhook que llame a `ChangePlanAsync` tras el cobro + tabla `subscriptions`/`payments` (esqueleto ya documentado en `DATA_MODEL.md`). Hoy el upgrade es simulado.
-- 🟡 **Personalización del perfil público + más Configuración.** Logo, foto de portada, color de marca, descripción y redes del negocio; más ajustes y pulido de UX/vista.
+- ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ⬜ Pendiente de futuro: logo propio, color de marca, subida de imágenes (hoy la foto es por URL).
 - ✅ **Página de contacto / soporte** (rama v2): `/contacto` → email al dueño de la plataforma.
 
 ### Seguridad
-- 🔴 **OTP por SMS/email para acciones de invitado** *(TODO de seguridad ya apuntado)*. Hoy el lookup de invitado se verifica solo conociendo el contacto; debe pedir un código antes de mostrar/gestionar reservas.
+- ✅ **OTP para acciones de invitado** (rama v2): código por email/WhatsApp antes de ver o gestionar reservas por contacto; el seam deja preparado el SMS real.
 - 🟡 **Rotación anual de claves** (HMAC/cifrado): rotar implica recalcular hashes/blind index.
 
 ### Funcionalidad
 - 🟡 **Lista de espera (`waitlists`).** Si no hay huecos, el cliente entra en cola y se le avisa al cancelarse una reserva. Esquema ya diseñado en `DATA_MODEL.md`.
 - 🟡 **Confirmaciones en tiempo real (WebSockets/SignalR).** La lista del cliente se refresca sola cuando el owner confirma.
-- 🟡 **Métricas avanzadas:** tasa de ausencias (`noShowRate`, requiere marcar asistencia) y ocupación (`occupancyRate`).
-- 🟢 **Paginación y filtros** en listados de reservas ✅ (rama v2) y reseñas ⬜.
+- ✅ **Métricas avanzadas** (rama v2): "No vino" en la Agenda + tasa de no-shows y ocupación del mes en el panel.
+- ✅ **Paginación y filtros** en listados de reservas y reseñas (rama v2).
 
 ### Plataforma / rendimiento
 - 🟡 **CQRS-lite / vistas materializadas** para reportes (ver `DECISIONS.md` #8).
