@@ -4,7 +4,8 @@ import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES, categoryIcon, categoryLabel } from '../constants/categories'
 import { RatingStars } from '../components/Stars'
-import type { BusinessResponse, ReviewResponse, ServiceResponse, StaffMember } from '../types/api'
+import { WeeklyHours } from '../components/WeeklyHours'
+import type { AvailableSlot, BusinessHour, BusinessResponse, ReviewResponse, ServiceResponse, StaffMember } from '../types/api'
 
 function formatPrice(price: number | null): string {
   if (price === null) return 'Gratis'
@@ -254,6 +255,10 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
   const calendarOnly = b.bookingMode === 'calendar_only'
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
   const [staff, setStaff] = useState<StaffMember[] | null>(null)
+  // Solo-calendario: el cliente ve el horario semanal y los huecos de hoy (solo
+  // lectura) para saber cuándo hay sitio antes de llamar.
+  const [weeklyHours, setWeeklyHours] = useState<BusinessHour[] | null>(null)
+  const [todaySlots, setTodaySlots] = useState<AvailableSlot[] | null>(null)
 
   useEffect(() => {
     let active = true
@@ -261,6 +266,26 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
     businessService.listStaff(b.id).then((s) => active && setStaff(s)).catch(() => active && setStaff([]))
     return () => { active = false }
   }, [b.id])
+
+  useEffect(() => {
+    if (!calendarOnly) return
+    let active = true
+    businessService.getHours(b.id).then((h) => active && setWeeklyHours(h)).catch(() => active && setWeeklyHours([]))
+    return () => { active = false }
+  }, [b.id, calendarOnly])
+
+  // Huecos libres de HOY (orientativos): primer servicio + primer profesional.
+  useEffect(() => {
+    if (!calendarOnly || !services?.length || !staff?.length) return
+    let active = true
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    businessService
+      .availability(b.id, { serviceId: services[0].id, staffId: staff[0].id, date: today })
+      .then((s) => active && setTodaySlots(s))
+      .catch(() => active && setTodaySlots([]))
+    return () => { active = false }
+  }, [b.id, calendarOnly, services, staff])
 
   return (
     <div
@@ -291,6 +316,36 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
             <p className="rounded-lg bg-surface-container px-3 py-2 text-xs font-semibold text-on-surface-variant" data-testid="business-modal-in-person">
               Este negocio no reserva online. Contacta para tu cita:
             </p>
+          )}
+
+          {/* Solo-calendario: horario semanal + huecos de hoy (solo lectura) */}
+          {calendarOnly && weeklyHours !== null && weeklyHours.length > 0 && (
+            <div className="border-t border-outline-variant/30 pt-stack-sm" data-testid="business-modal-hours">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-on-surface-variant">Horario</p>
+              <WeeklyHours hours={weeklyHours} />
+            </div>
+          )}
+          {calendarOnly && todaySlots !== null && (
+            <div className="border-t border-outline-variant/30 pt-stack-sm" data-testid="business-modal-today-slots">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-on-surface-variant">Huecos hoy</p>
+              {todaySlots.length === 0 ? (
+                <p className="text-sm text-on-surface-variant">Hoy ya no quedan huecos — consulta el horario y llama.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {todaySlots.slice(0, 8).map((s) => (
+                    <span key={s.start} className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold">
+                      {new Date(s.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  ))}
+                  {todaySlots.length > 8 && (
+                    <span className="px-1 py-1 text-xs text-on-surface-variant">+{todaySlots.length - 8} más</span>
+                  )}
+                </div>
+              )}
+              <p className="mt-1 text-[11px] text-on-surface-variant/70">
+                Huecos orientativos{services?.[0] ? ` para «${services[0].name}»` : ''} — llama para confirmar tu cita.
+              </p>
+            </div>
           )}
 
           {/* Contacto */}

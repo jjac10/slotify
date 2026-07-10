@@ -46,4 +46,14 @@ test('el owner activa "solo calendario" y en Explorar aparece como "Cita en pers
   await expect(card).toBeVisible()
   await expect(card.getByTestId('explore-in-person')).toBeVisible()
   await expect(card.getByTestId('explore-reserve')).toHaveCount(0)
+
+  // Su ficha muestra el horario semanal (el registro siembra L–V 09–17) para que
+  // el cliente sepa cuándo hay sitio antes de llamar; sin botón Reservar.
+  await card.click()
+  const modal = page.getByTestId('business-modal')
+  await expect(modal).toBeVisible()
+  await expect(modal.getByTestId('business-modal-in-person')).toBeVisible()
+  await expect(modal.getByTestId('business-modal-hours')).toBeVisible()
+  await expect(modal.getByTestId('weekly-hours-day').first()).toContainText('Lunes')
+  await expect(modal.getByTestId('business-modal-reserve')).toHaveCount(0)
 })
