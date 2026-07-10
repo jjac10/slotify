@@ -70,9 +70,25 @@ public class ReviewsController(ReviewService reviews) : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<MyReviewResponse>>> ListMine(CancellationToken ct)
         => Ok(await reviews.ListMineAsync(CurrentUserId, ct));
 
-    /// <summary>Reseñas públicas de un negocio (más recientes primero).</summary>
+    /// <summary>
+    /// Reseñas públicas de un negocio (más recientes primero), paginadas en BD con
+    /// <c>?page=</c> (1-based, default 1) y <c>?pageSize=</c> (default 20, máx. 50);
+    /// responde <c>{ items, total, page, pageSize }</c>.
+    /// </summary>
     [HttpGet("/businesses/{businessId:guid}/reviews")]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<ReviewResponse>>> ListForBusiness(Guid businessId, CancellationToken ct)
-        => Ok(await reviews.ListByBusinessAsync(businessId, ct));
+    public async Task<ActionResult<PagedResponse<ReviewResponse>>> ListForBusiness(
+        Guid businessId,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = ReviewService.DefaultPageSize,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return Ok(await reviews.ListByBusinessAsync(businessId, page, pageSize, ct));
+        }
+        catch (InvalidPaginationException ex)
+        {
+            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
+        }
+    }
 }

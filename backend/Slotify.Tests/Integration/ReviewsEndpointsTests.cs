@@ -85,11 +85,19 @@ public class ReviewsEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sl
         Assert.Equal(HttpStatusCode.Created, res.StatusCode);
 
         var reviews = await (await _client.GetAsync($"/businesses/{businessId}/reviews"))
-            .Content.ReadFromJsonAsync<List<ReviewResponse>>();
-        var review = Assert.Single(reviews!);
+            .Content.ReadFromJsonAsync<PagedResponse<ReviewResponse>>();
+        var review = Assert.Single(reviews!.Items);
+        Assert.Equal(1, reviews.Total);
         Assert.Equal(5, review.Rating);
         Assert.Equal("Genial", review.Comment);
         Assert.Equal("Ana", review.AuthorName);
+
+        // Paginación en BD: pageSize=1 devuelve 1 ítem con el total; fuera de rango → 400.
+        var paged = await (await _client.GetAsync($"/businesses/{businessId}/reviews?page=1&pageSize=1"))
+            .Content.ReadFromJsonAsync<PagedResponse<ReviewResponse>>();
+        Assert.Single(paged!.Items);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await _client.GetAsync($"/businesses/{businessId}/reviews?page=0")).StatusCode);
 
         Assert.Equal(5.0, await GetPublicRatingAsync(name, businessId));
     }
@@ -123,8 +131,8 @@ public class ReviewsEndpointsTests(SlotifyApiFactory factory) : IClassFixture<Sl
         Assert.Equal(HttpStatusCode.Created, (await customer.PostAsJsonAsync($"/reservations/{r2}/review", new CreateReviewRequest(2, "peor"))).StatusCode);
 
         var reviews = await (await _client.GetAsync($"/businesses/{businessId}/reviews"))
-            .Content.ReadFromJsonAsync<List<ReviewResponse>>();
-        var review = Assert.Single(reviews!); // sigue habiendo una sola reseña
+            .Content.ReadFromJsonAsync<PagedResponse<ReviewResponse>>();
+        var review = Assert.Single(reviews!.Items); // sigue habiendo una sola reseña
         Assert.Equal(2, review.Rating);
         Assert.Equal("peor", review.Comment);
         Assert.Equal(2.0, await GetPublicRatingAsync(name, businessId));

@@ -145,8 +145,8 @@ public class AccountDeletionEndpointsTests(SlotifyApiFactory factory) : IClassFi
 
         // Reseña borrada y media del negocio recalculada.
         var reviews = await (await _client.GetAsync($"/businesses/{businessId}/reviews"))
-            .Content.ReadFromJsonAsync<List<ReviewResponse>>();
-        Assert.Empty(reviews!);
+            .Content.ReadFromJsonAsync<PagedResponse<ReviewResponse>>();
+        Assert.Empty(reviews!.Items);
         var businesses = await (await _client.GetAsync($"/public/businesses?q={Uri.EscapeDataString(businessName)}"))
             .Content.ReadFromJsonAsync<PagedResponse<BusinessResponse>>();
         Assert.Null(businesses!.Items.First(b => b.Id == businessId).Rating);

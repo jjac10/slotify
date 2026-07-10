@@ -26,12 +26,19 @@ public class ReviewRepository(SlotifyDbContext db) : IReviewRepository
     public Task<Review?> GetByBusinessAndUserAsync(Guid businessId, Guid userId, CancellationToken ct = default)
         => db.Reviews.FirstOrDefaultAsync(r => r.BusinessId == businessId && r.UserId == userId, ct);
 
-    public async Task<IReadOnlyList<Review>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
-        => await db.Reviews.AsNoTracking()
+    public async Task<(IReadOnlyList<Review> Items, int Total)> ListByBusinessAsync(
+        Guid businessId, int skip, int take, CancellationToken ct = default)
+    {
+        var query = db.Reviews.AsNoTracking().Where(r => r.BusinessId == businessId);
+        var total = await query.CountAsync(ct);
+        var items = await query
             .Include(r => r.User)
-            .Where(r => r.BusinessId == businessId)
             .OrderByDescending(r => r.CreatedAt)
+            .ThenByDescending(r => r.Id) // desempate estable entre páginas
+            .Skip(skip).Take(take)
             .ToListAsync(ct);
+        return (items, total);
+    }
 
     public async Task<IReadOnlyList<Review>> ListByUserAsync(Guid userId, CancellationToken ct = default)
         => await db.Reviews.AsNoTracking()

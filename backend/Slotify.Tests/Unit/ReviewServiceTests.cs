@@ -214,21 +214,47 @@ public class ReviewServiceTests
     }
 
     [Fact]
-    public async Task ListByBusinessAsync_MapsReviews()
+    public async Task ListByBusinessAsync_MapsReviews_PagedInDatabase()
     {
         var review = new Review
         {
             Id = Guid.NewGuid(), BusinessId = _businessId, UserId = _userId, ReservationId = _reservationId,
             Rating = 5, Comment = "Top", CreatedAt = Past, User = new User { Id = _userId, Name = "Ana", Email = "a@a.es", PasswordHash = "x" },
         };
-        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { review });
+        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, 0, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(([review], 41));
 
-        var list = await CreateService().ListByBusinessAsync(_businessId);
+        var page = await CreateService().ListByBusinessAsync(_businessId);
 
-        var dto = Assert.Single(list);
+        var dto = Assert.Single(page.Items);
         Assert.Equal(5, dto.Rating);
         Assert.Equal("Top", dto.Comment);
         Assert.Equal("Ana", dto.AuthorName);
+        Assert.Equal(41, page.Total);
+        Assert.Equal(1, page.Page);
+        Assert.Equal(20, page.PageSize); // default, mismo criterio que reservas/negocios
+    }
+
+    [Fact]
+    public async Task ListByBusinessAsync_SecondPage_TranslatesToSkipTake()
+    {
+        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, 10, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(([], 12));
+
+        var page = await CreateService().ListByBusinessAsync(_businessId, page: 3, pageSize: 5);
+
+        Assert.Equal(3, page.Page);
+        Assert.Equal(5, page.PageSize);
+        _reviews.Verify(r => r.ListByBusinessAsync(_businessId, 10, 5, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 0)]
+    [InlineData(1, 51)]
+    public async Task ListByBusinessAsync_InvalidPagination_Throws(int page, int pageSize)
+    {
+        await Assert.ThrowsAsync<InvalidPaginationException>(() =>
+            CreateService().ListByBusinessAsync(_businessId, page, pageSize));
     }
 }

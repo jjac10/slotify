@@ -38,8 +38,9 @@ public class DashboardService(
         var revenue = await reservations.SumRevenueByBusinessAsync(businessId, monthStart, monthEnd, ct);
         var upcoming = await reservations.ListUpcomingByBusinessAsync(businessId, nowUtc, UpcomingLimit, ct);
 
-        // Reseñas: media/contador denormalizados en el negocio + las más recientes.
-        var recentReviews = await reviews.ListByBusinessAsync(businessId, ct);
+        // Reseñas: media/contador denormalizados en el negocio + las más recientes
+        // (el límite ahora baja a SQL con el repo paginado).
+        var (recentReviews, _) = await reviews.ListByBusinessAsync(businessId, 0, RecentReviewsLimit, ct);
 
         return new DashboardResponse(
             total,
@@ -48,6 +49,6 @@ public class DashboardService(
             upcoming.Select(ReservationResponse.From).ToList(),
             business.Rating,
             business.ReviewCount,
-            recentReviews.Take(RecentReviewsLimit).Select(ReviewResponse.From).ToList());
+            recentReviews.Select(ReviewResponse.From).ToList());
     }
 }

@@ -4,7 +4,7 @@ import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES, categoryIcon, categoryLabel } from '../constants/categories'
 import { RatingStars } from '../components/Stars'
-import type { BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
+import type { BusinessResponse, ReviewResponse, ServiceResponse, StaffMember } from '../types/api'
 
 function formatPrice(price: number | null): string {
   if (price === null) return 'Gratis'
@@ -347,6 +347,9 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
             </div>
           )}
 
+          {/* Reseñas (paginadas en servidor, de más reciente a más antigua) */}
+          {(b.reviewCount ?? 0) > 0 && <BusinessReviews businessId={b.id} />}
+
           {!calendarOnly && (
             <Link to={`/reservar?businessId=${b.id}`} className="btn-primary text-center" data-testid="business-modal-reserve">
               Reservar
@@ -354,6 +357,64 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+const REVIEWS_PAGE_SIZE = 5
+
+/** Reseñas públicas del negocio dentro de su ficha, con "Ver más" acumulando páginas. */
+function BusinessReviews({ businessId }: { businessId: string }) {
+  const [items, setItems] = useState<ReviewResponse[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    businessService
+      .listReviews(businessId, { page, pageSize: REVIEWS_PAGE_SIZE })
+      .then((data) => {
+        if (!active) return
+        setItems((prev) => (page === 1 ? data.items : [...prev, ...data.items]))
+        setTotal(data.total)
+      })
+      .catch(() => { /* sin reseñas visibles; la ficha sigue siendo útil */ })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [businessId, page])
+
+  if (items.length === 0) return null
+
+  return (
+    <div className="border-t border-outline-variant/30 pt-stack-sm" data-testid="business-modal-reviews">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-on-surface-variant">Reseñas</p>
+      <ul className="flex flex-col gap-stack-sm">
+        {items.map((r) => (
+          <li key={r.id} className="rounded-lg bg-surface-container/60 px-3 py-2" data-testid="business-review-item">
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-xs font-bold">{r.authorName ?? 'Cliente'}</span>
+              <RatingStars value={r.rating} size={13} />
+            </div>
+            {r.comment && <p className="mt-1 text-sm text-on-surface-variant">{r.comment}</p>}
+            <p className="mt-0.5 text-[11px] text-on-surface-variant/70">
+              {new Date(r.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </li>
+        ))}
+      </ul>
+      {items.length < total && (
+        <button
+          type="button"
+          className="mt-stack-sm text-sm font-semibold text-primary hover:underline disabled:opacity-50"
+          data-testid="load-more-reviews"
+          disabled={loading}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          {loading ? 'Cargando…' : `Ver más reseñas (${items.length} de ${total})`}
+        </button>
+      )}
     </div>
   )
 }

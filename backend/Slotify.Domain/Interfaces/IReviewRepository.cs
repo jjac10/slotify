@@ -15,8 +15,12 @@ public interface IReviewRepository
     /// <summary>La reseña del usuario para ese negocio (una por negocio/usuario), o null.</summary>
     Task<Review?> GetByBusinessAndUserAsync(Guid businessId, Guid userId, CancellationToken ct = default);
 
-    /// <summary>Reseñas de un negocio, con su autor, de más reciente a más antigua.</summary>
-    Task<IReadOnlyList<Review>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default);
+    /// <summary>
+    /// Página de reseñas de un negocio, con su autor, de más reciente a más antigua,
+    /// paginada en BD (Skip/Take) con el total del negocio.
+    /// </summary>
+    Task<(IReadOnlyList<Review> Items, int Total)> ListByBusinessAsync(
+        Guid businessId, int skip, int take, CancellationToken ct = default);
 
     /// <summary>Reseñas de un usuario, con el negocio cargado, de más reciente a más antigua.</summary>
     Task<IReadOnlyList<Review>> ListByUserAsync(Guid userId, CancellationToken ct = default);

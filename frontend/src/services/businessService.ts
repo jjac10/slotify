@@ -48,9 +48,18 @@ export const businessService = {
     return data
   },
 
-  /** GET /businesses/{id}/reviews — reseñas públicas de un negocio (más recientes primero). */
-  async listReviews(businessId: string): Promise<ReviewResponse[]> {
-    const { data } = await api.get<ReviewResponse[]>(`/businesses/${businessId}/reviews`)
+  /**
+   * GET /businesses/{id}/reviews — reseñas públicas de un negocio (más recientes
+   * primero), paginadas en servidor: { items, total, page, pageSize }.
+   */
+  async listReviews(
+    businessId: string,
+    query: { page?: number; pageSize?: number } = {},
+  ): Promise<PagedResponse<ReviewResponse>> {
+    const { data } = await api.get<PagedResponse<ReviewResponse>>(
+      `/businesses/${businessId}/reviews`,
+      { params: query },
+    )
     return data
   },
 

@@ -97,11 +97,23 @@ public class ReviewService(
         return list.Select(MyReviewResponse.From).ToList();
     }
 
-    /// <summary>Reseñas públicas de un negocio (más recientes primero).</summary>
-    public async Task<IReadOnlyList<ReviewResponse>> ListByBusinessAsync(Guid businessId, CancellationToken ct = default)
+    /// <summary>Tamaño de página por defecto (mismo criterio que reservas/negocios).</summary>
+    public const int DefaultPageSize = 20;
+
+    /// <summary>Tamaño de página máximo admitido.</summary>
+    public const int MaxPageSize = 50;
+
+    /// <summary>
+    /// Página de reseñas públicas de un negocio (más recientes primero), paginada en BD.
+    /// </summary>
+    public async Task<PagedResponse<ReviewResponse>> ListByBusinessAsync(
+        Guid businessId, int page = 1, int pageSize = DefaultPageSize, CancellationToken ct = default)
     {
-        var list = await reviews.ListByBusinessAsync(businessId, ct);
-        return list.Select(ReviewResponse.From).ToList();
+        if (page < 1 || pageSize < 1 || pageSize > MaxPageSize)
+            throw new InvalidPaginationException(page, pageSize, MaxPageSize);
+
+        var (items, total) = await reviews.ListByBusinessAsync(businessId, (page - 1) * pageSize, pageSize, ct);
+        return new PagedResponse<ReviewResponse>(items.Select(ReviewResponse.From).ToList(), total, page, pageSize);
     }
 
     /// <summary>Recalcula businesses.rating / review_count a partir de las reseñas existentes.</summary>

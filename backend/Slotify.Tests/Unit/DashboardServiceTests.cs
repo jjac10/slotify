@@ -29,11 +29,11 @@ public class DashboardServiceTests
     public async Task GetAsync_ForOwner_AggregatesMetricsAndMapsUpcoming()
     {
         SetupBusinessOwnedBy(_ownerId, rating: 4.5, reviewCount: 10);
-        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Review>
+        _reviews.Setup(r => r.ListByBusinessAsync(_businessId, 0, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<Review>
             {
                 new() { Id = Guid.NewGuid(), BusinessId = _businessId, UserId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), Rating = 5, Comment = "Top", CreatedAt = DateTime.UtcNow },
-            });
+            }, 1));
         var now = new DateTime(2026, 6, 17, 10, 0, 0, DateTimeKind.Utc);
         var monthStart = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthEnd = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
