@@ -8,13 +8,49 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("businesses")]
-public class BusinessesController(BusinessService businesses) : ApiControllerBase
+public class BusinessesController(BusinessService businesses, BusinessDeletionService businessDeletion) : ApiControllerBase
 {
     /// <summary>Lista los negocios del owner autenticado.</summary>
     [HttpGet]
     [Authorize]
     public async Task<ActionResult<IReadOnlyList<BusinessResponse>>> ListMine(CancellationToken ct)
         => Ok(await businesses.ListByOwnerAsync(CurrentUserId, ct));
+
+    /// <summary>
+    /// Elimina el negocio y TODOS sus datos en cascada (RGPD). Confirmación máxima:
+    /// el owner debe escribir el nombre exacto del negocio y su contraseña actual.
+    /// Bloqueado si hay reservas futuras activas (409): primero hay que cancelarlas.
+    /// </summary>
+    [HttpPost("{id:guid}/delete")]
+    [Authorize]
+    public async Task<IActionResult> Delete(Guid id, DeleteBusinessRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await businessDeletion.DeleteAsOwnerAsync(id, CurrentUserId, request.Name, request.Password, ct);
+            return NoContent();
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (InvalidCredentialsException)
+        {
+            return BadRequest(new { error = "invalid_password", message = "La contraseña no es correcta." });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (BusinessNameMismatchException ex)
+        {
+            return BadRequest(new { error = "name_mismatch", message = ex.Message });
+        }
+        catch (BusinessHasFutureReservationsException ex)
+        {
+            return Conflict(new { error = "business_has_future_reservations", message = ex.Message });
+        }
+    }
 
     /// <summary>Cambia el modo de confirmación de reservas del negocio ('auto'|'manual'). Solo el owner.</summary>
     [HttpPut("{id:guid}/confirmation-mode")]

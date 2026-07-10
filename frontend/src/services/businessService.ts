@@ -63,6 +63,14 @@ export const businessService = {
     return data
   },
 
+  /**
+   * POST /businesses/{id}/delete — elimina el negocio y TODOS sus datos (cascada,
+   * irreversible). Confirmación máxima: nombre exacto + contraseña actual del owner.
+   */
+  async deleteBusiness(businessId: string, name: string, password: string): Promise<void> {
+    await api.post(`/businesses/${businessId}/delete`, { name, password })
+  },
+
   /** PUT /businesses/{id}/profile — perfil público (categoría/foto/ubicación; solo owner). */
   async updateProfile(businessId: string, request: UpdateBusinessProfileRequest): Promise<BusinessResponse> {
     const { data } = await api.put<BusinessResponse>(`/businesses/${businessId}/profile`, request)

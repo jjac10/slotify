@@ -6,6 +6,7 @@ import { getApiError } from '../services/apiClient'
 import { BUSINESS_CATEGORIES } from '../constants/categories'
 import { MonthCalendar } from '../components/MonthCalendar'
 import { DeleteAccountSection } from '../components/DeleteAccountSection'
+import { DeleteBusinessSection } from '../components/DeleteBusinessSection'
 import type { BusinessHoliday, BusinessHour, BusinessResponse, ServiceResponse, StaffMember } from '../types/api'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -1406,9 +1407,14 @@ export function BusinessSettingsPage() {
         </div>
       </SectionCard>
 
-      {/* Zona de peligro: eliminar cuenta + negocio (RGPD) */}
+      {/* Zona de peligro: eliminar negocio y/o cuenta (RGPD) */}
       <SectionCard id="danger" title="Zona de peligro" icon="warning">
-        <DeleteAccountSection />
+        <div className="flex flex-col gap-stack-lg">
+          {isOwner && businessId && business && (
+            <DeleteBusinessSection businessId={businessId} businessName={business.name} />
+          )}
+          <DeleteAccountSection />
+        </div>
       </SectionCard>
       </div>
     </section>

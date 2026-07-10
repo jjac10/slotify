@@ -42,6 +42,12 @@ export const tokenStorage = {
     else localStorage.removeItem(ROLE_KEY)
   },
 
+  /** Tras eliminar el negocio: la sesión sigue viva pero ya no hay negocio ni rol. */
+  clearBusiness(): void {
+    localStorage.removeItem(BUSINESS_KEY)
+    localStorage.removeItem(ROLE_KEY)
+  },
+
   clear(): void {
     localStorage.removeItem(ACCESS_KEY)
     localStorage.removeItem(REFRESH_KEY)

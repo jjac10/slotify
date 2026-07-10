@@ -69,6 +69,8 @@ export interface MeResponse {
   email: string
   /** false ⇒ aviso "verifica tu email" (NO bloquea el uso de la app). */
   emailVerified: boolean
+  /** true si el email coincide con el admin de plataforma configurado (moderación). */
+  isAdmin: boolean
 }
 
 /** POST /auth/verify-email — token del email de verificación (24 h, un solo uso). */

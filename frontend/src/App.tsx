@@ -19,6 +19,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { BusinessSettingsPage } from './pages/BusinessSettingsPage'
 import { LegalPage } from './pages/LegalPage'
 import { ContactPage } from './pages/ContactPage'
+import { AdminPage } from './pages/AdminPage'
 
 export function App() {
   return (
@@ -60,6 +61,8 @@ export function App() {
           <Route path="horario" element={<Navigate to="/configuracion" replace />} />
           <Route path="agenda" element={<OwnerAgendaPage />} />
           <Route path="panel" element={<DashboardPage />} />
+          {/* Moderación de plataforma (la página verifica isAdmin; la API responde 403 igualmente) */}
+          <Route path="admin" element={<AdminPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

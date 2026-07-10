@@ -90,6 +90,12 @@ builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<EmailVerificationService>();
 builder.Services.AddScoped<IAccountDeletionRepository, AccountDeletionRepository>();
 builder.Services.AddScoped<AccountDeletionService>();
+builder.Services.AddScoped<IBusinessDeletionRepository, BusinessDeletionRepository>();
+builder.Services.AddScoped<BusinessDeletionService>();
+
+// --- Admin de plataforma (moderación): email configurado en Admin:Email / Admin__Email ---
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection("Admin").Get<AdminOptions>() ?? new AdminOptions());
 builder.Services.AddScoped<ISupportEmailSender, LoggedSupportEmailSender>();
 builder.Services.AddScoped<SupportService>();
 

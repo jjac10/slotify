@@ -14,7 +14,8 @@ public class AuthController(
     AuthService auth,
     PasswordResetService passwordReset,
     EmailVerificationService emailVerification,
-    AccountDeletionService accountDeletion) : ControllerBase
+    AccountDeletionService accountDeletion,
+    AdminOptions admin) : ControllerBase
 {
     private const string ForgotPasswordGenericMessage =
         "Si el email existe, recibirás instrucciones para restablecer tu contraseña.";
@@ -248,8 +249,8 @@ public class AuthController(
 
         var userId = Guid.Parse(id);
         var emailVerified = await emailVerification.IsVerifiedAsync(userId, ct);
-        return Ok(new MeResponse(userId, email ?? string.Empty, emailVerified));
+        return Ok(new MeResponse(userId, email ?? string.Empty, emailVerified, admin.IsAdmin(email)));
     }
 }
 
-public record MeResponse(Guid UserId, string Email, bool EmailVerified);
+public record MeResponse(Guid UserId, string Email, bool EmailVerified, bool IsAdmin = false);

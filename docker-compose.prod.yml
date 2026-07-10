@@ -42,6 +42,8 @@ services:
       # Enlaces de los emails (restablecer/verificar) y buzón del formulario de contacto.
       Frontend__BaseUrl: "https://${DOMAIN}"
       Support__RecipientEmail: ${SUPPORT_RECIPIENT_EMAIL:-slotify@jjalarcon.es}
+      # Admin de plataforma (moderación en /admin): la cuenta con este email. Vacío = sin admin.
+      Admin__Email: ${ADMIN_EMAIL:-}
     depends_on:
       postgres:
         condition: service_healthy
