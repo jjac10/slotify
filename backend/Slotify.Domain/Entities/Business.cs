@@ -89,6 +89,15 @@ public class Business
     /// <summary>Dirección de contacto pública (texto libre). NULL = sin fijar.</summary>
     public string? Address { get; set; }
 
+    /// <summary>Descripción del negocio para su ficha pública (máx. 500). NULL = sin fijar.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>Web pública (http/https). NULL = sin fijar.</summary>
+    public string? Website { get; set; }
+
+    /// <summary>Usuario de Instagram sin la '@' (se enlaza como instagram.com/{handle}). NULL = sin fijar.</summary>
+    public string? Instagram { get; set; }
+
     /// <summary>Media de valoraciones (1–5). NULL si aún no tiene reseñas. Denormalizado.</summary>
     public double? Rating { get; set; }
 

@@ -709,6 +709,9 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
   const [lng, setLng] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
+  const [description, setDescription] = useState('')
+  const [website, setWebsite] = useState('')
+  const [instagram, setInstagram] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -722,6 +725,9 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
     setLng(business.longitude != null ? String(business.longitude) : '')
     setPhone(business.phone ?? '')
     setAddress(business.address ?? '')
+    setDescription(business.description ?? '')
+    setWebsite(business.website ?? '')
+    setInstagram(business.instagram ?? '')
   }, [business])
 
   function useMyLocation() {
@@ -746,6 +752,9 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
         longitude: lng.trim() === '' ? null : Number(lng),
         phone: phone.trim() || null,
         address: address.trim() || null,
+        description: description.trim() || null,
+        website: website.trim() || null,
+        instagram: instagram.trim() || null,
       })
       onUpdated(updated)
       setSaved(true)
@@ -777,6 +786,25 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
           <img src={photoUrl} alt="Vista previa" className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )}
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-description">
+          Descripción <span className="font-normal text-on-surface-variant">({description.length}/500)</span>
+        </label>
+        <textarea id="profile-description" className="field-input min-h-24 resize-y" data-testid="profile-description"
+          maxLength={500} value={description}
+          onChange={(e) => { setDescription(e.target.value); setSaved(false) }}
+          placeholder="Cuenta a tus clientes qué hacéis, desde cuándo, qué os hace especiales…" />
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-website">Web</label>
+        <input id="profile-website" type="url" className="field-input" data-testid="profile-website"
+          value={website} onChange={(e) => { setWebsite(e.target.value); setSaved(false) }} placeholder="https://tunegocio.com" />
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-instagram">Instagram</label>
+        <input id="profile-instagram" type="text" className="field-input" data-testid="profile-instagram"
+          value={instagram} onChange={(e) => { setInstagram(e.target.value); setSaved(false) }} placeholder="@tunegocio" />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="profile-phone">Teléfono de contacto</label>

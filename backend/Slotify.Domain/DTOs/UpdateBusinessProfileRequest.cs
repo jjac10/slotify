@@ -10,4 +10,7 @@ public record UpdateBusinessProfileRequest(
     double? Latitude,
     double? Longitude,
     string? Phone = null,
-    string? Address = null);
+    string? Address = null,
+    string? Description = null,
+    string? Website = null,
+    string? Instagram = null);

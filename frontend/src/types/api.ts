@@ -112,6 +112,11 @@ export interface BusinessResponse {
   /** Contacto público (para llamar/visitar, sobre todo en modo "solo calendario"). */
   phone: string | null
   address: string | null
+  /** Personalización de la ficha pública. */
+  description: string | null
+  website: string | null
+  /** Usuario de Instagram sin la '@'. */
+  instagram: string | null
   /** Valoraciones (denormalizado). `rating` null si aún no tiene reseñas. */
   rating: number | null
   reviewCount: number
@@ -165,6 +170,10 @@ export interface UpdateBusinessProfileRequest {
   longitude: number | null
   phone?: string | null
   address?: string | null
+  description?: string | null
+  website?: string | null
+  /** Con o sin '@' — el backend la quita. */
+  instagram?: string | null
 }
 
 /** GET /businesses/{id}/staff — trabajador del negocio (no expone email/teléfono). */

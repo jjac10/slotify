@@ -141,6 +141,9 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
             e.Property(b => b.Longitude).HasColumnName("longitude");
             e.Property(b => b.Phone).HasColumnName("phone").HasMaxLength(40);
             e.Property(b => b.Address).HasColumnName("address").HasMaxLength(500);
+            e.Property(b => b.Description).HasColumnName("description").HasMaxLength(500);
+            e.Property(b => b.Website).HasColumnName("website").HasMaxLength(255);
+            e.Property(b => b.Instagram).HasColumnName("instagram").HasMaxLength(100);
             e.Property(b => b.Rating).HasColumnName("rating");
             e.Property(b => b.ReviewCount).HasColumnName("review_count").HasDefaultValue(0);
             e.Property(b => b.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("active");

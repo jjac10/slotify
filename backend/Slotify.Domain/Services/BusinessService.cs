@@ -68,12 +68,33 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         return new PagedResponse<BusinessResponse>(items.Select(BusinessResponse.From).ToList(), total, page, pageSize);
     }
 
-    /// <summary>Actualiza el perfil público del negocio (categoría/foto/ubicación). Solo el owner.</summary>
+    /// <summary>Longitud máxima de la descripción del perfil público.</summary>
+    public const int MaxDescriptionLength = 500;
+
+    /// <summary>
+    /// Actualiza el perfil público del negocio (categoría/foto/ubicación/contacto y
+    /// personalización: descripción, web e Instagram). Solo el owner.
+    /// </summary>
     public async Task<BusinessResponse> UpdateProfileAsync(
         Guid businessId, Guid userId, UpdateBusinessProfileRequest request, CancellationToken ct = default)
     {
         if (request.Category is { } cat && !BusinessCategories.IsValid(cat))
             throw new InvalidCategoryException(cat);
+
+        var description = Normalize(request.Description);
+        if (description is { Length: > MaxDescriptionLength })
+            throw new InvalidBusinessProfileException($"La descripción no puede superar los {MaxDescriptionLength} caracteres.");
+
+        // Web: solo http/https absolutas (nada de javascript: ni rutas sueltas).
+        var website = Normalize(request.Website);
+        if (website is not null &&
+            (!Uri.TryCreate(website, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")))
+            throw new InvalidBusinessProfileException("La web debe ser una URL http(s) completa (https://…).");
+
+        // Instagram: se guarda el usuario sin la '@' inicial.
+        var instagram = Normalize(request.Instagram)?.TrimStart('@');
+        if (instagram is { Length: > 100 })
+            throw new InvalidBusinessProfileException("El usuario de Instagram no puede superar los 100 caracteres.");
 
         var business = await repository.GetByIdAsync(businessId, ct)
             ?? throw new BusinessNotFoundException(businessId);
@@ -84,12 +105,19 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         business.PhotoUrl = request.PhotoUrl;
         business.Latitude = request.Latitude;
         business.Longitude = request.Longitude;
-        business.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
-        business.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        business.Phone = Normalize(request.Phone);
+        business.Address = Normalize(request.Address);
+        business.Description = description;
+        business.Website = website;
+        business.Instagram = string.IsNullOrEmpty(instagram) ? null : instagram;
         await repository.UpdateAsync(business, ct);
 
         return BusinessResponse.From(business);
     }
+
+    /// <summary>Trim; en blanco → null (campo sin valor).</summary>
+    private static string? Normalize(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <summary>
     /// Cambia el modo de confirmación del negocio ('auto'|'manual'). Solo el owner.

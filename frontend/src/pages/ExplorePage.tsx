@@ -310,6 +310,11 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
               {b.category && <span className="text-xs font-semibold text-on-surface-variant">{categoryLabel(b.category)}</span>}
               <RatingStars value={b.rating} count={b.reviewCount} />
             </div>
+            {b.description && (
+              <p className="mt-2 text-sm text-on-surface-variant" data-testid="business-modal-description">
+                {b.description}
+              </p>
+            )}
           </div>
 
           {calendarOnly && (
@@ -363,6 +368,20 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
             {mapUrl && (
               <a href={mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
                 <span className="material-symbols-outlined text-[18px]">map</span>Ver en el mapa
+              </a>
+            )}
+            {b.website && (
+              <a href={b.website} target="_blank" rel="noreferrer" data-testid="business-modal-website"
+                className="inline-flex items-center gap-2 text-primary hover:underline">
+                <span className="material-symbols-outlined text-[18px]">language</span>
+                {b.website.replace(/^https?:\/\//, '')}
+              </a>
+            )}
+            {b.instagram && (
+              <a href={`https://instagram.com/${b.instagram}`} target="_blank" rel="noreferrer" data-testid="business-modal-instagram"
+                className="inline-flex items-center gap-2 text-primary hover:underline">
+                <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                @{b.instagram}
               </a>
             )}
           </div>

@@ -309,6 +309,79 @@ public class BusinessServiceTests
     }
 
     [Fact]
+    public async Task UpdateProfileAsync_PersistsDescriptionWebsiteAndInstagram()
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var result = await CreateService().UpdateProfileAsync(businessId, ownerId,
+            new UpdateBusinessProfileRequest("barberia", null, null, null,
+                Description: "  Barbería clásica en el centro.  ",
+                Website: " https://barberia.example.com ",
+                Instagram: "@barberia.elite"));
+
+        Assert.Equal("Barbería clásica en el centro.", business.Description); // trim
+        Assert.Equal("https://barberia.example.com", business.Website);
+        Assert.Equal("barberia.elite", business.Instagram); // sin la @ inicial
+        Assert.Equal("barberia.elite", result.Instagram);
+        Assert.Equal("Barbería clásica en el centro.", result.Description);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_BlankExtras_AreStoredAsNull()
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        var business = new Business
+        {
+            Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz",
+            Description = "vieja", Website = "https://vieja.example.com", Instagram = "vieja",
+        };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await CreateService().UpdateProfileAsync(businessId, ownerId,
+            new UpdateBusinessProfileRequest(null, null, null, null, Description: "  ", Website: "", Instagram: null));
+
+        Assert.Null(business.Description);
+        Assert.Null(business.Website);
+        Assert.Null(business.Instagram);
+    }
+
+    [Theory]
+    [InlineData("ftp://barberia.example.com")] // solo http(s)
+    [InlineData("javascript:alert(1)")]
+    [InlineData("barberia.example.com")] // sin esquema
+    public async Task UpdateProfileAsync_InvalidWebsite_Throws(string website)
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<InvalidBusinessProfileException>(() => CreateService().UpdateProfileAsync(
+            businessId, ownerId, new UpdateBusinessProfileRequest(null, null, null, null, Website: website)));
+
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_TooLongDescription_Throws()
+    {
+        var ownerId = Guid.NewGuid();
+        var businessId = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" });
+
+        await Assert.ThrowsAsync<InvalidBusinessProfileException>(() => CreateService().UpdateProfileAsync(
+            businessId, ownerId,
+            new UpdateBusinessProfileRequest(null, null, null, null, Description: new string('x', 501))));
+    }
+
+    [Fact]
     public async Task UpdateProfileAsync_InvalidCategory_Throws_AndDoesNotUpdate()
     {
         await Assert.ThrowsAsync<InvalidCategoryException>(() => CreateService().UpdateProfileAsync(

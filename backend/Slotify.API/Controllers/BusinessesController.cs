@@ -186,6 +186,10 @@ public class BusinessesController(BusinessService businesses, BusinessDeletionSe
         {
             return BadRequest(new { error = "invalid_category", message = ex.Message });
         }
+        catch (InvalidBusinessProfileException ex)
+        {
+            return BadRequest(new { error = "invalid_profile", message = ex.Message });
+        }
         catch (BusinessNotFoundException ex)
         {
             return NotFound(new { error = "business_not_found", message = ex.Message });
