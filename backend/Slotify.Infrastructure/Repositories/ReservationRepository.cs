@@ -171,6 +171,23 @@ public class ReservationRepository(SlotifyDbContext db) : IReservationRepository
         return total ?? 0m;
     }
 
+    public Task<int> CountNoShowsByBusinessAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
+        => db.Reservations.AsNoTracking()
+            .CountAsync(r => r.BusinessId == businessId && r.Status == "no-show"
+                && r.StartTime >= fromUtc && r.StartTime < toUtc, ct);
+
+    public async Task<int> SumReservedMinutesAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
+    {
+        // La duración se suma en memoria (pocas filas: un mes de un negocio); las
+        // no-show cuentan porque su hueco estuvo bloqueado igualmente.
+        var times = await db.Reservations.AsNoTracking()
+            .Where(r => r.BusinessId == businessId && r.Status != "cancelled"
+                && r.StartTime >= fromUtc && r.StartTime < toUtc)
+            .Select(r => new { r.StartTime, r.EndTime })
+            .ToListAsync(ct);
+        return (int)times.Sum(t => (t.EndTime - t.StartTime).TotalMinutes);
+    }
+
     public async Task<IReadOnlyList<Reservation>> ListUpcomingByBusinessAsync(
         Guid businessId, DateTime fromUtc, int limit, CancellationToken ct = default)
         => await db.Reservations.AsNoTracking()

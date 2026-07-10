@@ -263,6 +263,71 @@ public class ReservationManagementServiceTests
             () => CreateService().ConfirmAsync(_reservationId, _ownerId));
     }
 
+    // --- No asistió (POST /no-show) --------------------------------------------
+
+    /// <summary>Deja la reserva como cita pasada activa (empezó hace 2 horas).</summary>
+    private void MakeReservationPast(string status = "confirmed")
+    {
+        _reservation.Status = status;
+        _reservation.StartTime = DateTime.UtcNow.AddHours(-2);
+        _reservation.EndTime = DateTime.UtcNow.AddHours(-1);
+    }
+
+    [Fact]
+    public async Task MarkNoShowAsync_AsOwner_OnPastReservation_SetsNoShow_BumpsVersion_AndAudits()
+    {
+        SetupReservation();
+        MakeReservationPast();
+        AuditLog? logged = null;
+        _audit.Setup(a => a.AddAsync(It.IsAny<AuditLog>(), It.IsAny<CancellationToken>()))
+            .Callback<AuditLog, CancellationToken>((a, _) => logged = a).Returns(Task.CompletedTask);
+
+        var result = await CreateService().MarkNoShowAsync(_reservationId, _ownerId);
+
+        Assert.Equal("no-show", _reservation.Status);
+        Assert.Equal("no-show", result.Status);
+        Assert.Equal(1, _reservation.Version);
+        _reservations.Verify(r => r.UpdateAsync(_reservation, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.NotNull(logged);
+        Assert.Equal("no-show", logged!.Action);
+        Assert.Equal("owner", logged.ActorType);
+    }
+
+    [Fact]
+    public async Task MarkNoShowAsync_ReservationNotStartedYet_Throws_AndDoesNotUpdate()
+    {
+        SetupReservation(); // empieza dentro de 30 días
+
+        await Assert.ThrowsAsync<ReservationNotPastException>(
+            () => CreateService().MarkNoShowAsync(_reservationId, _ownerId));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task MarkNoShowAsync_AsReservationCustomer_Throws()
+    {
+        var customerId = Guid.NewGuid();
+        SetupReservation(reservationUserId: customerId);
+        MakeReservationPast();
+        _staff.Setup(s => s.ExistsForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<ReservationForbiddenException>(
+            () => CreateService().MarkNoShowAsync(_reservationId, customerId));
+    }
+
+    [Fact]
+    public async Task MarkNoShowAsync_AlreadyNoShow_Throws_AndDoesNotUpdate()
+    {
+        SetupReservation();
+        MakeReservationPast(status: "no-show");
+
+        await Assert.ThrowsAsync<ReservationNotPendingException>(
+            () => CreateService().MarkNoShowAsync(_reservationId, _ownerId));
+
+        _reservations.Verify(r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     // --- Ventana de antelación (cutoff) --------------------------------------
 
     private void SetupBusinessWithCutoff(int hours) =>

@@ -245,6 +245,33 @@ public class ReservationsController(
         }
     }
 
+    /// <summary>Marca una cita pasada como no asistida (owner del negocio o su staff). Alimenta la tasa de no-shows.</summary>
+    [HttpPost("{id:guid}/no-show")]
+    [Authorize]
+    public async Task<ActionResult<ReservationResponse>> MarkNoShow(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await management.MarkNoShowAsync(id, CurrentUserId, ct));
+        }
+        catch (ReservationNotFoundException ex)
+        {
+            return NotFound(new { error = "reservation_not_found", message = ex.Message });
+        }
+        catch (ReservationForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+        catch (ReservationNotPastException ex)
+        {
+            return Conflict(new { error = "not_past", message = ex.Message });
+        }
+        catch (ReservationNotPendingException ex)
+        {
+            return Conflict(new { error = "not_pending", message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Cancela una reserva (hard-delete + auditoría). Con JWT: owner, staff o el propio
     /// usuario. Sin JWT: el invitado dueño, verificado con su teléfono/email en <c>contact</c>.

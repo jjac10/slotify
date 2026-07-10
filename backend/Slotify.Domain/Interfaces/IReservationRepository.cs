@@ -76,6 +76,20 @@ public interface IReservationRepository
     Task<decimal> SumRevenueByBusinessAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
 
     /// <summary>
+    /// Cuenta las reservas 'no-show' de un negocio cuyo inicio cae en
+    /// [<paramref name="fromUtc"/>, <paramref name="toUtc"/>). Para la tasa de
+    /// no asistencia del panel.
+    /// </summary>
+    Task<int> CountNoShowsByBusinessAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Minutos reservados (no cancelados, incluidos los no-show: bloquearon el hueco)
+    /// de un negocio cuyo inicio cae en [<paramref name="fromUtc"/>, <paramref name="toUtc"/>).
+    /// Para la ocupación del panel.
+    /// </summary>
+    Task<int> SumReservedMinutesAsync(Guid businessId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
+    /// <summary>
     /// Próximas reservas no canceladas de un negocio (inicio &gt;= <paramref name="fromUtc"/>),
     /// ordenadas por inicio ascendente y limitadas a <paramref name="limit"/>.
     /// </summary>

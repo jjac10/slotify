@@ -64,7 +64,7 @@ export function DashboardPage() {
       {dashboard !== null && (
         <>
           {/* Stats — bento grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-stack-sm" data-testid="dashboard-metrics">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-stack-sm" data-testid="dashboard-metrics">
             <div className="card flex flex-col items-center text-center" data-testid="metric-total-reservations">
               <span className="text-xs text-on-surface-variant">Reservas</span>
               <span className="font-display text-2xl font-bold text-primary">{dashboard.totalReservations}</span>
@@ -88,6 +88,28 @@ export function DashboardPage() {
                 <span className="mt-1 text-xs text-on-surface-variant">Sin reseñas</span>
               )}
               <span className="text-[11px] text-on-surface-variant">{dashboard.reviewCount} reseña{dashboard.reviewCount === 1 ? '' : 's'}</span>
+            </div>
+            {/* Métricas avanzadas del mes en curso */}
+            <div className="card flex flex-col items-center justify-center text-center" data-testid="metric-occupancy">
+              <span className="text-xs text-on-surface-variant">Ocupación del mes</span>
+              {dashboard.occupancyRate != null ? (
+                <span className="font-display text-2xl font-bold text-secondary">
+                  {Math.round(dashboard.occupancyRate * 100)}%
+                </span>
+              ) : (
+                <span className="mt-1 text-xs text-on-surface-variant">Sin horario</span>
+              )}
+            </div>
+            <div className="card flex flex-col items-center justify-center text-center" data-testid="metric-no-shows">
+              <span className="text-xs text-on-surface-variant">No asistieron</span>
+              {dashboard.noShowRate != null ? (
+                <span className="font-display text-2xl font-bold text-error">
+                  {Math.round(dashboard.noShowRate * 100)}%
+                  <span className="ml-1 text-sm font-normal text-on-surface-variant">({dashboard.noShowsThisMonth})</span>
+                </span>
+              ) : (
+                <span className="mt-1 text-xs text-on-surface-variant">Sin citas pasadas</span>
+              )}
             </div>
           </div>
 

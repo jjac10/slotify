@@ -102,6 +102,12 @@ export const reservationService = {
     return data
   },
 
+  /** POST /reservations/{id}/no-show — marca una cita pasada como no asistida (owner/staff). */
+  async markNoShow(id: string): Promise<ReservationResponse> {
+    const { data } = await api.post<ReservationResponse>(`/reservations/${id}/no-show`)
+    return data
+  },
+
   /** POST /reservations/{id}/review — valora una reserva pasada propia (1–5 + comentario). */
   async review(id: string, request: CreateReviewRequest): Promise<ReviewResponse> {
     const { data } = await api.post<ReviewResponse>(`/reservations/${id}/review`, request)

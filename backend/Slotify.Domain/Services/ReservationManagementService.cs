@@ -122,6 +122,50 @@ public class ReservationManagementService(
         return ReservationResponse.From(reservation);
     }
 
+    // --- No asistió (no-show) --------------------------------------------------
+
+    /// <summary>
+    /// Marca como 'no-show' una cita pasada activa (pending/confirmed) — el cliente no
+    /// vino. Solo el owner/staff del negocio. Alimenta la tasa de no asistencia del
+    /// panel. Bump de version (optimistic locking) y auditoría action='no-show'.
+    /// </summary>
+    public async Task<ReservationResponse> MarkNoShowAsync(
+        Guid reservationId, Guid currentUserId, CancellationToken ct = default)
+    {
+        var reservation = await reservations.GetByIdAsync(reservationId, ct)
+            ?? throw new ReservationNotFoundException(reservationId);
+
+        // Acción del negocio: owner o staff, nunca el cliente.
+        var actorType = await ResolveBusinessActorOrThrowAsync(reservation.BusinessId, currentUserId, ct);
+
+        if (reservation.StartTime > DateTime.UtcNow)
+            throw new ReservationNotPastException();
+
+        if (reservation.Status is not ("pending" or "confirmed"))
+            throw new ReservationNotPendingException(reservation.Status);
+
+        var oldValues = JsonSerializer.Serialize(new { reservation.Status });
+
+        reservation.Status = "no-show";
+        reservation.Version++;
+        reservation.UpdatedAt = DateTime.UtcNow;
+
+        await reservations.UpdateAsync(reservation, ct);
+
+        await audit.AddAsync(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ReservationId = reservation.Id,
+            Action = "no-show",
+            ActorId = currentUserId,
+            ActorType = actorType,
+            OldValues = oldValues,
+            NewValues = JsonSerializer.Serialize(new { reservation.Status }),
+        }, ct);
+
+        return ReservationResponse.From(reservation);
+    }
+
     // --- Listados ------------------------------------------------------------
 
     /// <summary>Tamaño de página por defecto de los listados de reservas.</summary>

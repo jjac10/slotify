@@ -313,6 +313,11 @@ export interface DashboardResponse {
   averageRating: number | null
   reviewCount: number
   recentReviews: ReviewResponse[]
+  /** Métricas avanzadas del mes: no-shows y su tasa (null si no hubo citas pasadas). */
+  noShowsThisMonth: number
+  noShowRate: number | null
+  /** Ocupación del mes transcurrido, 0–1 (null si no hay horario/capacidad). */
+  occupancyRate: number | null
 }
 
 /** Cuerpo de error estándar del backend. */

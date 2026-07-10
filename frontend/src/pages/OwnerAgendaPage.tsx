@@ -75,9 +75,12 @@ interface ItemProps {
 function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: ItemProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
+  // Cita pasada aún activa: se puede marcar que el cliente no vino (tasa de no-shows).
+  const canMarkNoShow = isActive && new Date(r.startTime).getTime() <= Date.now()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [markingNoShow, setMarkingNoShow] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
 
   async function handleCancel() {
@@ -99,6 +102,17 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
     } catch (err) {
       setCancelError(getApiError(err)?.message ?? 'No se pudo confirmar.')
       setConfirming(false)
+    }
+  }
+
+  async function handleNoShow() {
+    setMarkingNoShow(true)
+    try {
+      const updated = await reservationService.markNoShow(r.id)
+      onConfirmed(updated) // mismo callback: sustituye la reserva actualizada en la lista
+    } catch (err) {
+      setCancelError(getApiError(err)?.message ?? 'No se pudo marcar la no asistencia.')
+      setMarkingNoShow(false)
     }
   }
 
@@ -158,6 +172,22 @@ function AgendaItem({ reservation: r, onCancelled, onConfirmed, onReschedule }: 
           >
             <span className="material-symbols-outlined text-[16px]">cancel</span>
             Cancelar
+          </button>
+        </div>
+      )}
+
+      {canMarkNoShow && (
+        <div className="flex flex-col gap-1 pt-1 border-t border-outline-variant/30">
+          {cancelError && <p role="alert" className="alert text-xs">{cancelError}</p>}
+          <button
+            type="button"
+            onClick={handleNoShow}
+            disabled={markingNoShow}
+            className="self-start flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition-colors"
+            data-testid="no-show-btn"
+          >
+            <span className="material-symbols-outlined text-[16px]">person_off</span>
+            {markingNoShow ? 'Marcando…' : 'No vino'}
           </button>
         </div>
       )}
