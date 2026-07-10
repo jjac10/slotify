@@ -8,9 +8,10 @@ interface Props {
   min?: string
   onSelect: (iso: string) => void
   /**
-   * Estado por día (ISO → 'available' | 'full' | 'closed') para pintar el
-   * calendario estilo Booksy: punto verde = quedan huecos, punto rojo = completo
-   * (no seleccionable), atenuado = cerrado. Los días sin entrada quedan neutros.
+   * Estado por día (ISO → 'available' | 'almost_full' | 'full' | 'closed') para
+   * pintar el calendario estilo Booksy: punto verde = quedan huecos, ámbar =
+   * quedan pocos, rojo = completo (no seleccionable), atenuado = cerrado.
+   * Los días sin entrada quedan neutros.
    */
   dayStatus?: Record<string, DayAvailabilityStatus>
   /** Avisa al navegar de mes (para cargar la disponibilidad de ese mes). */
@@ -89,11 +90,11 @@ export function MonthCalendar({ value, min, onSelect, dayStatus, onMonthChange }
               }`}
             >
               {day}
-              {!selected && (status === 'available' || status === 'full') && (
+              {!selected && status && status !== 'closed' && (
                 <span
                   aria-hidden
                   className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                    status === 'available' ? 'bg-emerald-500' : 'bg-error'
+                    status === 'available' ? 'bg-emerald-500' : status === 'almost_full' ? 'bg-amber-500' : 'bg-error'
                   }`}
                 />
               )}

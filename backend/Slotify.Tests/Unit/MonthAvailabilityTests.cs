@@ -109,11 +109,24 @@ public class MonthAvailabilityTests
     [Fact]
     public async Task GetMonth_PartiallyBookedDay_StaysAvailable()
     {
-        Setup([OpenMonday()], reservations: [Occupied(15, 9)]); // queda 10-11 y 11-12
+        Setup([OpenMonday()], reservations: [Occupied(15, 9)]); // quedan 2 de 3 (> 1/3)
 
         var days = await CreateService().GetMonthAsync(_businessId, _serviceId, _staffId, Year, Month);
 
         Assert.Equal("available", days.Single(d => d.Date == new DateOnly(Year, Month, 15)).Status);
+    }
+
+    [Fact]
+    public async Task GetMonth_FewSlotsLeft_MarksDayAlmostFull()
+    {
+        // Lunes 15: reservado 9-10 y 10-11 → queda 1 hueco de 3 (≤ 1/3 de la capacidad).
+        Setup([OpenMonday()], reservations: [Occupied(15, 9), Occupied(15, 10)]);
+
+        var days = await CreateService().GetMonthAsync(_businessId, _serviceId, _staffId, Year, Month);
+
+        var byDate = days.ToDictionary(d => d.Date, d => d.Status);
+        Assert.Equal("almost_full", byDate[new DateOnly(Year, Month, 15)]);
+        Assert.Equal("available", byDate[new DateOnly(Year, Month, 22)]);
     }
 
     [Fact]

@@ -249,8 +249,8 @@ export interface AvailableSlot {
   end: string
 }
 
-/** Estado de un día del calendario de reserva (verde/rojo estilo Booksy). */
-export type DayAvailabilityStatus = 'available' | 'full' | 'closed'
+/** Estado de un día del calendario de reserva (verde/ámbar/rojo estilo Booksy). */
+export type DayAvailabilityStatus = 'available' | 'almost_full' | 'full' | 'closed'
 
 /** DayAvailability del backend: estado de cada día de un mes. */
 export interface DayAvailability {

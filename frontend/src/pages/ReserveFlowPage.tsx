@@ -378,11 +378,17 @@ export function ReserveFlowPage() {
                 >
                   <span className="text-[11px] font-medium uppercase">{d.dow}</span>
                   <span className="text-lg font-bold leading-tight">{d.day}</span>
-                  {/* Punto de disponibilidad (estilo Booksy): verde = huecos, rojo = completo */}
+                  {/* Punto de disponibilidad (estilo Booksy): verde = huecos, ámbar = pocos, rojo = completo */}
                   <span
                     aria-hidden
                     className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
-                      status === 'available' ? 'bg-emerald-500' : status === 'full' ? 'bg-error' : 'bg-transparent'
+                      status === 'available'
+                        ? 'bg-emerald-500'
+                        : status === 'almost_full'
+                          ? 'bg-amber-500'
+                          : status === 'full'
+                            ? 'bg-error'
+                            : 'bg-transparent'
                     }`}
                   />
                 </button>

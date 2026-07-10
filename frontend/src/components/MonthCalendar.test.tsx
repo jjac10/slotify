@@ -56,13 +56,18 @@ describe('MonthCalendar', () => {
     expect(screen.getByText(/enero de 2027/i)).toBeInTheDocument()
   })
 
-  it('pinta la disponibilidad por día: verde libre, rojo completo (deshabilitado), cerrado atenuado', async () => {
+  it('pinta la disponibilidad por día: verde libre, ámbar quedan pocos, rojo completo (deshabilitado), cerrado atenuado', async () => {
     const onSelect = vi.fn()
     render(
       <MonthCalendar
         value=""
         onSelect={onSelect}
-        dayStatus={{ '2026-07-15': 'available', '2026-07-16': 'full', '2026-07-17': 'closed' }}
+        dayStatus={{
+          '2026-07-15': 'available',
+          '2026-07-16': 'full',
+          '2026-07-17': 'closed',
+          '2026-07-18': 'almost_full',
+        }}
       />,
     )
     // Sin value, el calendario abre en el mes actual; navegamos a julio 2026 si hace falta.
@@ -81,6 +86,11 @@ describe('MonthCalendar', () => {
 
     expect(byDate('2026-07-17')).toHaveAttribute('data-status', 'closed')
     expect(byDate('2026-07-17')).toBeDisabled()
+
+    // Quedan pocos: sigue siendo seleccionable, con punto ámbar
+    expect(byDate('2026-07-18')).toHaveAttribute('data-status', 'almost_full')
+    expect(byDate('2026-07-18')).toBeEnabled()
+    expect(byDate('2026-07-18').querySelector('.bg-amber-500')).not.toBeNull()
 
     // Un día sin entrada queda neutro y seleccionable
     expect(byDate('2026-07-20')).not.toHaveAttribute('data-status')

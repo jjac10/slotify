@@ -37,7 +37,7 @@ public class AvailabilityService(
         var occupied = await reservations.ListByStaffOnDateAsync(staffId, date, ct);
         var tz = TimeZoneInfo.FindSystemTimeZoneById(business.Timezone);
 
-        var (_, slots) = ComputeDay(business, service, tz, weeklyHours, allHolidays, occupied, date, nowUtc);
+        var (_, slots, _) = ComputeDay(business, service, tz, weeklyHours, allHolidays, occupied, date, nowUtc);
         return slots;
     }
 
@@ -65,8 +65,8 @@ public class AvailabilityService(
         for (var day = 1; day <= DateTime.DaysInMonth(year, month); day++)
         {
             var date = new DateOnly(year, month, day);
-            var (isClosed, slots) = ComputeDay(business, service, tz, weeklyHours, allHolidays, occupied, date, nowUtc);
-            days.Add(new DayAvailability(date, isClosed ? "closed" : slots.Count > 0 ? "available" : "full"));
+            var (isClosed, slots, capacity) = ComputeDay(business, service, tz, weeklyHours, allHolidays, occupied, date, nowUtc);
+            days.Add(new DayAvailability(date, StatusFor(isClosed, slots.Count, capacity)));
         }
         return days;
     }
@@ -89,11 +89,24 @@ public class AvailabilityService(
     }
 
     /// <summary>
+    /// Estado del día para el calendario: 'closed', 'full' (sin huecos),
+    /// 'almost_full' (quedan huecos pero ≤ 1/3 de la capacidad del día: punto
+    /// ámbar de "quedan pocas citas") o 'available'.
+    /// </summary>
+    private static string StatusFor(bool isClosed, int freeSlots, int capacity) =>
+        isClosed ? "closed"
+        : freeSlots == 0 ? "full"
+        : freeSlots * 3 <= capacity ? "almost_full"
+        : "available";
+
+    /// <summary>
     /// Núcleo del cálculo de un día sobre datos ya cargados. <c>IsClosed</c> = sin
     /// horario ese día de la semana o festivo de día completo; si está abierto,
-    /// <c>Slots</c> son los huecos libres (puede ser vacío = día completo).
+    /// <c>Slots</c> son los huecos libres (puede ser vacío = día completo) y
+    /// <c>Capacity</c> los huecos que ofrecería la rejilla sin contar reservas
+    /// (para saber si quedan "pocos").
     /// </summary>
-    private static (bool IsClosed, IReadOnlyList<AvailableSlot> Slots) ComputeDay(
+    private static (bool IsClosed, IReadOnlyList<AvailableSlot> Slots, int Capacity) ComputeDay(
         Business business, Service service, TimeZoneInfo tz,
         IReadOnlyList<BusinessHour> weeklyHours, IReadOnlyList<BusinessHoliday> allHolidays,
         IReadOnlyList<Reservation> occupied, DateOnly date, DateTime? nowUtc)
@@ -101,7 +114,7 @@ public class AvailabilityService(
         // Horario del día: si está cerrado o no hay franja → cerrado.
         var dayHours = weeklyHours.FirstOrDefault(h => h.DayOfWeek == (int)date.DayOfWeek);
         if (dayHours is null || dayHours.IsClosed || dayHours.OpeningTime is null || dayHours.ClosingTime is null)
-            return (true, []);
+            return (true, [], 0);
 
         // Festivos que cubren este día (un día suelto o un rango).
         var coveringHolidays = allHolidays
@@ -109,7 +122,7 @@ public class AvailabilityService(
             .ToList();
         // Alguno cierra el día completo (sin franja horaria) → cerrado.
         if (coveringHolidays.Any(h => h.StartTime is null || h.EndTime is null))
-            return (true, []);
+            return (true, [], 0);
         // Franjas horarias cerradas ese día (cierre parcial), en minutos locales.
         var closedWindows = coveringHolidays
             .Select(h => (start: h.StartTime!.Value.Hour * 60 + h.StartTime.Value.Minute,
@@ -119,12 +132,13 @@ public class AvailabilityService(
         var duration = service.DurationMinutes;
         var step = business.SlotIntervalMinutes ?? duration;
         if (step <= 0 || duration <= 0)
-            return (false, []);
+            return (false, [], 0);
 
         var openMinutes = dayHours.OpeningTime.Value.Hour * 60 + dayHours.OpeningTime.Value.Minute;
         var closeMinutes = dayHours.ClosingTime.Value.Hour * 60 + dayHours.ClosingTime.Value.Minute;
 
         var slots = new List<AvailableSlot>();
+        var capacity = 0;
         for (var m = openMinutes; m + duration <= closeMinutes; m += step)
         {
             // Cierre parcial por festivo: descartar slots que solapen una franja cerrada.
@@ -141,10 +155,12 @@ public class AvailabilityService(
             if (nowUtc is { } now && start <= now)
                 continue;
 
+            capacity++; // hueco ofertable del día (contando también los ya reservados)
+
             var overlaps = occupied.Any(o => o.StartTime < end && o.EndTime > start);
             if (!overlaps)
                 slots.Add(new AvailableSlot(start, end));
         }
-        return (false, slots);
+        return (false, slots, capacity);
     }
 }
