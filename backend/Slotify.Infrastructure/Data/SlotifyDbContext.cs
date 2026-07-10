@@ -21,6 +21,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<GuestOtpCode> GuestOtpCodes => Set<GuestOtpCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +43,28 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureEmailVerificationTokens(modelBuilder);
         ConfigureReviews(modelBuilder);
         ConfigureNotifications(modelBuilder);
+        ConfigureGuestOtpCodes(modelBuilder);
         SeedPricingTiers(modelBuilder);
+    }
+
+    private static void ConfigureGuestOtpCodes(ModelBuilder mb)
+    {
+        mb.Entity<GuestOtpCode>(e =>
+        {
+            e.ToTable("guest_otp_codes");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            // HMAC-SHA256 hex del contacto normalizado (blind index, nunca en claro).
+            e.Property(c => c.ContactHash).HasColumnName("contact_hash").HasMaxLength(64).IsRequired();
+            // SHA-256 hex = 64 chars; nunca se guarda el código en claro.
+            e.Property(c => c.CodeHash).HasColumnName("code_hash").HasMaxLength(64).IsRequired();
+            e.Property(c => c.Attempts).HasColumnName("attempts").HasDefaultValue(0);
+            e.Property(c => c.ExpiresAt).HasColumnName("expires_at").IsRequired();
+            e.Property(c => c.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            // "El más reciente por contacto" (verificación) sale por este índice.
+            e.HasIndex(c => new { c.ContactHash, c.CreatedAt });
+        });
     }
 
     private static void ConfigureUsers(ModelBuilder mb)

@@ -36,9 +36,17 @@ export const reservationService = {
     return data
   },
 
-  /** POST /reservations/lookup — reservas de un invitado por teléfono o email (en el body, no en la URL). */
-  async lookupGuest(contact: string): Promise<ReservationResponse[]> {
-    const { data } = await api.post<ReservationResponse[]>('/reservations/lookup', { contact })
+  /** POST /reservations/lookup/otp — envía el código de verificación al contacto (204 siempre). */
+  async requestGuestOtp(contact: string): Promise<void> {
+    await api.post('/reservations/lookup/otp', { contact })
+  },
+
+  /**
+   * POST /reservations/lookup — reservas de un invitado por teléfono o email (en el body,
+   * no en la URL). Requiere el código OTP pedido antes; si no es válido → 403 invalid_otp.
+   */
+  async lookupGuest(contact: string, otpCode: string): Promise<ReservationResponse[]> {
+    const { data } = await api.post<ReservationResponse[]>('/reservations/lookup', { contact, otpCode })
     return data
   },
 
@@ -63,20 +71,28 @@ export const reservationService = {
     return data
   },
 
-  /** PATCH /reservations/{id} — reprograma conservando la duración. Si `contact` se pasa, actúa como invitado. */
-  async reschedule(id: string, startTime: string, contact?: string): Promise<ReservationResponse> {
+  /**
+   * PATCH /reservations/{id} — reprograma conservando la duración. Si `contact` se pasa,
+   * actúa como invitado y necesita también su `otpCode` vigente.
+   */
+  async reschedule(id: string, startTime: string, contact?: string, otpCode?: string): Promise<ReservationResponse> {
     const { data } = await api.patch<ReservationResponse>(`/reservations/${id}`, {
       startTime,
       ...(contact ? { contact } : {}),
+      ...(otpCode ? { otpCode } : {}),
     })
     return data
   },
 
-  /** POST /reservations/{id}/cancel — cancela (motivo/contacto en el body, no en la URL). Si `contact` se pasa, actúa como invitado. */
-  async cancel(id: string, reason?: string, contact?: string): Promise<void> {
+  /**
+   * POST /reservations/{id}/cancel — cancela (motivo/contacto en el body, no en la URL).
+   * Si `contact` se pasa, actúa como invitado y necesita también su `otpCode` vigente.
+   */
+  async cancel(id: string, reason?: string, contact?: string, otpCode?: string): Promise<void> {
     await api.post(`/reservations/${id}/cancel`, {
       ...(reason ? { reason } : {}),
       ...(contact ? { contact } : {}),
+      ...(otpCode ? { otpCode } : {}),
     })
   },
 

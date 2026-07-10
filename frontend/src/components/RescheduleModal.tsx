@@ -10,6 +10,8 @@ interface Props {
   onClose: () => void
   onRescheduled: (updated: ReservationResponse) => void
   contact?: string
+  /** Código OTP vigente del invitado (obligatorio junto a `contact`). */
+  otpCode?: string
 }
 
 function isoDate(d: Date): string {
@@ -20,7 +22,7 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function RescheduleModal({ reservation, onClose, onRescheduled, contact }: Props) {
+export function RescheduleModal({ reservation, onClose, onRescheduled, contact, otpCode }: Props) {
   const today = useMemo(() => isoDate(new Date()), [])
   const [date, setDate] = useState(isoDate(new Date(reservation.startTime)))
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null)
@@ -51,7 +53,7 @@ export function RescheduleModal({ reservation, onClose, onRescheduled, contact }
     setSaveError(null)
     setSaving(true)
     try {
-      const updated = await reservationService.reschedule(reservation.id, slotStart, contact)
+      const updated = await reservationService.reschedule(reservation.id, slotStart, contact, otpCode)
       onRescheduled(updated)
     } catch (err) {
       setSaveError(getApiError(err)?.message ?? 'No se pudo reprogramar. Inténtalo de nuevo.')

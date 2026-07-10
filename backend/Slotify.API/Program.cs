@@ -135,6 +135,16 @@ if (twilioOptions.IsConfigured)
         sp.GetRequiredService<ILogger<WhatsAppNotificationSender>>()));
 }
 
+// --- OTP de invitado (verificar identidad antes del lookup/cancelar/reprogramar):
+// email real si hay SMTP, teléfono por WhatsApp si hay Twilio; si no, simulados. ---
+builder.Services.AddScoped<IGuestOtpRepository, GuestOtpRepository>();
+builder.Services.AddScoped<GuestOtpService>();
+builder.Services.AddScoped<IGuestOtpSender>(sp => new GuestOtpSender(
+    smtpOptions.IsConfigured ? sp.GetRequiredService<ISmtpTransport>() : null,
+    twilioOptions.IsConfigured ? sp.GetRequiredService<IWhatsAppTransport>() : null,
+    sp.GetRequiredService<SmtpOptions>(),
+    sp.GetRequiredService<ILogger<GuestOtpSender>>()));
+
 // --- Autenticación JWT (ADR #3) ---
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -26,9 +26,11 @@ interface CardProps {
   /** Reseña existente del cliente para este negocio (si ya valoró). */
   existingReview?: MyReviewResponse
   contact?: string
+  /** Código OTP vigente del invitado (obligatorio junto a `contact`). */
+  otpCode?: string
 }
 
-function ReservationCard({ r, onCancelled, onReschedule, onReview, existingReview, contact }: CardProps) {
+function ReservationCard({ r, onCancelled, onReschedule, onReview, existingReview, contact, otpCode }: CardProps) {
   const isActive = r.status === 'pending' || r.status === 'confirmed'
   const canAct = isActive && new Date(r.startTime).getTime() > Date.now()
   const [confirming, setConfirming] = useState(false)
@@ -38,7 +40,7 @@ function ReservationCard({ r, onCancelled, onReschedule, onReview, existingRevie
   async function handleCancel() {
     setCancelling(true)
     try {
-      await reservationService.cancel(r.id, undefined, contact)
+      await reservationService.cancel(r.id, undefined, contact, otpCode)
       onCancelled?.(r.id)
     } catch (err) {
       const apiErr = getApiError(err)
@@ -345,6 +347,11 @@ function GuestLookup() {
   const [contactMode, setContactMode] = useState<ContactMode>('phone')
   const [phoneLocal, setPhoneLocal] = useState('')
   const [email, setEmail] = useState('')
+  // Verificación en dos pasos: primero el contacto recibe un código (OTP), después
+  // ese código desbloquea ver y gestionar las reservas.
+  const [otpRequested, setOtpRequested] = useState(false)
+  const [otpInput, setOtpInput] = useState('')
+  const [verifiedOtp, setVerifiedOtp] = useState('')
   const [searchedContact, setSearchedContact] = useState('')
   const [results, setResults] = useState<ReservationResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -353,23 +360,56 @@ function GuestLookup() {
 
   const contactValid = isContactValid(contactMode, phoneLocal, email)
 
-  async function handleSubmit(e: FormEvent) {
+  function builtContact(): string {
+    const built = buildGuestContact(contactMode, phoneLocal, email)
+    return built.guestPhone ?? built.guestEmail ?? ''
+  }
+
+  async function handleRequestOtp(e: FormEvent) {
     e.preventDefault()
     if (!contactValid) { setError('Introduce un teléfono (9 dígitos) o un email válido.'); return }
     setError(null)
     setLoading(true)
-    const built = buildGuestContact(contactMode, phoneLocal, email)
-    const normalized = built.guestPhone ?? built.guestEmail ?? ''
     try {
-      const found = await reservationService.lookupGuest(normalized)
-      found.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-      setResults(found)
-      setSearchedContact(normalized)
+      await reservationService.requestGuestOtp(builtContact())
+      setOtpRequested(true)
+      setOtpInput('')
     } catch (err) {
-      setError(getApiError(err)?.message ?? 'No se pudo buscar. Inténtalo de nuevo.')
+      setError(getApiError(err)?.message ?? 'No se pudo enviar el código. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleVerifyOtp(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    const contact = builtContact()
+    try {
+      const found = await reservationService.lookupGuest(contact, otpInput)
+      found.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      setResults(found)
+      setSearchedContact(contact)
+      setVerifiedOtp(otpInput)
+    } catch (err) {
+      const apiErr = getApiError(err)
+      setError(
+        apiErr?.error === 'invalid_otp'
+          ? 'El código no es válido o ha caducado. Revísalo o pide uno nuevo.'
+          : apiErr?.message ?? 'No se pudo buscar. Inténtalo de nuevo.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function resetToContact() {
+    setOtpRequested(false)
+    setOtpInput('')
+    setVerifiedOtp('')
+    setResults(null)
+    setError(null)
   }
 
   function handleCancelled(id: string) {
@@ -394,20 +434,60 @@ function GuestLookup() {
         ¿Reservaste sin cuenta? Busca tus citas con tu teléfono o email.
       </p>
 
-      <form onSubmit={handleSubmit} className="card flex flex-col gap-stack-md max-w-md" data-testid="guest-lookup-form">
-        <GuestContactInput
-          mode={contactMode}
-          onModeChange={setContactMode}
-          phoneLocal={phoneLocal}
-          onPhoneChange={setPhoneLocal}
-          email={email}
-          onEmailChange={setEmail}
-          testidPrefix="guest-lookup"
-        />
-        <button type="submit" className="btn-primary self-start" data-testid="guest-lookup-submit" disabled={loading || !contactValid}>
-          {loading ? 'Buscando…' : 'Buscar mis reservas'}
-        </button>
-      </form>
+      {!otpRequested ? (
+        <form onSubmit={handleRequestOtp} className="card flex flex-col gap-stack-md max-w-md" data-testid="guest-lookup-form">
+          <GuestContactInput
+            mode={contactMode}
+            onModeChange={setContactMode}
+            phoneLocal={phoneLocal}
+            onPhoneChange={setPhoneLocal}
+            email={email}
+            onEmailChange={setEmail}
+            testidPrefix="guest-lookup"
+          />
+          <p className="text-xs text-on-surface-variant">
+            Te enviaremos un código de verificación para proteger tus datos.
+          </p>
+          <button type="submit" className="btn-primary self-start" data-testid="guest-lookup-submit" disabled={loading || !contactValid}>
+            {loading ? 'Enviando…' : 'Enviar código'}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleVerifyOtp} className="card flex flex-col gap-stack-md max-w-md" data-testid="guest-otp-form">
+          <p className="text-sm text-on-surface-variant" data-testid="guest-otp-sent">
+            Te hemos enviado un código de 6 dígitos {contactMode === 'phone' ? 'a tu teléfono' : 'a tu email'}.
+            Caduca en 10 minutos.
+          </p>
+          <div className="field">
+            <label className="field-label" htmlFor="guest-otp-code">Código de verificación</label>
+            <input
+              id="guest-otp-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className="field-input tracking-[0.3em] font-bold"
+              data-testid="guest-otp-code"
+              value={otpInput}
+              onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-stack-sm">
+            <button type="submit" className="btn-primary" data-testid="guest-otp-submit" disabled={loading || otpInput.length !== 6}>
+              {loading ? 'Comprobando…' : 'Ver mis reservas'}
+            </button>
+            <button type="button" className="btn-secondary" data-testid="guest-otp-resend" disabled={loading}
+              onClick={(e) => handleRequestOtp(e as unknown as FormEvent)}>
+              Reenviar código
+            </button>
+            <button type="button" className="text-sm font-semibold text-primary hover:underline" data-testid="guest-otp-back"
+              onClick={resetToContact}>
+              Cambiar contacto
+            </button>
+          </div>
+        </form>
+      )}
 
       {error && (
         <p role="alert" className="alert mt-stack-md" data-testid="guest-lookup-error">
@@ -428,6 +508,7 @@ function GuestLookup() {
               key={r.id}
               r={r}
               contact={searchedContact}
+              otpCode={verifiedOtp}
               onCancelled={handleCancelled}
               onReschedule={() => setRescheduleTarget(r)}
             />
@@ -439,6 +520,7 @@ function GuestLookup() {
         <RescheduleModal
           reservation={rescheduleTarget}
           contact={searchedContact}
+          otpCode={verifiedOtp}
           onClose={() => setRescheduleTarget(null)}
           onRescheduled={handleRescheduled}
         />

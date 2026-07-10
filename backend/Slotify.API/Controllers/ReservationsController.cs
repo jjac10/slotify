@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Slotify.Domain.DTOs;
 using Slotify.Domain.Exceptions;
 using Slotify.Domain.Services;
@@ -13,8 +14,13 @@ public class ReservationsController(
     BookingService booking,
     ReservationManagementService management,
     GuestReservationLookupService guestLookup,
+    GuestOtpService guestOtp,
     NotificationService notifications) : ApiControllerBase
 {
+    /// <summary>Respuesta estándar cuando el código OTP de invitado falta o no es válido.</summary>
+    private ObjectResult InvalidOtp() => StatusCode(StatusCodes.Status403Forbidden,
+        new { error = "invalid_otp", message = "El código de verificación no es válido o ha caducado. Pide uno nuevo." });
+
     /// <summary>Construye el contexto de notificación a partir de una reserva.</summary>
     private static NotificationContext Ctx(ReservationResponse r) =>
         new(r.BusinessId, r.Id, r.UserId, r.GuestId, r.StartTime);
@@ -116,13 +122,33 @@ public class ReservationsController(
     }
 
     /// <summary>
+    /// Pide el código de verificación (OTP) del invitado: se envía por email o al teléfono
+    /// según el contacto. Responde 204 SIEMPRE (anti-enumeración) y va rate-limited.
+    /// </summary>
+    [HttpPost("lookup/otp")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RequestLookupOtp(RequestGuestOtpRequest request, CancellationToken ct)
+    {
+        await guestOtp.RequestCodeAsync(request.Contact, ct);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Reservas de un invitado por su teléfono o email (sin cuenta). Público. El contacto
-    /// va en el body (POST) para no exponer datos personales en la URL/logs.
+    /// va en el body (POST) para no exponer datos personales en la URL/logs. Requiere el
+    /// código OTP pedido antes en POST /reservations/lookup/otp (verificación de identidad).
     /// </summary>
     [HttpPost("lookup")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<IReadOnlyList<ReservationResponse>>> Lookup(LookupGuestReservationsRequest request, CancellationToken ct)
-        => Ok(await guestLookup.LookupAsync(request.Contact, ct));
+    {
+        if (!await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
+            return InvalidOtp();
+
+        return Ok(await guestLookup.LookupAsync(request.Contact, ct));
+    }
 
     /// <summary>
     /// Agenda del negocio (owner o staff). Filtros opcionales por fecha y trabajador.
@@ -162,6 +188,10 @@ public class ReservationsController(
         try
         {
             var userId = TryGetUserId();
+            // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
+            if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
+                return InvalidOtp();
+
             var result = userId is { } uid
                 ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
                 : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
@@ -231,6 +261,10 @@ public class ReservationsController(
             var snapshot = await booking.GetAsync(id, ct);
 
             var userId = TryGetUserId();
+            // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
+            if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
+                return InvalidOtp();
+
             if (userId is { } uid)
                 await management.CancelAsync(id, uid, request.Reason, ct);
             else

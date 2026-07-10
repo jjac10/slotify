@@ -3,6 +3,10 @@ namespace Slotify.Domain.DTOs;
 /// <summary>
 /// Búsqueda de reservas de un invitado por su teléfono o email (POST /reservations/lookup).
 /// El contacto viaja en el body (no en la URL) por ser dato personal: así no queda en
-/// logs, historial del navegador ni cabeceras Referer.
+/// logs, historial del navegador ni cabeceras Referer. <paramref name="OtpCode"/> es el
+/// código de verificación pedido antes en POST /reservations/lookup/otp.
 /// </summary>
-public record LookupGuestReservationsRequest(string? Contact);
+public record LookupGuestReservationsRequest(string? Contact, string? OtpCode = null);
+
+/// <summary>Petición del código de verificación (POST /reservations/lookup/otp).</summary>
+public record RequestGuestOtpRequest(string? Contact);
