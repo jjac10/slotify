@@ -30,6 +30,7 @@ test('el owner elimina su negocio con nombre exacto + contraseña', async ({ pag
   await registerOwner(page, businessName)
 
   await page.goto('/configuracion')
+  await page.getByTestId('section-toggle-danger').click() // la sección viene plegada
   await page.getByTestId('delete-business-open').click()
   const modal = page.getByTestId('delete-business-modal')
   await expect(modal).toBeVisible()
@@ -54,6 +55,7 @@ test('una contraseña incorrecta muestra error y NO borra el negocio', async ({ 
   await registerOwner(page, businessName)
 
   await page.goto('/configuracion')
+  await page.getByTestId('section-toggle-danger').click() // la sección viene plegada
   await page.getByTestId('delete-business-open').click()
   await page.getByTestId('delete-business-name').fill(businessName)
   await page.getByTestId('delete-business-password').fill('Incorrecta123!')

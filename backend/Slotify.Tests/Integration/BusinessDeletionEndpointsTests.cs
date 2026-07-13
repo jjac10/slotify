@@ -66,9 +66,11 @@ public class BusinessDeletionEndpointsTests : IClassFixture<BusinessDeletionEndp
             new DeleteBusinessRequest(name, Password));
         Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
 
-        // El negocio y sus datos han desaparecido.
-        Assert.Equal(HttpStatusCode.NotFound,
-            (await _client.GetAsync($"/businesses/{businessId}/services")).StatusCode);
+        // El negocio y sus datos han desaparecido (el listado público de servicios
+        // devuelve 200 con lista vacía para ids desconocidos: se comprueba en BD).
+        var services = await (await _client.GetAsync($"/businesses/{businessId}/services"))
+            .Content.ReadFromJsonAsync<List<ServiceResponse>>();
+        Assert.Empty(services!);
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SlotifyDbContext>();
         Assert.False(await db.Businesses.AnyAsync(b => b.Id == businessId));
