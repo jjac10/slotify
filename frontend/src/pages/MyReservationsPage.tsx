@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
+import { useReservationEvents } from '../hooks/useReservationEvents'
 import { StatusPill } from '../components/StatusPill'
 import { RescheduleModal } from '../components/RescheduleModal'
 import { ReviewModal } from '../components/ReviewModal'
@@ -189,6 +190,11 @@ function AuthedReservations() {
   const scopeRef = useRef(scope)
   scopeRef.current = scope
 
+  // Tiempo real: si el negocio confirma/cancela/reprograma una reserva del usuario,
+  // la lista se recarga sola (sin F5).
+  const [refreshTick, setRefreshTick] = useState(0)
+  useReservationEvents(() => setRefreshTick((t) => t + 1))
+
   useEffect(() => {
     let active = true
     setReservations(null)
@@ -200,7 +206,7 @@ function AuthedReservations() {
       })
       .catch((err) => active && setError(getApiError(err)?.message ?? 'No se pudieron cargar tus reservas.'))
     return () => { active = false }
-  }, [scope])
+  }, [scope, refreshTick])
 
   function loadMore() {
     const current = scope

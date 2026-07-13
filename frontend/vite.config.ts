@@ -53,6 +53,7 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
+          ws: true, // SignalR (/api/hubs/…) necesita WebSockets a través del proxy
         },
       },
     },

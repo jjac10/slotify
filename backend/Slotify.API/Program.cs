@@ -16,6 +16,7 @@ using Slotify.Infrastructure.Notifications;
 using Slotify.Infrastructure.Repositories;
 using Slotify.Infrastructure.Security;
 using Slotify.API;
+using Slotify.API.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -167,6 +168,21 @@ builder.Services
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
         };
+        // SignalR no puede mandar cabeceras en WebSockets: el token viaja como
+        // ?access_token= SOLO en las rutas de hubs (convención de ASP.NET Core).
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -220,6 +236,10 @@ builder.Services.AddHealthChecks()
 
 // --- API / OpenAPI ---
 builder.Services.AddControllers();
+
+// --- Tiempo real (SignalR): eventos "reservationChanged" a cliente y negocio ---
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<Slotify.API.OpenApi.BearerSecuritySchemeTransformer>());
 
@@ -258,6 +278,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ReservationsHub>("/hubs/reservations");
 
 // --- Health checks: anónimos y fuera del rate limiting (no hay limitador global) ---
 // Liveness: proceso vivo, sin tocar la BD (un parpadeo de la BD no debe tumbar el contenedor).

@@ -320,6 +320,13 @@ export interface DashboardResponse {
   occupancyRate: number | null
 }
 
+/** Evento SignalR "reservationChanged" (/hubs/reservations): solo ids y tipo. */
+export interface ReservationChangedEvent {
+  reservationId: string
+  businessId: string
+  eventType: 'created' | 'confirmed' | 'cancelled' | 'rescheduled' | 'no-show'
+}
+
 /** Cuerpo de error estándar del backend. */
 export interface ApiError {
   error: string

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Slotify.Domain.DTOs;
 using Slotify.Domain.Exceptions;
+using Slotify.Domain.Interfaces;
 using Slotify.Domain.Services;
 
 namespace Slotify.API.Controllers;
@@ -15,8 +16,13 @@ public class ReservationsController(
     ReservationManagementService management,
     GuestReservationLookupService guestLookup,
     GuestOtpService guestOtp,
-    NotificationService notifications) : ApiControllerBase
+    NotificationService notifications,
+    IRealtimeNotifier realtime) : ApiControllerBase
 {
+    /// <summary>Emite el evento de tiempo real de una reserva (best-effort).</summary>
+    private Task BroadcastAsync(ReservationResponse r, string eventType, CancellationToken ct) =>
+        realtime.ReservationChangedAsync(r.BusinessId, r.UserId, r.Id, eventType, ct);
+
     /// <summary>Respuesta estándar cuando el código OTP de invitado falta o no es válido.</summary>
     private ObjectResult InvalidOtp() => StatusCode(StatusCodes.Status403Forbidden,
         new { error = "invalid_otp", message = "El código de verificación no es válido o ha caducado. Pide uno nuevo." });
@@ -37,6 +43,7 @@ public class ReservationsController(
         {
             var result = await booking.CreateAsync(request, userId, ct);
             await notifications.DispatchEventAsync(Ctx(result), "created", ct);
+            await BroadcastAsync(result, "created", ct);
             return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
         catch (ServiceNotFoundException ex)
@@ -196,6 +203,7 @@ public class ReservationsController(
                 ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
                 : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
             await notifications.DispatchEventAsync(Ctx(result), "rescheduled", ct);
+            await BroadcastAsync(result, "rescheduled", ct);
             return Ok(result);
         }
         catch (ReservationNotFoundException ex)
@@ -229,6 +237,7 @@ public class ReservationsController(
         {
             var result = await management.ConfirmAsync(id, CurrentUserId, ct);
             await notifications.DispatchEventAsync(Ctx(result), "confirmed", ct);
+            await BroadcastAsync(result, "confirmed", ct);
             return Ok(result);
         }
         catch (ReservationNotFoundException ex)
@@ -252,7 +261,9 @@ public class ReservationsController(
     {
         try
         {
-            return Ok(await management.MarkNoShowAsync(id, CurrentUserId, ct));
+            var result = await management.MarkNoShowAsync(id, CurrentUserId, ct);
+            await BroadcastAsync(result, "no-show", ct);
+            return Ok(result);
         }
         catch (ReservationNotFoundException ex)
         {
@@ -298,7 +309,10 @@ public class ReservationsController(
                 await management.CancelAsGuestAsync(id, request.Contact, request.Reason, ct);
 
             if (snapshot is not null)
+            {
                 await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
+                await BroadcastAsync(snapshot, "cancelled", ct);
+            }
             return NoContent();
         }
         catch (ReservationNotFoundException ex)

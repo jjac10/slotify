@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useReservationEvents } from '../hooks/useReservationEvents'
 import { reservationService } from '../services/reservationService'
 import { getApiError } from '../services/apiClient'
 import { StatusPill } from '../components/StatusPill'
@@ -256,6 +257,10 @@ export function OwnerAgendaPage() {
   const [dayDate, setDayDate] = useState(() => isoDate(new Date()))
   // Se incrementa tras crear una reserva → recarga lista y día.
   const [refresh, setRefresh] = useState(0)
+
+  // Tiempo real: la agenda se recarga sola cuando entra/cambia una reserva del
+  // negocio (reserva online de un cliente, cancelación de invitado…).
+  useReservationEvents(() => setRefresh((n) => n + 1), businessId)
 
   useEffect(() => {
     if (!businessId) return
