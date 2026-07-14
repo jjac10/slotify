@@ -146,6 +146,11 @@ if (twilioOptions.IsConfigured)
 // email real si hay SMTP, teléfono por WhatsApp si hay Twilio; si no, simulados. ---
 builder.Services.AddScoped<IGuestOtpRepository, GuestOtpRepository>();
 builder.Services.AddScoped<GuestOtpService>();
+
+// --- Lista de espera: apuntarse a días completos + aviso al liberarse hueco ---
+builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
+builder.Services.AddScoped<IDayAvailabilityChecker, DayAvailabilityChecker>();
+builder.Services.AddScoped<WaitlistService>();
 builder.Services.AddScoped<IGuestOtpSender>(sp => new GuestOtpSender(
     smtpOptions.IsConfigured ? sp.GetRequiredService<ISmtpTransport>() : null,
     twilioOptions.IsConfigured ? sp.GetRequiredService<IWhatsAppTransport>() : null,

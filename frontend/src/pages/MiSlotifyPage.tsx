@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
+import { waitlistService, type WaitlistEntryResponse } from '../services/waitlistService'
 import { getApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import { StatusPill } from '../components/StatusPill'
@@ -16,6 +17,7 @@ export function MiSlotifyPage() {
   const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<BusinessResponse[] | null>(null)
   const [upcoming, setUpcoming] = useState<ReservationResponse[] | null>(null)
+  const [waitlist, setWaitlist] = useState<WaitlistEntryResponse[]>([])
 
   useEffect(() => {
     let active = true
@@ -27,10 +29,18 @@ export function MiSlotifyPage() {
         getApiError(err) // swallow; mostramos lista vacía
         if (active) setUpcoming([])
       })
+    waitlistService.listMine().then((w) => active && setWaitlist(w)).catch(() => { /* secundario */ })
     return () => {
       active = false
     }
   }, [])
+
+  async function leaveWaitlist(entryId: string) {
+    try {
+      await waitlistService.leave(entryId)
+      setWaitlist((prev) => prev.filter((e) => e.id !== entryId))
+    } catch { /* si falla, la entrada sigue visible */ }
+  }
 
   return (
     <section className="flex flex-col gap-stack-lg">
@@ -90,6 +100,48 @@ export function MiSlotifyPage() {
           </ul>
         )}
       </div>
+
+      {/* Listas de espera (solo si hay alguna) */}
+      {waitlist.length > 0 && (
+        <div>
+          <h2 className="mb-stack-sm">Listas de espera</h2>
+          <ul className="flex flex-col gap-stack-sm" data-testid="waitlist-list">
+            {waitlist.map((e) => (
+              <li key={e.id} className="card flex items-center gap-stack-md" data-testid="waitlist-item">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <span className="material-symbols-outlined">hourglass_top</span>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{e.businessName ?? 'Negocio'}</p>
+                  <p className="truncate text-sm text-on-surface-variant">
+                    {e.serviceName ? `${e.serviceName} · ` : ''}
+                    {new Date(`${e.date}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    {e.status === 'notified'
+                      ? '¡Se liberó un hueco! Entra a reservar.'
+                      : `Posición ${e.position} — te avisaremos si se libera un hueco.`}
+                  </p>
+                </div>
+                {e.status === 'notified' && (
+                  <Link to={`/reservar?businessId=${e.businessId}`} className="btn-primary py-2 text-sm" data-testid="waitlist-book-now">
+                    Reservar
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => leaveWaitlist(e.id)}
+                  aria-label="Salir de la lista de espera"
+                  data-testid="waitlist-leave"
+                  className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Sugerencias */}
       {suggestions !== null && suggestions.length > 0 && (

@@ -22,6 +22,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<GuestOtpCode> GuestOtpCodes => Set<GuestOtpCode>();
+    public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,7 +45,40 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureReviews(modelBuilder);
         ConfigureNotifications(modelBuilder);
         ConfigureGuestOtpCodes(modelBuilder);
+        ConfigureWaitlists(modelBuilder);
         SeedPricingTiers(modelBuilder);
+    }
+
+    private static void ConfigureWaitlists(ModelBuilder mb)
+    {
+        mb.Entity<WaitlistEntry>(e =>
+        {
+            e.ToTable("waitlists", t =>
+                // Igual que reservations: o usuario registrado o invitado, nunca ambos.
+                t.HasCheckConstraint("waitlist_user_or_guest",
+                    "(user_id IS NOT NULL AND guest_id IS NULL) OR (user_id IS NULL AND guest_id IS NOT NULL)"));
+            e.HasKey(w => w.Id);
+            e.Property(w => w.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(w => w.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(w => w.ServiceId).HasColumnName("service_id").IsRequired();
+            e.Property(w => w.Date).HasColumnName("waitlist_date").IsRequired();
+            e.Property(w => w.UserId).HasColumnName("user_id");
+            e.Property(w => w.GuestId).HasColumnName("guest_id");
+            e.Property(w => w.Position).HasColumnName("position").IsRequired();
+            e.Property(w => w.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("waiting");
+            e.Property(w => w.NotifiedAt).HasColumnName("notified_at");
+            e.Property(w => w.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+
+            e.HasOne(w => w.Business).WithMany().HasForeignKey(w => w.BusinessId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(w => w.Service).WithMany().HasForeignKey(w => w.ServiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(w => w.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Guest>().WithMany().HasForeignKey(w => w.GuestId).OnDelete(DeleteBehavior.Cascade);
+
+            // Siguiente en cola y anti-duplicados.
+            e.HasIndex(w => new { w.ServiceId, w.Date, w.Status, w.Position });
+            e.HasIndex(w => new { w.ServiceId, w.Date, w.UserId }).IsUnique();
+            e.HasIndex(w => w.UserId);
+        });
     }
 
     private static void ConfigureGuestOtpCodes(ModelBuilder mb)

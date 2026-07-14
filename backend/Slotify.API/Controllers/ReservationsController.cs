@@ -17,6 +17,7 @@ public class ReservationsController(
     GuestReservationLookupService guestLookup,
     GuestOtpService guestOtp,
     NotificationService notifications,
+    WaitlistService waitlist,
     IRealtimeNotifier realtime) : ApiControllerBase
 {
     /// <summary>Emite el evento de tiempo real de una reserva (best-effort).</summary>
@@ -312,6 +313,9 @@ public class ReservationsController(
             {
                 await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
                 await BroadcastAsync(snapshot, "cancelled", ct);
+                // El hueco liberado puede tener cola: avisar al primero (best-effort).
+                await waitlist.NotifySlotFreedAsync(
+                    snapshot.BusinessId, snapshot.ServiceId, snapshot.StartTime, snapshot.Id, ct);
             }
             return NoContent();
         }

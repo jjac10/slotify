@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { businessService } from '../services/businessService'
 import { reservationService } from '../services/reservationService'
+import { waitlistService, type WaitlistEntryResponse } from '../services/waitlistService'
 import { getApiError } from '../services/apiClient'
 import { GuestContactInput, buildGuestContact, isContactValid, type ContactMode } from '../components/GuestContactInput'
 import { MonthCalendar } from '../components/MonthCalendar'
@@ -153,8 +154,35 @@ export function ReserveFlowPage() {
 
   function selectDay(iso: string) {
     setSelectedDate(iso)
+    setWaitlistJoined(null)
+    setWaitlistError(null)
     if (booking.businessId && booking.serviceId && booking.staffId) {
       loadSlots(booking.businessId, booking.serviceId, booking.staffId, iso)
+    }
+  }
+
+  // Lista de espera: apuntarse al día completo seleccionado (solo con sesión).
+  const [waitlistJoined, setWaitlistJoined] = useState<WaitlistEntryResponse | null>(null)
+  const [waitlistJoining, setWaitlistJoining] = useState(false)
+  const [waitlistError, setWaitlistError] = useState<string | null>(null)
+
+  async function joinWaitlist() {
+    if (!booking.businessId || !booking.serviceId || !selectedDate) return
+    setWaitlistJoining(true)
+    setWaitlistError(null)
+    try {
+      setWaitlistJoined(await waitlistService.join(booking.businessId, booking.serviceId, selectedDate))
+    } catch (err) {
+      const apiErr = getApiError(err)
+      if (apiErr?.error === 'already_waiting') {
+        setWaitlistJoined({ id: '', businessId: booking.businessId, businessName: null, serviceId: booking.serviceId, serviceName: null, date: selectedDate, position: 0, status: 'waiting' })
+      } else if (apiErr?.error === 'slots_available') {
+        setWaitlistError('¡Se acaba de liberar un hueco! Recarga los horarios del día.')
+      } else {
+        setWaitlistError(apiErr?.message ?? 'No se pudo apuntar a la lista de espera.')
+      }
+    } finally {
+      setWaitlistJoining(false)
     }
   }
 
@@ -415,9 +443,39 @@ export function ReserveFlowPage() {
             </ul>
           )}
           {slots !== null && slots.length === 0 && !loading && (
-            <p className="text-on-surface-variant" data-testid="reserve-no-slots">
-              No hay horarios disponibles ese día. Prueba con otro.
-            </p>
+            <div className="flex flex-col gap-stack-sm" data-testid="reserve-no-slots">
+              <p className="text-on-surface-variant">
+                No hay horarios disponibles ese día. Prueba con otro…
+              </p>
+              {/* …o lista de espera: el backend avisa si una cancelación libera hueco */}
+              {status === 'authenticated' ? (
+                waitlistJoined ? (
+                  <p className="rounded-xl bg-secondary-container/30 px-4 py-3 text-sm font-semibold text-on-secondary-container" data-testid="waitlist-joined">
+                    <span className="material-symbols-outlined align-middle text-[18px] mr-1">notifications_active</span>
+                    Estás en la lista de espera{waitlistJoined.position > 0 ? ` (posición ${waitlistJoined.position})` : ''}. Te avisaremos si se libera un hueco.
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-secondary self-start inline-flex items-center gap-1.5"
+                      data-testid="waitlist-join"
+                      disabled={waitlistJoining}
+                      onClick={joinWaitlist}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">notification_add</span>
+                      {waitlistJoining ? 'Apuntando…' : 'Avísame si se libera un hueco'}
+                    </button>
+                    {waitlistError && <p role="alert" className="alert text-sm" data-testid="waitlist-error">{waitlistError}</p>}
+                  </>
+                )
+              ) : (
+                <p className="text-sm text-on-surface-variant" data-testid="waitlist-login-hint">
+                  <Link to="/login" className="font-semibold text-primary hover:underline">Inicia sesión</Link>
+                  {' '}para apuntarte a la lista de espera de este día.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

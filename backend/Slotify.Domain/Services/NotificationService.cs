@@ -129,6 +129,8 @@ public class NotificationService(
             "rescheduled" => $"Tu reserva en {businessName} se ha reprogramado al {when}.",
             "cancelled" => $"Tu reserva en {businessName} del {when} ha sido cancelada.",
             "reminder" => $"Recordatorio: tienes una reserva en {businessName} el {when}.",
+            "waitlist_slot_freed" =>
+                $"¡Se ha liberado un hueco en {businessName} el {startUtc:dd/MM/yyyy}! Entra en Slotify y reserva antes de que vuele.",
             _ => $"Actualización de tu reserva en {businessName} ({when}).",
         };
     }
