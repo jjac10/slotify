@@ -29,8 +29,8 @@ public class StaffAccountsEndpointsTests(SlotifyApiFactory factory) : IClassFixt
         Assert.Equal("owner", ownerAuth.BusinessRole);
         var owner = _factory.CreateClient();
         owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerAuth.AccessToken);
-        // El plan Free solo permite 1 trabajador (el owner); subimos a premium para añadir empleados.
-        (await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new { code = "premium" })).EnsureSuccessStatusCode();
+        // El plan Free solo permite 1 trabajador (el owner); premium (checkout simulado) para añadir empleados.
+        await TestPremium.UpgradeAsync(_factory, owner, businessId);
         var service = await (await owner.PostAsJsonAsync($"/businesses/{businessId}/services",
             new CreateServiceRequest("Corte", null, 30, 15m, null))).Content.ReadFromJsonAsync<ServiceResponse>();
 
@@ -101,7 +101,7 @@ public class StaffAccountsEndpointsTests(SlotifyApiFactory factory) : IClassFixt
         var businessId = ownerAuth!.BusinessId!.Value;
         var owner = _factory.CreateClient();
         owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerAuth.AccessToken);
-        (await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new { code = "premium" })).EnsureSuccessStatusCode();
+        await TestPremium.UpgradeAsync(_factory, owner, businessId);
         var emp = await (await owner.PostAsJsonAsync($"/businesses/{businessId}/staff",
             new CreateStaffRequest("SinEmail", null, null))).Content.ReadFromJsonAsync<StaffResponse>();
 

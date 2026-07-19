@@ -8,7 +8,10 @@ namespace Slotify.API.Controllers;
 
 [ApiController]
 [Route("businesses")]
-public class BusinessesController(BusinessService businesses, BusinessDeletionService businessDeletion) : ApiControllerBase
+public class BusinessesController(
+    BusinessService businesses,
+    BusinessDeletionService businessDeletion,
+    SubscriptionService subscriptions) : ApiControllerBase
 {
     /// <summary>Lista los negocios del owner autenticado.</summary>
     [HttpGet]
@@ -148,7 +151,10 @@ public class BusinessesController(BusinessService businesses, BusinessDeletionSe
         }
     }
 
-    /// <summary>Cambia el plan del negocio ('free'|'premium'). Solo el owner. Upgrade simulado (TFM); en producción lo dispara la pasarela de pago.</summary>
+    /// <summary>
+    /// Cambia el plan del negocio. Solo el owner, y solo hacia 'free' (cancela la
+    /// suscripción activa); el upgrade a Premium pasa por el checkout de pago (409).
+    /// </summary>
     [HttpPut("{id:guid}/plan")]
     [Authorize]
     public async Task<ActionResult<BusinessResponse>> ChangePlan(
@@ -156,11 +162,17 @@ public class BusinessesController(BusinessService businesses, BusinessDeletionSe
     {
         try
         {
-            return Ok(await businesses.ChangePlanAsync(id, CurrentUserId, request.Code, ct));
+            return Ok(request.Code == "free"
+                ? await subscriptions.DowngradeAsync(id, CurrentUserId, ct)
+                : await businesses.ChangePlanAsync(id, CurrentUserId, request.Code, ct));
         }
         catch (InvalidPlanException ex)
         {
             return BadRequest(new { error = "invalid_plan", message = ex.Message });
+        }
+        catch (PaymentRequiredException ex)
+        {
+            return Conflict(new { error = "payment_required", message = ex.Message });
         }
         catch (BusinessNotFoundException ex)
         {

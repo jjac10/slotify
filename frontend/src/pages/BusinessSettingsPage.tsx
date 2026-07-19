@@ -932,6 +932,8 @@ function NotificationsSection({ businessId, business, onUpdated }: { businessId:
 
 export function BusinessSettingsPage() {
   const { businessId, isOwner } = useAuth()
+  // Vuelta del checkout de pago (Stripe o simulado): ?upgraded=1
+  const justUpgraded = new URLSearchParams(window.location.search).get('upgraded') === '1'
 
   const [business, setBusiness] = useState<BusinessResponse | null>(null)
   const [services, setServices] = useState<ServiceResponse[] | null>(null)
@@ -1081,6 +1083,26 @@ export function BusinessSettingsPage() {
     } catch (err) {
       setPlanError(getApiError(err)?.message ?? 'No se pudo cambiar el plan.')
     } finally {
+      setPlanSaving(false)
+    }
+  }
+
+  // Upgrade a Premium: SIEMPRE por el checkout de pago (Stripe real o simulado);
+  // la página vuelve con ?upgraded=1 al completarse.
+  async function handleUpgrade() {
+    if (!businessId) return
+    setPlanError(null)
+    setPlanSaving(true)
+    try {
+      const { url } = await businessService.startCheckout(businessId)
+      window.location.href = url
+    } catch (err) {
+      const apiErr = getApiError(err)
+      setPlanError(
+        apiErr?.error === 'already_premium'
+          ? 'El negocio ya es Premium.'
+          : apiErr?.message ?? 'No se pudo abrir el pago.',
+      )
       setPlanSaving(false)
     }
   }
@@ -1369,12 +1391,19 @@ export function BusinessSettingsPage() {
         <NotificationsSection businessId={businessId} business={business} onUpdated={(b) => setBusiness(b)} />
       </SectionCard>
 
-      {/* Plan */}
-      <SectionCard id="plan" title="Plan" icon="workspace_premium">
+      {/* Plan (abierto al volver del checkout para ver el banner de éxito) */}
+      <SectionCard id="plan" title="Plan" icon="workspace_premium" defaultOpen={justUpgraded}>
         <div className="flex flex-col gap-stack-md" data-testid="plan-section">
           <p className="text-sm text-on-surface-variant -mt-stack-sm">
-            El plan Premium desbloquea trabajadores ilimitados y más.
+            El plan Premium desbloquea trabajadores ilimitados y más. El upgrade pasa por el
+            checkout de pago.
           </p>
+          {justUpgraded && (
+            <p className="rounded-xl bg-secondary-container/30 px-4 py-3 text-sm font-semibold text-on-secondary-container" data-testid="plan-upgraded-banner">
+              <span className="material-symbols-outlined align-middle text-[18px] mr-1">celebration</span>
+              ¡Pago completado! Tu negocio ya es Premium.
+            </p>
+          )}
           {planError && <p role="alert" className="alert text-sm" data-testid="plan-error">{planError}</p>}
           <div className="flex items-center gap-stack-md flex-wrap">
             <span className="text-sm font-semibold">Plan actual:</span>
@@ -1413,9 +1442,9 @@ export function BusinessSettingsPage() {
               className="btn-primary self-start"
               data-testid="plan-upgrade"
               disabled={planSaving}
-              onClick={() => handleSetPlan('premium')}
+              onClick={handleUpgrade}
             >
-              {planSaving ? 'Cambiando…' : 'Mejorar a Premium'}
+              {planSaving ? 'Abriendo el pago…' : 'Mejorar a Premium'}
             </button>
           )}
 

@@ -22,8 +22,8 @@ public class StaffServiceAssignmentEndpointsTests(SlotifyApiFactory factory) : I
         var auth = await (await _client.PostAsJsonAsync("/auth/register-owner", NewRegister()))
             .Content.ReadFromJsonAsync<AuthResult>();
         var client = Authorized(auth!.AccessToken);
-        // Premium para poder añadir empleados.
-        (await client.PutAsJsonAsync($"/businesses/{auth.BusinessId}/plan", new SetPlanRequest("premium"))).EnsureSuccessStatusCode();
+        // Premium (checkout simulado) para poder añadir empleados.
+        await TestPremium.UpgradeAsync(factory, client, auth.BusinessId!.Value);
         return (auth.BusinessId!.Value, auth.AccessToken);
     }
 

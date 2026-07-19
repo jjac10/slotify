@@ -201,8 +201,9 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
     }
 
     /// <summary>
-    /// Cambia el plan del negocio ('free'|'premium'). Solo el owner. En el TFM es un
-    /// upgrade simulado (sin pago); en producción lo invocará el webhook de la pasarela.
+    /// Cambia el plan del negocio. Solo el owner, y SOLO hacia 'free': el upgrade a
+    /// Premium está gateado tras el pago (SubscriptionService → checkout de la
+    /// pasarela) y aquí devuelve 409 payment_required.
     /// </summary>
     public async Task<BusinessResponse> ChangePlanAsync(
         Guid businessId, Guid userId, string code, CancellationToken ct = default)
@@ -215,6 +216,29 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         if (business.OwnerId != userId)
             throw new NotBusinessOwnerException();
 
+        if (code == "premium")
+            throw new PaymentRequiredException();
+
+        return await ApplyPlanAsync(business, code, ct);
+    }
+
+    /// <summary>
+    /// Fija el plan SIN autorización de owner: lo usan la activación de la suscripción
+    /// (pago confirmado) y solo código de confianza — nunca un endpoint directo.
+    /// </summary>
+    public async Task<BusinessResponse> SetPlanAsync(Guid businessId, string code, CancellationToken ct = default)
+    {
+        if (!ValidPlanCodes.Contains(code))
+            throw new InvalidPlanException(code);
+
+        var business = await repository.GetByIdAsync(businessId, ct)
+            ?? throw new BusinessNotFoundException(businessId);
+
+        return await ApplyPlanAsync(business, code, ct);
+    }
+
+    private async Task<BusinessResponse> ApplyPlanAsync(Business business, string code, CancellationToken ct)
+    {
         var tier = await tiers.GetByCodeAsync(code, ct);
         business.TierId = tier.Id;
         await repository.UpdateAsync(business, ct);

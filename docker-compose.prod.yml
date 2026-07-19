@@ -44,6 +44,10 @@ services:
       Support__RecipientEmail: ${SUPPORT_RECIPIENT_EMAIL:-slotify@jjalarcon.es}
       # Admin de plataforma (moderación en /admin): la cuenta con este email. Vacío = sin admin.
       Admin__Email: ${ADMIN_EMAIL:-}
+      # Pago Premium con Stripe (Checkout + webhook). Sin claves → checkout simulado.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

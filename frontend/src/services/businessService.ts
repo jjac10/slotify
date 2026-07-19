@@ -64,6 +64,15 @@ export const businessService = {
   },
 
   /**
+   * POST /businesses/{id}/checkout — abre el checkout del upgrade a Premium
+   * (Stripe real o simulado, según el backend) y devuelve la URL de pago.
+   */
+  async startCheckout(businessId: string): Promise<{ url: string }> {
+    const { data } = await api.post<{ url: string }>(`/businesses/${businessId}/checkout`)
+    return data
+  },
+
+  /**
    * POST /businesses/{id}/delete — elimina el negocio y TODOS sus datos (cascada,
    * irreversible). Confirmación máxima: nombre exacto + contraseña actual del owner.
    */

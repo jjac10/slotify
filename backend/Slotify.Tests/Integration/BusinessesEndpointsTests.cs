@@ -147,7 +147,7 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
     }
 
     [Fact]
-    public async Task ChangePlan_ToPremium_AsOwner_Returns200_AndUnblocksStaff()
+    public async Task UpgradeViaCheckout_UnblocksStaff_AndPersistsPlan()
     {
         var (businessId, owner) = await RegisterOwnerAsync();
 
@@ -155,11 +155,9 @@ public class BusinessesEndpointsTests(SlotifyApiFactory factory) : IClassFixture
         var blocked = await owner.PostAsJsonAsync($"/businesses/{businessId}/staff", new CreateStaffRequest("Ana", null, null));
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
 
-        // Upgrade a Premium.
-        var upgrade = await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new SetPlanRequest("premium"));
-        Assert.Equal(HttpStatusCode.OK, upgrade.StatusCode);
-        var body = await upgrade.Content.ReadFromJsonAsync<BusinessResponse>();
-        Assert.Equal("premium", body!.Plan);
+        // Upgrade por el flujo real de pago (checkout simulado): PUT /plan premium
+        // está gateado (409 payment_required — cubierto en BillingEndpointsTests).
+        await TestPremium.UpgradeAsync(_factory, owner, businessId);
 
         // Persiste en el listado del owner…
         var mine = await owner.GetFromJsonAsync<List<BusinessResponse>>("/businesses");

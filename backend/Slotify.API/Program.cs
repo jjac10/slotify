@@ -17,6 +17,7 @@ using Slotify.Infrastructure.Repositories;
 using Slotify.Infrastructure.Security;
 using Slotify.API;
 using Slotify.API.Realtime;
+using Slotify.Infrastructure.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -151,6 +152,21 @@ builder.Services.AddScoped<GuestOtpService>();
 builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IDayAvailabilityChecker, DayAvailabilityChecker>();
 builder.Services.AddScoped<WaitlistService>();
+
+// --- Pago del plan Premium: Stripe Checkout si hay claves (STRIPE_*), simulado si no ---
+var stripeOptions = StripeOptions.FromConfiguration(builder.Configuration);
+builder.Services.AddSingleton(stripeOptions);
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<SubscriptionService>();
+if (stripeOptions.IsConfigured)
+{
+    builder.Services.AddHttpClient<StripePaymentGateway>();
+    builder.Services.AddScoped<IPaymentGateway>(sp => sp.GetRequiredService<StripePaymentGateway>());
+}
+else
+{
+    builder.Services.AddScoped<IPaymentGateway, SimulatedPaymentGateway>();
+}
 builder.Services.AddScoped<IGuestOtpSender>(sp => new GuestOtpSender(
     smtpOptions.IsConfigured ? sp.GetRequiredService<ISmtpTransport>() : null,
     twilioOptions.IsConfigured ? sp.GetRequiredService<IWhatsAppTransport>() : null,

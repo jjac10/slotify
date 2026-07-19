@@ -36,12 +36,16 @@ async function registerOwner(): Promise<OwnerSetup> {
 }
 
 async function promoteToPremium(setup: OwnerSetup): Promise<void> {
-  const res = await fetch(`${BASE_API}/businesses/${setup.businessId}/plan`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${setup.accessToken}` },
-    body: JSON.stringify({ code: 'premium' }),
+  // El upgrade va SIEMPRE por el checkout (simulado sin claves de Stripe).
+  const checkout = await fetch(`${BASE_API}/businesses/${setup.businessId}/checkout`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${setup.accessToken}` },
   })
-  if (!res.ok) throw new Error(`promote-to-premium failed: ${await res.text()}`)
+  if (!checkout.ok) throw new Error(`checkout failed: ${await checkout.text()}`)
+  const { url } = await checkout.json() as { url: string }
+  const token = url.replace(/\/$/, '').split('/').pop()
+  const complete = await fetch(`${BASE_API}/checkout/simulated/${token}`, { redirect: 'manual' })
+  if (complete.status !== 302 && !complete.ok) throw new Error(`simulated checkout failed: ${complete.status}`)
 }
 
 async function loginAndOpenTeam(page: import('@playwright/test').Page, email: string): Promise<void> {

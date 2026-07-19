@@ -228,8 +228,8 @@ public class AccountDeletionEndpointsTests(SlotifyApiFactory factory) : IClassFi
     public async Task Employee_DeletesAccount_UnlinksStaffAndKeepsRosterRow()
     {
         var (businessId, _, _, _, _, owner, _) = await SetupOwnerAsync();
-        // El plan Free solo permite 1 trabajador; premium para poder añadir un empleado.
-        (await owner.PutAsJsonAsync($"/businesses/{businessId}/plan", new { code = "premium" })).EnsureSuccessStatusCode();
+        // El plan Free solo permite 1 trabajador; premium (checkout simulado) para añadir un empleado.
+        await TestPremium.UpgradeAsync(_factory, owner, businessId);
 
         var employeeEmail = $"emp-{Guid.NewGuid():N}@test.local";
         var member = await (await owner.PostAsJsonAsync($"/businesses/{businessId}/staff",

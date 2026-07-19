@@ -180,10 +180,8 @@ public class BusinessServiceTests
 
     // --- Plan / tier --------------------------------------------------------
 
-    [Theory]
-    [InlineData("premium")]
-    [InlineData("free")]
-    public async Task ChangePlanAsync_AsOwner_SetsTier_AndReturnsPlan(string code)
+    [Fact]
+    public async Task ChangePlanAsync_AsOwner_ToFree_SetsTier_AndReturnsPlan()
     {
         var ownerId = Guid.NewGuid();
         var businessId = Guid.NewGuid();
@@ -191,14 +189,32 @@ public class BusinessServiceTests
         var business = new Business { Id = businessId, OwnerId = ownerId, TierId = Guid.NewGuid(), Name = "Biz" };
         _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
         _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        _tiers.Setup(t => t.GetByCodeAsync(code, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PricingTier { Id = newTierId, Code = code, Name = code });
+        _tiers.Setup(t => t.GetByCodeAsync("free", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PricingTier { Id = newTierId, Code = "free", Name = "Free" });
 
-        var result = await CreateService().ChangePlanAsync(businessId, ownerId, code);
+        var result = await CreateService().ChangePlanAsync(businessId, ownerId, "free");
 
         Assert.Equal(newTierId, business.TierId);
-        Assert.Equal(code, result.Plan);
+        Assert.Equal("free", result.Plan);
         _repo.Verify(r => r.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetPlanAsync_TrustedPath_SetsPremiumWithoutOwnerCheck()
+    {
+        // Lo usa la activación de la suscripción (pago confirmado): sin authz de owner.
+        var businessId = Guid.NewGuid();
+        var premiumTierId = Guid.NewGuid();
+        var business = new Business { Id = businessId, OwnerId = Guid.NewGuid(), TierId = Guid.NewGuid(), Name = "Biz" };
+        _repo.Setup(r => r.GetByIdAsync(businessId, It.IsAny<CancellationToken>())).ReturnsAsync(business);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Business>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _tiers.Setup(t => t.GetByCodeAsync("premium", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PricingTier { Id = premiumTierId, Code = "premium", Name = "Premium" });
+
+        var result = await CreateService().SetPlanAsync(businessId, "premium");
+
+        Assert.Equal(premiumTierId, business.TierId);
+        Assert.Equal("premium", result.Plan);
     }
 
     [Fact]

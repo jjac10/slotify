@@ -23,6 +23,7 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<GuestOtpCode> GuestOtpCodes => Set<GuestOtpCode>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,7 +47,30 @@ public class SlotifyDbContext(DbContextOptions<SlotifyDbContext> options) : DbCo
         ConfigureNotifications(modelBuilder);
         ConfigureGuestOtpCodes(modelBuilder);
         ConfigureWaitlists(modelBuilder);
+        ConfigureSubscriptions(modelBuilder);
         SeedPricingTiers(modelBuilder);
+    }
+
+    private static void ConfigureSubscriptions(ModelBuilder mb)
+    {
+        mb.Entity<Subscription>(e =>
+        {
+            e.ToTable("subscriptions");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            e.Property(s => s.BusinessId).HasColumnName("business_id").IsRequired();
+            e.Property(s => s.Provider).HasColumnName("provider").HasMaxLength(50).IsRequired();
+            e.Property(s => s.ExternalId).HasColumnName("external_id").HasMaxLength(255).IsRequired();
+            e.Property(s => s.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("pending");
+            e.Property(s => s.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
+            e.Property(s => s.ActivatedAt).HasColumnName("activated_at");
+            e.Property(s => s.CancelledAt).HasColumnName("cancelled_at");
+
+            e.HasOne<Business>().WithMany().HasForeignKey(s => s.BusinessId).OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(s => s.ExternalId).IsUnique(); // el webhook busca por session/token
+            e.HasIndex(s => new { s.BusinessId, s.Status });
+        });
     }
 
     private static void ConfigureWaitlists(ModelBuilder mb)

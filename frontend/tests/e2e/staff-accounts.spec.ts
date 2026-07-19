@@ -19,7 +19,9 @@ test('un empleado acepta su invitación y entra a su agenda (sin configuración)
   })).json() as { businessId: string; accessToken: string; businessRole: string }
   expect(owner.businessRole).toBe('owner')
   const auth = { 'Content-Type': 'application/json', Authorization: `Bearer ${owner.accessToken}` }
-  await fetch(`${API}/businesses/${owner.businessId}/plan`, { method: 'PUT', headers: auth, body: JSON.stringify({ code: 'premium' }) })
+  // Upgrade por el checkout simulado (PUT /plan premium está gateado tras el pago).
+  const checkout = await (await fetch(`${API}/businesses/${owner.businessId}/checkout`, { method: 'POST', headers: auth })).json() as { url: string }
+  await fetch(`${API}/checkout/simulated/${checkout.url.replace(/\/$/, '').split('/').pop()}`, { redirect: 'manual' })
   const empEmail = `emp-${stamp}@s.test`
   const emp = await (await fetch(`${API}/businesses/${owner.businessId}/staff`, {
     method: 'POST', headers: auth, body: JSON.stringify({ name: 'Marta', email: empEmail }),
