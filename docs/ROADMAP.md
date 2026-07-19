@@ -67,7 +67,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
   - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync`
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync` · ✅ **editar/eliminar servicios** (owner): `UpdateAsync` + `DeleteAsync` (archivado lógico `status='archived'` para conservar el histórico de reservas; libera hueco del plan)
-- ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ⚠️ TODO: gatear tras pago real (Stripe/Paddle) + tabla `subscriptions`/`payments`
+- ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ✅ TODO cerrado en la rama v2: el upgrade está **gateado tras el pago** (`SubscriptionService` + checkout de Stripe real o simulado + tabla `subscriptions`; `PUT /plan premium` → 409 `payment_required`)
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
 - ✅ **`StaffServiceAssignmentService`** (owner): fija/lista qué servicios puede realizar cada trabajador (valida pertenencia al negocio); `StaffService.ListAsync(serviceId?)` filtra el listado público de staff por servicio — un trabajador sin asignaciones se ofrece para todos los servicios (compat. owner-as-staff y negocios de 1 trabajador) — *PR #31*
 - ✅ `DashboardService` (resumen owner-only: contadores histórico/mes, ingresos del mes, próximas reservas) — *PR #19*; `IReservationRepository.{CountByBusiness,SumRevenueByBusiness,ListUpcomingByBusiness}Async`
@@ -222,14 +222,22 @@ Tercer bloque (2026-07-10):
 - ✅ **Personalización del perfil público**: descripción (500), web e Instagram (migración `Add_BusinessProfileCustomization`) en Configuración → Datos y en la ficha.
 - ✅ **Métricas avanzadas**: marcar "No vino" en la Agenda (POST `/reservations/{id}/no-show`) + tasa de no-shows y ocupación del mes en el panel.
 
-Suite al cierre del tercer bloque: **329 unit tests backend + 26 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de los bloques 2–3 están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en las sesiones).
+Suite al cierre del tercer bloque: **329 unit tests backend + 26 unit frontend en verde**; los tests de integración (Testcontainers) y e2e de los bloques 2–3 están escritos pero **pendientes de una pasada con Docker** antes del merge (Docker Desktop no disponible en las sesiones). *(Pasada completa hecha el 2026-07-14: 577 backend + 40 e2e en verde.)*
+
+Cuarto bloque (2026-07-14 → 2026-07-19):
+
+- ✅ **Confirmaciones en tiempo real (SignalR)**: la lista del cliente se refresca sola cuando el owner confirma la reserva.
+- ✅ **Lista de espera (`waitlists`)**: sin huecos, el cliente entra en cola y se le avisa (email/WhatsApp) al liberarse un hueco.
+- ✅ **Pago real para Premium** *(cierra el 🔴 de producto)*: el upgrade entra SIEMPRE por el checkout de la pasarela (`IPaymentGateway` swappable: **Stripe Checkout real** con claves `STRIPE_*` o **checkout simulado** demoable sin ellas). `POST /businesses/{id}/checkout` crea la suscripción `pending` (tabla `subscriptions`, migración `Add_Subscriptions`); la activa el webhook `checkout.session.completed` (firma `Stripe-Signature` verificada con HMAC propio + anti-replay) o el retorno simulado, idempotente. `PUT /plan premium` directo → 409 `payment_required`; el downgrade a Free cancela la suscripción. Front: "Mejorar a Premium" abre la URL de pago y vuelve a Configuración con banner de éxito (`?upgraded=1`); spec `premium-upgrade.spec.ts`.
+
+Suite al cierre del cuarto bloque: **617 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team) en verde.
 
 ### Producto / negocio
 - ✅ **Notificaciones reales (email + WhatsApp)** (rama v2): email por SMTP (IONOS vía MailKit) y WhatsApp por Twilio (sandbox en dev), ambos con fallback simulado si faltan credenciales.
 - ✅ **Borrar negocio** (rama v2): cascada RGPD con confirmación máxima (nombre exacto + contraseña).
 - ✅ **Rol admin de plataforma (moderación)** (rama v2): email configurado (`ADMIN_EMAIL`) + página `/admin` con directorio y borrado en cascada. El registro sigue abierto.
 - ✅ **Modo solo-calendario: horario y huecos** en la ficha pública (rama v2).
-- 🔴 **Pago real para Premium.** Pasarela (Stripe/Paddle) + webhook que llame a `ChangePlanAsync` tras el cobro + tabla `subscriptions`/`payments` (esqueleto ya documentado en `DATA_MODEL.md`). Hoy el upgrade es simulado.
+- ✅ **Pago real para Premium** (rama v2): Stripe Checkout + webhook firmado + tabla `subscriptions`; sin claves de Stripe el checkout es simulado (demo). El upgrade directo quedó gateado (409 `payment_required`).
 - ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ⬜ Pendiente de futuro: logo propio, color de marca, subida de imágenes (hoy la foto es por URL).
 - ✅ **Página de contacto / soporte** (rama v2): `/contacto` → email al dueño de la plataforma.
 
@@ -238,8 +246,8 @@ Suite al cierre del tercer bloque: **329 unit tests backend + 26 unit frontend e
 - 🟡 **Rotación anual de claves** (HMAC/cifrado): rotar implica recalcular hashes/blind index.
 
 ### Funcionalidad
-- 🟡 **Lista de espera (`waitlists`).** Si no hay huecos, el cliente entra en cola y se le avisa al cancelarse una reserva. Esquema ya diseñado en `DATA_MODEL.md`.
-- 🟡 **Confirmaciones en tiempo real (WebSockets/SignalR).** La lista del cliente se refresca sola cuando el owner confirma.
+- ✅ **Lista de espera (`waitlists`)** (rama v2): sin huecos, el cliente entra en cola y se le avisa al liberarse uno.
+- ✅ **Confirmaciones en tiempo real (SignalR)** (rama v2): la lista del cliente se refresca sola cuando el owner confirma.
 - ✅ **Métricas avanzadas** (rama v2): "No vino" en la Agenda + tasa de no-shows y ocupación del mes en el panel.
 - ✅ **Paginación y filtros** en listados de reservas y reseñas (rama v2).
 
