@@ -433,3 +433,6 @@ FodyWeavers.xsd
 .claude/*
 !.claude/agents/
 !.claude/skills/
+
+# Caché del registro de skills de gentle-ai (tooling local de IA)
+.atl/
