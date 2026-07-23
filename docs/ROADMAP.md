@@ -125,7 +125,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 ## Infra / Calidad
 
 - ✅ CI/CD GitHub Actions (build + test) — *PR #20*: 3 jobs (backend xUnit+Testcontainers, frontend typecheck+build, e2e Playwright vía docker compose); corre en push/PR a `main`/`develop`
-- ⬜ Fijar versión parcheada de `System.Security.Cryptography.Xml` (warning NU1903, transitivo vía EF Design)
+- ✅ Fijar versión parcheada de `System.Security.Cryptography.Xml` (NU1903): 10.0.10, `dotnet list package --vulnerable` limpio (rama v2)
 - 🔮 Despliegue Ionos, backups, HTTPS
 
 ---
