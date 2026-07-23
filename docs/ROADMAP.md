@@ -233,7 +233,10 @@ Cuarto bloque (2026-07-14 → 2026-07-19):
 - ✅ **PWA instalable**: manifest + service worker (`vite-plugin-pwa`), shell cacheada para el arranque y `/api` siempre por red (nada de datos obsoletos).
 - ✅ **Subida de la foto del negocio** *(antes solo pegar URL)*: `POST /businesses/{id}/photo` (multipart, JPG/PNG/WebP, máx. 5 MB, solo el owner) → `IPhotoStorage` swappable con `LocalPhotoStorage` (un fichero por negocio, `?v=` cache-buster), servida por el propio backend en `/uploads` (→ `/api/uploads` tras el proxy) y persistida en `/opt/slotify/uploads` en prod (bind mount, sin configurar nada). Botón "Subir imagen" en Configuración → Perfil; spec `business-photo.spec.ts`.
 
-Suite al cierre del cuarto bloque: **638 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team, business-photo) en verde.
+- ✅ **Logo propio + color de marca** *(cierra el "pendiente de futuro" del perfil)*: `logo_url` y `brand_color` (#rrggbb validado, migración `Add_BusinessBranding`); el logo se sube como la foto (`POST /businesses/{id}/logo`, slot aparte en `IPhotoStorage`: `{id}-logo.ext` no pisa `{id}-photo.ext`) y el color se edita con un picker en Configuración → Perfil. En la ficha pública: logo junto al nombre y color en la banda superior (si no hay foto); spec `business-branding.spec.ts`.
+- ✅ Parche de seguridad: `System.Security.Cryptography.Xml` fijado a 10.0.10 (NU1903 fuera; `dotnet list package --vulnerable` limpio).
+
+Suite al cierre del cuarto bloque: **653 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team, business-photo, business-branding) en verde.
 
 ### Producto / negocio
 - ✅ **Notificaciones reales (email + WhatsApp)** (rama v2): email por SMTP (IONOS vía MailKit) y WhatsApp por Twilio (sandbox en dev), ambos con fallback simulado si faltan credenciales.
@@ -241,7 +244,7 @@ Suite al cierre del cuarto bloque: **638 tests backend en verde** (unit + integr
 - ✅ **Rol admin de plataforma (moderación)** (rama v2): email configurado (`ADMIN_EMAIL`) + página `/admin` con directorio y borrado en cascada. El registro sigue abierto.
 - ✅ **Modo solo-calendario: horario y huecos** en la ficha pública (rama v2).
 - ✅ **Pago real para Premium** (rama v2): Stripe Checkout + webhook firmado + tabla `subscriptions`; sin claves de Stripe el checkout es simulado (demo). El upgrade directo quedó gateado (409 `payment_required`).
-- ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ✅ **Subida de la foto** desde Configuración (rama v2; antes solo por URL). ⬜ Pendiente de futuro: logo propio, color de marca.
+- ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ✅ **Subida de la foto** desde Configuración (rama v2; antes solo por URL). ✅ **Logo propio y color de marca** (rama v2): se lucen en la ficha pública.
 - ✅ **Página de contacto / soporte** (rama v2): `/contacto` → email al dueño de la plataforma.
 
 ### Seguridad
