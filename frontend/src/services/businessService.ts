@@ -76,6 +76,16 @@ export const businessService = {
     return data
   },
 
+  /** POST /businesses/{id}/logo — igual que la foto, pero para el logo (logoUrl). */
+  async uploadLogo(businessId: string, file: File): Promise<BusinessResponse> {
+    const form = new FormData()
+    form.append('photo', file)
+    const { data } = await api.post<BusinessResponse>(`/businesses/${businessId}/logo`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
   /**
    * POST /businesses/{id}/checkout — abre el checkout del upgrade a Premium
    * (Stripe real o simulado, según el backend) y devuelve la URL de pago.

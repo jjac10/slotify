@@ -96,6 +96,13 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         if (instagram is { Length: > 100 })
             throw new InvalidBusinessProfileException("El usuario de Instagram no puede superar los 100 caracteres.");
 
+        // Color de marca: solo #rrggbb (se normaliza a minúsculas; nada de nombres CSS
+        // ni valores raros — acaba en un style inline de la ficha pública).
+        var brandColor = Normalize(request.BrandColor)?.ToLowerInvariant();
+        if (brandColor is not null &&
+            (brandColor.Length != 7 || brandColor[0] != '#' || !brandColor.Skip(1).All(Uri.IsHexDigit)))
+            throw new InvalidBusinessProfileException("El color de marca debe tener formato #RRGGBB.");
+
         var business = await repository.GetByIdAsync(businessId, ct)
             ?? throw new BusinessNotFoundException(businessId);
         if (business.OwnerId != userId)
@@ -110,6 +117,8 @@ public class BusinessService(IBusinessRepository repository, ITierRepository tie
         business.Description = description;
         business.Website = website;
         business.Instagram = string.IsNullOrEmpty(instagram) ? null : instagram;
+        business.LogoUrl = Normalize(request.LogoUrl);
+        business.BrandColor = brandColor;
         await repository.UpdateAsync(business, ct);
 
         return BusinessResponse.From(business);

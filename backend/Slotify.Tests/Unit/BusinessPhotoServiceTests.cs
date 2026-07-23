@@ -35,13 +35,13 @@ public class BusinessPhotoServiceTests
     public async Task Upload_AsOwner_SavesPhoto_AndSetsPhotoUrl()
     {
         var business = SetupBusiness();
-        _storage.Setup(s => s.SaveAsync(_businessId, It.IsAny<Stream>(), "image/png", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/api/uploads/businesses/x.png?v=1");
+        _storage.Setup(s => s.SaveAsync(_businessId, "photo", It.IsAny<Stream>(), "image/png", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("/api/uploads/businesses/x-photo.png?v=1");
 
         var response = await CreateService().UploadAsync(_businessId, _ownerId, SomeBytes(), "image/png", 4);
 
-        Assert.Equal("/api/uploads/businesses/x.png?v=1", response.PhotoUrl);
-        Assert.Equal("/api/uploads/businesses/x.png?v=1", business.PhotoUrl);
+        Assert.Equal("/api/uploads/businesses/x-photo.png?v=1", response.PhotoUrl);
+        Assert.Equal("/api/uploads/businesses/x-photo.png?v=1", business.PhotoUrl);
         _businesses.Verify(b => b.UpdateAsync(business, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -52,7 +52,7 @@ public class BusinessPhotoServiceTests
     public async Task Upload_AcceptsAllowedImageTypes(string contentType)
     {
         SetupBusiness();
-        _storage.Setup(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storage.Setup(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("/api/uploads/businesses/x");
 
         var response = await CreateService().UploadAsync(_businessId, _ownerId, SomeBytes(), contentType, 4);
@@ -72,7 +72,7 @@ public class BusinessPhotoServiceTests
         await Assert.ThrowsAsync<InvalidPhotoException>(() =>
             CreateService().UploadAsync(_businessId, _ownerId, SomeBytes(), contentType!, 4));
 
-        _storage.Verify(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _storage.Verify(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class BusinessPhotoServiceTests
         await Assert.ThrowsAsync<InvalidPhotoException>(() =>
             CreateService().UploadAsync(_businessId, _ownerId, SomeBytes(), "image/png", BusinessPhotoService.MaxBytes + 1));
 
-        _storage.Verify(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _storage.Verify(s => s.SaveAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

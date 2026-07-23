@@ -4,10 +4,14 @@ using Slotify.Domain.Interfaces;
 
 namespace Slotify.Domain.Services;
 
+/// <summary>Qué imagen del negocio se está subiendo: la foto de la ficha o el logo.</summary>
+public enum BusinessImageKind { Photo, Logo }
+
 /// <summary>
-/// Subida de la foto del negocio (solo el owner): valida tipo y tamaño, la guarda
-/// vía <see cref="IPhotoStorage"/> y deja la URL pública en photo_url. Pegar una URL
-/// externa en el perfil sigue funcionando; esto es el camino sin depender de nadie.
+/// Subida de imágenes del negocio (solo el owner): valida tipo y tamaño, las guarda
+/// vía <see cref="IPhotoStorage"/> y deja la URL pública en photo_url o logo_url
+/// según el slot. Pegar una URL externa en el perfil sigue funcionando; esto es el
+/// camino sin depender de nadie.
 /// </summary>
 public class BusinessPhotoService(IBusinessRepository businesses, IPhotoStorage storage)
 {
@@ -17,7 +21,8 @@ public class BusinessPhotoService(IBusinessRepository businesses, IPhotoStorage 
     private static readonly string[] AllowedContentTypes = ["image/jpeg", "image/png", "image/webp"];
 
     public async Task<BusinessResponse> UploadAsync(
-        Guid businessId, Guid userId, Stream content, string contentType, long length, CancellationToken ct = default)
+        Guid businessId, Guid userId, Stream content, string contentType, long length,
+        BusinessImageKind kind = BusinessImageKind.Photo, CancellationToken ct = default)
     {
         var normalizedType = contentType?.ToLowerInvariant();
         if (normalizedType is null || !AllowedContentTypes.Contains(normalizedType))
@@ -30,7 +35,12 @@ public class BusinessPhotoService(IBusinessRepository businesses, IPhotoStorage 
         if (business.OwnerId != userId)
             throw new NotBusinessOwnerException();
 
-        business.PhotoUrl = await storage.SaveAsync(businessId, content, normalizedType, ct);
+        var slot = kind == BusinessImageKind.Logo ? "logo" : "photo";
+        var url = await storage.SaveAsync(businessId, slot, content, normalizedType, ct);
+        if (kind == BusinessImageKind.Logo)
+            business.LogoUrl = url;
+        else
+            business.PhotoUrl = url;
         await businesses.UpdateAsync(business, ct);
 
         return BusinessResponse.From(business);

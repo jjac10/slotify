@@ -13,4 +13,6 @@ public record UpdateBusinessProfileRequest(
     string? Address = null,
     string? Description = null,
     string? Website = null,
-    string? Instagram = null);
+    string? Instagram = null,
+    string? LogoUrl = null,
+    string? BrandColor = null);

@@ -293,10 +293,13 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="card w-full max-w-sm !p-0 overflow-hidden flex flex-col" data-testid="business-modal">
-        <div className="relative h-36 w-full bg-gradient-to-br from-primary-container/40 to-secondary-container/40 flex items-center justify-center">
+        {/* Banda superior: foto si la hay; si no, el color de marca del negocio (o el degradado por defecto). */}
+        <div className="relative h-36 w-full bg-gradient-to-br from-primary-container/40 to-secondary-container/40 flex items-center justify-center"
+          style={!b.photoUrl && b.brandColor ? { backgroundImage: 'none', backgroundColor: b.brandColor } : undefined}
+          data-testid="business-modal-band">
           {b.photoUrl
             ? <img src={b.photoUrl} alt={b.name} className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-            : <span className="material-symbols-outlined text-[48px] text-primary/60">{categoryIcon(b.category)}</span>}
+            : <span className={`material-symbols-outlined text-[48px] ${b.brandColor ? 'text-white/80' : 'text-primary/60'}`}>{categoryIcon(b.category)}</span>}
           <button type="button" onClick={onClose} aria-label="Cerrar" data-testid="business-modal-close"
             className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-surface/90 text-on-surface backdrop-blur hover:bg-surface">
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -305,7 +308,15 @@ function BusinessDetailsModal({ business: b, onClose }: { business: BusinessResp
 
         <div className="flex flex-col gap-stack-sm p-stack-md max-h-[60vh] overflow-y-auto">
           <div>
-            <h2 className="text-lg font-bold">{b.name}</h2>
+            <div className="flex items-center gap-2">
+              {b.logoUrl && (
+                <img src={b.logoUrl} alt="" data-testid="business-modal-logo"
+                  className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-outline-variant/50"
+                  style={b.brandColor ? { boxShadow: `0 0 0 2px ${b.brandColor}` } : undefined}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+              )}
+              <h2 className="text-lg font-bold">{b.name}</h2>
+            </div>
             <div className="mt-0.5 flex items-center gap-2">
               {b.category && <span className="text-xs font-semibold text-on-surface-variant">{categoryLabel(b.category)}</span>}
               <RatingStars value={b.rating} count={b.reviewCount} />

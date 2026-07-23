@@ -8,8 +8,9 @@ namespace Slotify.Domain.Interfaces;
 public interface IPhotoStorage
 {
     /// <summary>
-    /// Guarda la foto del negocio (reemplazando la anterior si la hay) y devuelve la
-    /// URL pública con la que el navegador puede pedirla.
+    /// Guarda la imagen del negocio en su slot ('photo' | 'logo'), reemplazando la
+    /// anterior si la hay, y devuelve la URL pública con la que el navegador puede
+    /// pedirla.
     /// </summary>
-    Task<string> SaveAsync(Guid businessId, Stream content, string contentType, CancellationToken ct = default);
+    Task<string> SaveAsync(Guid businessId, string slot, Stream content, string contentType, CancellationToken ct = default);
 }

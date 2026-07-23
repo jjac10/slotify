@@ -718,6 +718,10 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
   const [locating, setLocating] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const photoFileRef = useRef<HTMLInputElement>(null)
+  const [logoUrl, setLogoUrl] = useState('')
+  const [brandColor, setBrandColor] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoFileRef = useRef<HTMLInputElement>(null)
 
   // Subir el fichero guarda ya la foto en el backend (no espera al "Guardar" del form).
   async function handlePhotoFile(e: ChangeEvent<HTMLInputElement>) {
@@ -737,9 +741,29 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
     }
   }
 
+  // Subir el logo funciona igual que la foto: se guarda al elegir el fichero.
+  async function handleLogoFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError(null)
+    setUploadingLogo(true)
+    try {
+      const updated = await businessService.uploadLogo(businessId, file)
+      setLogoUrl(updated.logoUrl ?? '')
+      onUpdated(updated)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo subir el logo.')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
   useEffect(() => {
     if (!business) return
     setCategory(business.category ?? '')
+    setLogoUrl(business.logoUrl ?? '')
+    setBrandColor(business.brandColor ?? '')
     setPhotoUrl(business.photoUrl ?? '')
     setLat(business.latitude != null ? String(business.latitude) : '')
     setLng(business.longitude != null ? String(business.longitude) : '')
@@ -775,6 +799,8 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
         description: description.trim() || null,
         website: website.trim() || null,
         instagram: instagram.trim() || null,
+        logoUrl: logoUrl.trim() || null,
+        brandColor: brandColor.trim() || null,
       })
       onUpdated(updated)
       setSaved(true)
@@ -819,6 +845,49 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
             className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )}
+      </div>
+      <div className="field">
+        <span className="field-label">Logo</span>
+        <div className="flex items-center gap-stack-sm flex-wrap">
+          {logoUrl.trim() && (
+            <img src={logoUrl} alt="Logo" data-testid="profile-logo-preview"
+              className="h-12 w-12 rounded-full object-cover ring-1 ring-outline-variant/50"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+          )}
+          <input ref={logoFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+            className="hidden" data-testid="profile-logo-file" onChange={handleLogoFile} />
+          <button type="button" className="btn-secondary !py-2 text-sm inline-flex items-center gap-1"
+            data-testid="profile-logo-upload" disabled={uploadingLogo}
+            onClick={() => logoFileRef.current?.click()}>
+            <span className="material-symbols-outlined text-[18px]">upload</span>
+            {uploadingLogo ? 'Subiendo…' : logoUrl.trim() ? 'Cambiar logo' : 'Subir logo'}
+          </button>
+          {logoUrl.trim() && (
+            <button type="button" className="text-sm font-semibold text-on-surface-variant hover:underline"
+              data-testid="profile-logo-remove"
+              onClick={() => { setLogoUrl(''); setSaved(false) }}>
+              Quitar
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-on-surface-variant">Se muestra en tu ficha pública, junto al nombre. Quitar se aplica al guardar.</p>
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="profile-brand-color">Color de marca</label>
+        <div className="flex items-center gap-stack-sm">
+          <input id="profile-brand-color" type="color" className="h-10 w-14 cursor-pointer rounded-lg border border-outline-variant/50 bg-transparent p-1"
+            data-testid="profile-brand-color" value={brandColor.trim() || '#7c3aed'}
+            onChange={(e) => { setBrandColor(e.target.value); setSaved(false) }} />
+          {brandColor.trim() ? (
+            <button type="button" className="text-sm font-semibold text-on-surface-variant hover:underline"
+              data-testid="profile-brand-color-remove"
+              onClick={() => { setBrandColor(''); setSaved(false) }}>
+              Quitar
+            </button>
+          ) : (
+            <span className="text-xs text-on-surface-variant">Sin fijar — elige un color para el acento de tu ficha.</span>
+          )}
+        </div>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="profile-description">
@@ -868,7 +937,7 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
           {saving ? 'Guardando…' : 'Guardar perfil'}
         </button>
         {saved && (
-          <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary">
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-secondary" data-testid="profile-saved">
             <span className="material-symbols-outlined text-[16px]">check_circle</span> Guardado
           </span>
         )}

@@ -27,7 +27,18 @@ public class BusinessesController(
     [HttpPost("{id:guid}/photo")]
     [Authorize]
     [RequestSizeLimit(BusinessPhotoService.MaxBytes + 1024 * 1024)] // margen para el overhead multipart
-    public async Task<ActionResult<BusinessResponse>> UploadPhoto(Guid id, IFormFile? photo, CancellationToken ct)
+    public Task<ActionResult<BusinessResponse>> UploadPhoto(Guid id, IFormFile? photo, CancellationToken ct)
+        => UploadImage(id, photo, BusinessImageKind.Photo, ct);
+
+    /// <summary>Sube el logo del negocio (multipart, campo 'photo'). Igual que la foto, en logo_url.</summary>
+    [HttpPost("{id:guid}/logo")]
+    [Authorize]
+    [RequestSizeLimit(BusinessPhotoService.MaxBytes + 1024 * 1024)]
+    public Task<ActionResult<BusinessResponse>> UploadLogo(Guid id, IFormFile? photo, CancellationToken ct)
+        => UploadImage(id, photo, BusinessImageKind.Logo, ct);
+
+    private async Task<ActionResult<BusinessResponse>> UploadImage(
+        Guid id, IFormFile? photo, BusinessImageKind kind, CancellationToken ct)
     {
         if (photo is null || photo.Length == 0)
             return BadRequest(new { error = "invalid_photo", message = "Falta la imagen (campo 'photo')." });
@@ -35,7 +46,7 @@ public class BusinessesController(
         try
         {
             await using var content = photo.OpenReadStream();
-            return Ok(await photos.UploadAsync(id, CurrentUserId, content, photo.ContentType, photo.Length, ct));
+            return Ok(await photos.UploadAsync(id, CurrentUserId, content, photo.ContentType, photo.Length, kind, ct));
         }
         catch (InvalidPhotoException ex)
         {

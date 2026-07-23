@@ -98,6 +98,12 @@ public class Business
     /// <summary>Usuario de Instagram sin la '@' (se enlaza como instagram.com/{handle}). NULL = sin fijar.</summary>
     public string? Instagram { get; set; }
 
+    /// <summary>URL del logo del negocio (para su ficha pública). NULL = sin logo.</summary>
+    public string? LogoUrl { get; set; }
+
+    /// <summary>Color de marca en formato #rrggbb (acento de la ficha pública). NULL = sin fijar.</summary>
+    public string? BrandColor { get; set; }
+
     /// <summary>Media de valoraciones (1–5). NULL si aún no tiene reseñas. Denormalizado.</summary>
     public double? Rating { get; set; }
 

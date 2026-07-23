@@ -117,6 +117,9 @@ export interface BusinessResponse {
   website: string | null
   /** Usuario de Instagram sin la '@'. */
   instagram: string | null
+  /** Marca propia de la ficha pública: logo y color de acento (#rrggbb). */
+  logoUrl: string | null
+  brandColor: string | null
   /** Valoraciones (denormalizado). `rating` null si aún no tiene reseñas. */
   rating: number | null
   reviewCount: number
@@ -174,6 +177,9 @@ export interface UpdateBusinessProfileRequest {
   website?: string | null
   /** Con o sin '@' — el backend la quita. */
   instagram?: string | null
+  logoUrl?: string | null
+  /** Formato #RRGGBB (el backend lo normaliza a minúsculas). */
+  brandColor?: string | null
 }
 
 /** GET /businesses/{id}/staff — trabajador del negocio (no expone email/teléfono). */

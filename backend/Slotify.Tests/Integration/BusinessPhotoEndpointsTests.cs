@@ -57,7 +57,7 @@ public class BusinessPhotoEndpointsTests : IClassFixture<BusinessPhotoEndpointsT
 
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
         var business = await res.Content.ReadFromJsonAsync<BusinessResponse>();
-        Assert.StartsWith($"/api/uploads/businesses/{businessId}.png?v=", business!.PhotoUrl);
+        Assert.StartsWith($"/api/uploads/businesses/{businessId}-photo.png?v=", business!.PhotoUrl);
 
         // El backend sirve la foto en /uploads/… (sin el prefijo /api del proxy).
         var served = await _client.GetAsync(business.PhotoUrl!["/api".Length..]);
@@ -80,6 +80,40 @@ public class BusinessPhotoEndpointsTests : IClassFixture<BusinessPhotoEndpointsT
             .Content.ReadFromJsonAsync<BusinessResponse>();
 
         Assert.NotEqual(first!.PhotoUrl, second!.PhotoUrl); // cambia el ?v=
+    }
+
+    [Fact]
+    public async Task UploadLogo_CoexistsWithPhoto_AndSetsBothUrls()
+    {
+        var (businessId, owner) = await RegisterBusinessAsync();
+
+        await owner.PostAsync($"/businesses/{businessId}/photo", Photo([1], "image/png"));
+        var res = await owner.PostAsync($"/businesses/{businessId}/logo", Photo([2], "image/png", "logo.png"));
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var business = await res.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.StartsWith($"/api/uploads/businesses/{businessId}-logo.png?v=", business!.LogoUrl);
+        Assert.StartsWith($"/api/uploads/businesses/{businessId}-photo.png?v=", business.PhotoUrl);
+
+        // Ambos ficheros se sirven de verdad.
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync(business.LogoUrl!["/api".Length..])).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync(business.PhotoUrl!["/api".Length..])).StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_BrandColor_PersistsAndInvalidReturns400()
+    {
+        var (businessId, owner) = await RegisterBusinessAsync();
+
+        var ok = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest(null, null, null, null, BrandColor: "#7C3AED"));
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        var business = await ok.Content.ReadFromJsonAsync<BusinessResponse>();
+        Assert.Equal("#7c3aed", business!.BrandColor);
+
+        var bad = await owner.PutAsJsonAsync($"/businesses/{businessId}/profile",
+            new UpdateBusinessProfileRequest(null, null, null, null, BrandColor: "rojo"));
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
     }
 
     [Fact]
