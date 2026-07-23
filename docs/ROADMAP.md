@@ -109,9 +109,9 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Auth (login/registro cliente+owner, JWT en localStorage, rutas protegidas) — *PR #16*
 - ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
 - ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*; ✅ **calendario mensual propio** (`MonthCalendar`: rejilla con navegación de meses, días pasados deshabilitados, día seleccionado resaltado) en lugar del input de fecha nativo — *PR month-calendar*
-- ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ⬜ PWA + responsive
+- ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ✅ PWA (rama v2) · ⬜ pasada responsive sistemática
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
-- ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ⬜ PWA
+- ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ✅ PWA (rama v2)
 - ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
 - ✅ **Reserva manual desde la Agenda** (owner): botón "Nueva reserva" → modal `NewReservationModal` (servicio → profesional filtrado por servicio → fecha → hueco en rejilla uniforme → datos del cliente). El owner apunta reservas de clientes (recepción); base del futuro plan solo-calendario — *PR owner-manual-booking*
 - ✅ **Agenda más informativa**: cada cita muestra el nombre del cliente (invitado o usuario) y una etiqueta Invitado/Cliente; `ReservationResponse.ClientName` (vía navegaciones `Guest`/`User`) — *PR agenda-and-slots-polish*
@@ -230,7 +230,10 @@ Cuarto bloque (2026-07-14 → 2026-07-19):
 - ✅ **Lista de espera (`waitlists`)**: sin huecos, el cliente entra en cola y se le avisa (email/WhatsApp) al liberarse un hueco.
 - ✅ **Pago real para Premium** *(cierra el 🔴 de producto)*: el upgrade entra SIEMPRE por el checkout de la pasarela (`IPaymentGateway` swappable: **Stripe Checkout real** con claves `STRIPE_*` o **checkout simulado** demoable sin ellas). `POST /businesses/{id}/checkout` crea la suscripción `pending` (tabla `subscriptions`, migración `Add_Subscriptions`); la activa el webhook `checkout.session.completed` (firma `Stripe-Signature` verificada con HMAC propio + anti-replay) o el retorno simulado, idempotente. `PUT /plan premium` directo → 409 `payment_required`; el downgrade a Free cancela la suscripción. Front: "Mejorar a Premium" abre la URL de pago y vuelve a Configuración con banner de éxito (`?upgraded=1`); spec `premium-upgrade.spec.ts`.
 
-Suite al cierre del cuarto bloque: **617 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team) en verde.
+- ✅ **PWA instalable**: manifest + service worker (`vite-plugin-pwa`), shell cacheada para el arranque y `/api` siempre por red (nada de datos obsoletos).
+- ✅ **Subida de la foto del negocio** *(antes solo pegar URL)*: `POST /businesses/{id}/photo` (multipart, JPG/PNG/WebP, máx. 5 MB, solo el owner) → `IPhotoStorage` swappable con `LocalPhotoStorage` (un fichero por negocio, `?v=` cache-buster), servida por el propio backend en `/uploads` (→ `/api/uploads` tras el proxy) y persistida en `/opt/slotify/uploads` en prod (bind mount, sin configurar nada). Botón "Subir imagen" en Configuración → Perfil; spec `business-photo.spec.ts`.
+
+Suite al cierre del cuarto bloque: **638 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team, business-photo) en verde.
 
 ### Producto / negocio
 - ✅ **Notificaciones reales (email + WhatsApp)** (rama v2): email por SMTP (IONOS vía MailKit) y WhatsApp por Twilio (sandbox en dev), ambos con fallback simulado si faltan credenciales.
@@ -238,7 +241,7 @@ Suite al cierre del cuarto bloque: **617 tests backend en verde** (unit + integr
 - ✅ **Rol admin de plataforma (moderación)** (rama v2): email configurado (`ADMIN_EMAIL`) + página `/admin` con directorio y borrado en cascada. El registro sigue abierto.
 - ✅ **Modo solo-calendario: horario y huecos** en la ficha pública (rama v2).
 - ✅ **Pago real para Premium** (rama v2): Stripe Checkout + webhook firmado + tabla `subscriptions`; sin claves de Stripe el checkout es simulado (demo). El upgrade directo quedó gateado (409 `payment_required`).
-- ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ⬜ Pendiente de futuro: logo propio, color de marca, subida de imágenes (hoy la foto es por URL).
+- ✅ **Personalización del perfil público** (rama v2): descripción, web e Instagram (además de la foto/categoría/contacto que ya existían). ✅ **Subida de la foto** desde Configuración (rama v2; antes solo por URL). ⬜ Pendiente de futuro: logo propio, color de marca.
 - ✅ **Página de contacto / soporte** (rama v2): `/contacto` → email al dueño de la plataforma.
 
 ### Seguridad
