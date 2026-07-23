@@ -109,7 +109,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ Auth (login/registro cliente+owner, JWT en localStorage, rutas protegidas) — *PR #16*
 - ✅ "Mis reservas" (listado) · ✅ agenda owner (esqueleto) — *PR #16*
 - ✅ Flujo de reserva completo: negocio → servicio → **staff** → fecha → slots → crear reserva (wizard de 7 pasos) — *PR #18*; ✅ **calendario mensual propio** (`MonthCalendar`: rejilla con navegación de meses, días pasados deshabilitados, día seleccionado resaltado) en lugar del input de fecha nativo — *PR month-calendar*
-- ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ✅ PWA (rama v2) · ⬜ pasada responsive sistemática
+- ✅ Dashboard owner (panel: contadores + ingresos + próximas) — *PR #19* · ✅ PWA (rama v2) · ✅ pasada responsive sistemática (rama v2): auditoría a 375px sin desbordes + spec guardarraíl `responsive.spec.ts`
 - ✅ Gestión del negocio (owner): ver negocio (nombre + id) + **crear/listar servicios** — *PR #21* · **configurar horario semanal** (editor) — *PR #22*
 - ✅ **Rediseño visual**: sistema de diseño (marca morado/cyan), logo Clock & Slot, header responsive con estados activos, status pills, cards — *PR #24* · ✅ PWA (rama v2)
 - ✅ **Cancelar + reprogramar reservas** en "Mis reservas" (cliente) y Agenda (owner): botón cancelar con confirmación inline + modal `RescheduleModal` con selector de fecha y slots en tiempo real — *PR #25*
@@ -235,6 +235,7 @@ Cuarto bloque (2026-07-14 → 2026-07-19):
 
 - ✅ **Logo propio + color de marca** *(cierra el "pendiente de futuro" del perfil)*: `logo_url` y `brand_color` (#rrggbb validado, migración `Add_BusinessBranding`); el logo se sube como la foto (`POST /businesses/{id}/logo`, slot aparte en `IPhotoStorage`: `{id}-logo.ext` no pisa `{id}-photo.ext`) y el color se edita con un picker en Configuración → Perfil. En la ficha pública: logo junto al nombre y color en la banda superior (si no hay foto); spec `business-branding.spec.ts`.
 - ✅ Parche de seguridad: `System.Security.Cryptography.Xml` fijado a 10.0.10 (NU1903 fuera; `dotnet list package --vulnerable` limpio).
+- ✅ **Pasada responsive sistemática**: auditoría a 375px (landing, Explorar + ficha, login/registro, contacto, panel, agenda, Configuración con todas las secciones, mis reservas, wizard) — sin desbordes horizontales ni roturas. Queda `responsive.spec.ts` como guardarraíl (autosuficiente, corre en CI): captura las vistas y falla si alguna desborda el viewport.
 
 Suite al cierre del cuarto bloque: **653 tests backend en verde** (unit + integración con Docker) + build del front y e2e afectados (premium-upgrade, staff-accounts, team, business-photo, business-branding) en verde.
 
