@@ -64,6 +64,19 @@ export const businessService = {
   },
 
   /**
+   * POST /businesses/{id}/photo — sube la foto del negocio (JPG/PNG/WebP, máx. 5 MB).
+   * El backend la guarda y devuelve el negocio con la nueva photoUrl.
+   */
+  async uploadPhoto(businessId: string, file: File): Promise<BusinessResponse> {
+    const form = new FormData()
+    form.append('photo', file)
+    const { data } = await api.post<BusinessResponse>(`/businesses/${businessId}/photo`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  /**
    * POST /businesses/{id}/checkout — abre el checkout del upgrade a Premium
    * (Stripe real o simulado, según el backend) y devuelve la URL de pago.
    */

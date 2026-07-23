@@ -140,6 +140,12 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
 > Consejo: copia periódicamente `/opt/slotify/backups/` fuera del VPS (rsync a tu PC u
 > otro almacenamiento) — un backup en la misma máquina no protege contra pérdida del VPS.
 
+### Fotos subidas por los negocios
+
+Las fotos de perfil que suben los owners viven en `/opt/slotify/uploads/` (bind mount
+del backend, se crea solo en el primer deploy: **no hay que configurar nada**). Sobreviven
+a los redeploys; inclúyelas en la misma copia offsite que los backups de la BD.
+
 ---
 
 ## Resumen

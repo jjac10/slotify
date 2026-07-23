@@ -18,6 +18,8 @@ using Slotify.Infrastructure.Security;
 using Slotify.API;
 using Slotify.API.Realtime;
 using Slotify.Infrastructure.Payments;
+using Slotify.Infrastructure.Storage;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -152,6 +154,13 @@ builder.Services.AddScoped<GuestOtpService>();
 builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IDayAvailabilityChecker, DayAvailabilityChecker>();
 builder.Services.AddScoped<WaitlistService>();
+
+// --- Foto del negocio: almacenamiento local servido como estáticos en /uploads ---
+// En producción la ruta vive en un volumen Docker; los tests la apuntan a un temporal.
+var uploadsRoot = builder.Configuration["Uploads:RootPath"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "uploads");
+builder.Services.AddSingleton<IPhotoStorage>(new LocalPhotoStorage(uploadsRoot));
+builder.Services.AddScoped<BusinessPhotoService>();
 
 // --- Pago del plan Premium: Stripe Checkout si hay claves (STRIPE_*), simulado si no ---
 var stripeOptions = StripeOptions.FromConfiguration(builder.Configuration);
@@ -295,6 +304,15 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 
 app.UseCors(FrontendCorsPolicy);
+
+// Fotos subidas: estáticos en /uploads (el navegador las pide como /api/uploads/…).
+Directory.CreateDirectory(uploadsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/uploads",
+});
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

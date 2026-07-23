@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { businessService } from '../services/businessService'
 import { getApiError } from '../services/apiClient'
@@ -716,6 +716,26 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const photoFileRef = useRef<HTMLInputElement>(null)
+
+  // Subir el fichero guarda ya la foto en el backend (no espera al "Guardar" del form).
+  async function handlePhotoFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite volver a elegir el mismo fichero
+    if (!file) return
+    setError(null)
+    setUploadingPhoto(true)
+    try {
+      const updated = await businessService.uploadPhoto(businessId, file)
+      setPhotoUrl(updated.photoUrl ?? '')
+      onUpdated(updated)
+    } catch (err) {
+      setError(getApiError(err)?.message ?? 'No se pudo subir la imagen.')
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
 
   useEffect(() => {
     if (!business) return
@@ -779,11 +799,24 @@ function ProfileSection({ businessId, business, onUpdated }: { businessId: strin
         </select>
       </div>
       <div className="field">
-        <label className="field-label" htmlFor="profile-photo">Foto (URL)</label>
-        <input id="profile-photo" type="url" className="field-input" data-testid="profile-photo"
-          value={photoUrl} onChange={(e) => { setPhotoUrl(e.target.value); setSaved(false) }} placeholder="https://…/foto.jpg" />
+        <label className="field-label" htmlFor="profile-photo">Foto</label>
+        {/* Subida directa (se guarda al elegir el fichero) o URL externa a mano. */}
+        <div className="flex items-center gap-stack-sm flex-wrap">
+          <input ref={photoFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+            className="hidden" data-testid="profile-photo-file" onChange={handlePhotoFile} />
+          <button type="button" className="btn-secondary !py-2 text-sm inline-flex items-center gap-1"
+            data-testid="profile-photo-upload" disabled={uploadingPhoto}
+            onClick={() => photoFileRef.current?.click()}>
+            <span className="material-symbols-outlined text-[18px]">upload</span>
+            {uploadingPhoto ? 'Subiendo…' : 'Subir imagen'}
+          </button>
+          <span className="text-xs text-on-surface-variant">JPG, PNG o WebP · máx. 5 MB</span>
+        </div>
+        <input id="profile-photo" type="url" className="field-input mt-2" data-testid="profile-photo"
+          value={photoUrl} onChange={(e) => { setPhotoUrl(e.target.value); setSaved(false) }} placeholder="https://…/foto.jpg (o sube una imagen)" />
         {photoUrl.trim() && (
-          <img src={photoUrl} alt="Vista previa" className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
+          <img src={photoUrl} alt="Vista previa" data-testid="profile-photo-preview"
+            className="mt-2 h-24 w-full max-w-xs rounded-xl object-cover"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )}
       </div>

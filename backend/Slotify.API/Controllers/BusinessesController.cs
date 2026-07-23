@@ -11,13 +11,45 @@ namespace Slotify.API.Controllers;
 public class BusinessesController(
     BusinessService businesses,
     BusinessDeletionService businessDeletion,
-    SubscriptionService subscriptions) : ApiControllerBase
+    SubscriptionService subscriptions,
+    BusinessPhotoService photos) : ApiControllerBase
 {
     /// <summary>Lista los negocios del owner autenticado.</summary>
     [HttpGet]
     [Authorize]
     public async Task<ActionResult<IReadOnlyList<BusinessResponse>>> ListMine(CancellationToken ct)
         => Ok(await businesses.ListByOwnerAsync(CurrentUserId, ct));
+
+    /// <summary>
+    /// Sube la foto del negocio (multipart, campo 'photo'; JPG/PNG/WebP, máx. 5 MB).
+    /// Solo el owner. La URL pública resultante queda en photo_url.
+    /// </summary>
+    [HttpPost("{id:guid}/photo")]
+    [Authorize]
+    [RequestSizeLimit(BusinessPhotoService.MaxBytes + 1024 * 1024)] // margen para el overhead multipart
+    public async Task<ActionResult<BusinessResponse>> UploadPhoto(Guid id, IFormFile? photo, CancellationToken ct)
+    {
+        if (photo is null || photo.Length == 0)
+            return BadRequest(new { error = "invalid_photo", message = "Falta la imagen (campo 'photo')." });
+
+        try
+        {
+            await using var content = photo.OpenReadStream();
+            return Ok(await photos.UploadAsync(id, CurrentUserId, content, photo.ContentType, photo.Length, ct));
+        }
+        catch (InvalidPhotoException ex)
+        {
+            return BadRequest(new { error = "invalid_photo", message = ex.Message });
+        }
+        catch (BusinessNotFoundException ex)
+        {
+            return NotFound(new { error = "business_not_found", message = ex.Message });
+        }
+        catch (NotBusinessOwnerException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
+        }
+    }
 
     /// <summary>
     /// Elimina el negocio y TODOS sus datos en cascada (RGPD). Confirmación máxima:
