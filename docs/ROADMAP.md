@@ -45,16 +45,16 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `pricing_tiers` (+ seed free/premium) — *PR #1*
 - ✅ `users` (mínimo: identidad, type, status) — *PR #1*
 - ✅ `businesses` (mínimo: owner, tier, name, status) — *PR #1* · ✅ `timezone` — *PR #—* · ✅ `confirmation_mode` (`auto`|`manual`) — *PR #26* · ✅ cambio de plan (`tier_id` editable, upgrade/downgrade owner) — *PR #30*
-  - ⬜ columnas restantes (contacto, personalización, config, social, stats)
-  - ✅ **perfil público**: `category`, `photo_url`, `latitude`, `longitude` (migración `Add_BusinessProfile`) → tarjetas con foto, filtro por categoría y "negocios cercanos" (distancia) en Explorar — *PR business-profile* · ⬜ `rating` (pendiente del sistema de reseñas)
+  - ✅ columnas restantes: contacto (`phone`, `address`), personalización (`description`, `website`, `instagram`, `logo_url`, `brand_color`), config (confirmación, ventana de cancelación, avisos) — completadas a lo largo del MVP y la rama v2
+  - ✅ **perfil público**: `category`, `photo_url`, `latitude`, `longitude` (migración `Add_BusinessProfile`) → tarjetas con foto, filtro por categoría y "negocios cercanos" (distancia) en Explorar — *PR business-profile* · ✅ `rating`/`review_count` (denormalizados con el sistema de reseñas)
 - ✅ `staff` (+ owner-as-staff) — *PR #2* · ✅ gestión CRUD de empleados (owner) — *PR #29*
 - ✅ `services` — *PR #6*
 - ✅ `staff_services` (N:M trabajador↔servicio, unique (staff_id, service_id), migración `Add_StaffServices`) — *PR #31*
 - ✅ `guests` (AES-256-GCM + HMAC blind index) — *PR #9*
 - ✅ `reservations` (+ exclusion constraint gist anti-doble-booking, optimistic locking) — *PR #9*
 - ✅ `business_hours` · ✅ `business_holidays` (+ `end_date` rango de días, `start_time`/`end_time` cierre parcial — migración `Add_HolidayRangeAndHours`) — *PR #10 / holiday-ranges*
-- ✅ `refresh_tokens` — *PR #5* · ⬜ `password_reset_tokens` · ⬜ `confirmation_tokens`
-- ✅ `audit_logs` (reservation_id SET NULL: sobrevive al hard-delete) — *PR #13* · ⬜ `notification_logs` · ⬜ `waitlists` · ⬜ `reviews`
+- ✅ `refresh_tokens` — *PR #5* · ✅ `password_reset_tokens` (rama v2, recuperación de contraseña) · ✅ `email_verification_tokens` (rama v2, verificación no bloqueante)
+- ✅ `audit_logs` (reservation_id SET NULL: sobrevive al hard-delete) — *PR #13* · ✅ `notifications` (avisos email/WhatsApp) · ✅ `waitlists` (rama v2) · ✅ `reviews`
 - 🔮 `payments` (esqueleto documentado, no MVP)
 
 ---
@@ -65,7 +65,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `IBusinessRepository` / `BusinessRepository` (EF)
 - ✅ `FreemiumLimitService` (data-driven, ADR #9): `CanAddStaffAsync` — *PR #3*, `CanAddServiceAsync` — *PR #6*
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
-  - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync`
+  - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync` — único límite Freemium sin aplicar, a consciencia: los clientes llegan solos al reservar y bloquear una reserva perjudicaría al negocio; el volumen ya lo gobierna el límite de reservas/mes
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync` · ✅ **editar/eliminar servicios** (owner): `UpdateAsync` + `DeleteAsync` (archivado lógico `status='archived'` para conservar el histórico de reservas; libera hueco del plan)
 - ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ✅ TODO cerrado en la rama v2: el upgrade está **gateado tras el pago** (`SubscriptionService` + checkout de Stripe real o simulado + tabla `subscriptions`; `PUT /plan premium` → 409 `payment_required`)
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
@@ -73,17 +73,17 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `DashboardService` (resumen owner-only: contadores histórico/mes, ingresos del mes, próximas reservas) — *PR #19*; `IReservationRepository.{CountByBusiness,SumRevenueByBusiness,ListUpcomingByBusiness}Async`
 - ✅ Auth: registro (bcrypt + **política de contraseña segura** *PR #7*), login (JWT HS256), refresh con rotación — *PR #5*; ✅ al registrar owner se siembra su **horario semanal por defecto** (L–V 09:00–17:00, fin de semana cerrado) en la misma transacción → disponibilidad desde el primer momento
   - ✅ `IPasswordHasher`/bcrypt, `ITokenService`/JWT, `AuthService`, `PasswordPolicy`, repos EF (`AuthRepository`, `RefreshTokenRepository`)
-  - ⬜ reset password (password_reset_tokens)
+  - ✅ reset password (rama v2: `/recuperar`, `/restablecer`, token un solo uso)
 - ✅ `BookingService` (crear guest/user, endTime, dedupe, overlap) + `CryptoService`/`BlindIndex` — *PR #9* · ✅ **reserva manual del owner/staff para un cliente** (datos de invitado aunque la petición esté autenticada → no es self-booking); si el contacto (teléfono/email normalizado) coincide con una cuenta existente, la reserva se **vincula a esa cuenta** (aparece en su "Mis reservas"); si no, se crea como invitado — *PR owner-manual-booking*. ⚠️ El match por teléfono usa normalización básica (espacios); E.164 completa es mejora futura
 - ✅ `BusinessScheduleService` (horario semanal + festivos, owner-only, validación) — *PR #10*
-- ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11*; ✅ los festivos pueden ser un **rango de días** y/o un **cierre parcial por horas** (resta solo esa franja de los huecos del día) — *PR holiday-ranges* · ⬜ timezone por negocio
+- ✅ `AvailabilityService` (slots = horario − festivos − reservas, paso configurable) — *PR #11*; ✅ los festivos pueden ser un **rango de días** y/o un **cierre parcial por horas** (resta solo esa franja de los huecos del día) — *PR holiday-ranges* · ⬜ timezone por negocio: la columna existe y toda la lógica la respeta; falta exponerla en la UI — decidido fuera de alcance (solo España por ahora)
 - ✅ `CanAddReservationThisMonthAsync` (límite Freemium de reservas) — `BookingService` lanza `FreemiumLimitReachedException` → `409 limit_reached`
 - ✅ Reservas: crear con anti-doble-booking — *PR #9* · ✅ cancelar (`ReservationManagementService`: autz por rol + hard-delete + audit) — *PR #13* · ✅ reprogramar (`RescheduleAsync`: autz por rol + solape excluyéndose + optimistic locking `version` + audit `updated`) — *PR #14* · ✅ listar (agenda owner/staff + "mis reservas") — *PR #15*
 - ✅ **Confirmación de reservas** (modo `auto`|`manual` por negocio): `BookingService` fija `confirmed`/`pending` según `Business.ConfirmationMode`; `ReservationManagementService.ConfirmAsync` (owner/staff, NO el cliente; `pending`→`confirmed`, optimistic locking + audit `confirmed`); `BusinessService.SetConfirmationModeAsync` (owner-only) — *PR #26*
 - ✅ **Acciones de invitado + ventana de antelación**: invitado (sin login) cancela/reprograma su reserva verificándose por contacto (blind index) — `CancelAsGuestAsync`/`RescheduleAsGuestAsync`; `Business.CancellationCutoffHours` (0=sin límite): el cliente no puede cancelar/reprogramar dentro de esa ventana previa al inicio (owner/staff sí) → `409 window_closed`; `BusinessService.SetCancellationCutoffAsync` (owner) — *PR #27b*
 - ✅ Guests: cifrado + blind index — *PR #9* · ✅ sync invitado→usuario automática (al registrarse, por blind index) — *PR #12* · ✅ ver reservas de invitado por teléfono/email (`GET /reservations/lookup`, blind index)
   - ⚠️ **TODO (seguridad):** el lookup de invitado debe **verificar identidad** (código por SMS al teléfono / email al correo) antes de mostrar las reservas; ahora basta con conocer el contacto. Necesario antes de producción
-- ⬜ Notificaciones (async fire & forget), reviews, waitlist
+- ✅ Notificaciones (email/WhatsApp reales con fallback simulado), reviews y waitlist — completados en la rama v2
 
 ---
 
@@ -99,7 +99,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14* · ✅ `POST /reservations/{id}/confirm` (confirmar, owner/staff) · ✅ `PUT /businesses/{id}/confirmation-mode` (auto/manual, owner) — *PR #26*
 - ✅ `GET /reservations/mine` ("mis reservas") · ✅ `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) — *PR #15*
 - ✅ `GET /businesses/{id}/dashboard` (resumen owner: contadores + ingresos del mes + próximas) — *PR #19*
-- ⬜ rate limiting · ⬜ manejo de errores estándar (middleware)
+- ✅ rate limiting (rama v2: login/register y endpoints públicos sensibles) · ⬜ manejo de errores estándar (middleware): los controllers usan try/catch por endpoint, consistente y testado — el middleware queda como refactor opcional
 
 ---
 
@@ -118,7 +118,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ **Hub de configuración** `/configuracion` (Datos · Servicios · **Equipo** · Horario · Festivos · Confirmación · Ventana de cancelación · Plan): gestión de empleados (alta/baja, aviso Premium en Free), toggle de confirmación, ventana de cancelación — *PR settings/team*
 - ✅ **`staff_services` (UI)**: asignar servicios a cada trabajador en "Equipo" (editor de chips, **todos marcados por defecto** = realiza todos); el wizard de reserva filtra el paso de trabajador por el servicio elegido (`GET /staff?serviceId=`) — *PR staff-services-ui*
 - ✅ **Editar/eliminar servicios** en la sección Servicios del hub (edición inline + borrado con confirmación) y **horario por defecto** al registrar el negocio — *PR services-crud / default-hours*
-- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*; cancelar+reprogramar — *PR #25*) · ⬜ Vitest + RTL
+- ✅ E2E Playwright (registro+login+vacío — *PR #16*; reserva completa — *PR #18*; panel owner — *PR #19*; alta de servicio — *PR #21*; horario — *PR #22*; cancelar+reprogramar — *PR #25*) · ✅ Vitest + RTL (rama v2, `npm run test:unit` en CI)
 
 ---
 
