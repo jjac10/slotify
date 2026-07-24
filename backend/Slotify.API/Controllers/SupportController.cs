@@ -21,14 +21,7 @@ public class SupportController(SupportService support) : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Contact(ContactSupportRequest request, CancellationToken ct)
     {
-        try
-        {
-            await support.SendContactMessageAsync(request.Name, request.Email, request.Message, ct);
-            return NoContent();
-        }
-        catch (InvalidContactMessageException ex)
-        {
-            return BadRequest(new { error = "invalid_contact_message", message = ex.Message, details = ex.Errors });
-        }
+        await support.SendContactMessageAsync(request.Name, request.Email, request.Message, ct);
+        return NoContent();
     }
 }

@@ -65,7 +65,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
   - ✅ `IBusinessRepository` / `BusinessRepository` (EF)
 - ✅ `FreemiumLimitService` (data-driven, ADR #9): `CanAddStaffAsync` — *PR #3*, `CanAddServiceAsync` — *PR #6*
   - ✅ `ITierRepository` / `IStaffRepository` / `IServiceRepository` (+ impl. EF)
-  - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ⬜ `CanAddClientAsync` — único límite Freemium sin aplicar, a consciencia: los clientes llegan solos al reservar y bloquear una reserva perjudicaría al negocio; el volumen ya lo gobierna el límite de reservas/mes
+  - ✅ `CanAddReservationThisMonthAsync` (límite reservas/mes, `IReservationRepository.CountByBusinessAsync`) · ❌ `CanAddClientAsync` — límite de clientes **descartado** (decisión de producto, jul 2026): los clientes llegan solos al reservar y bloquear una reserva perjudicaría al negocio; el volumen ya lo gobierna el límite de reservas/mes
 - ✅ `ServiceService` (alta owner-only + límite, listado) — *PR #6*; `BusinessService.ListByOwnerAsync` · ✅ **editar/eliminar servicios** (owner): `UpdateAsync` + `DeleteAsync` (archivado lógico `status='archived'` para conservar el histórico de reservas; libera hueco del plan)
 - ✅ **Plan/tier del negocio** (`BusinessService.ChangePlanAsync`, owner-only): cambia `tier_id` por código ('free'|'premium') → el upgrade desbloquea los límites Freemium (p. ej. añadir empleados); plan expuesto en `BusinessResponse.Plan`. En el TFM es un upgrade **simulado** (sin pago); el mismo método lo llamará el webhook de la pasarela en producción — *PR #30*. ✅ TODO cerrado en la rama v2: el upgrade está **gateado tras el pago** (`SubscriptionService` + checkout de Stripe real o simulado + tabla `subscriptions`; `PUT /plan premium` → 409 `payment_required`)
 - ✅ `StaffService` (listado público de trabajadores activos de un negocio) — *PR #17*; `IStaffRepository.ListByBusinessAsync` · ✅ **gestión de empleados** (owner): `CreateAsync` (límite Freemium `CanAddStaffAsync` → Premium para añadir, Free solo tiene al owner), `UpdateAsync` (nombre/contacto), `DeactivateAsync` (baja lógica `status='inactive'`, el owner-staff no se puede dar de baja); `CountByBusinessAsync` cuenta solo activos (la baja libera hueco) — *PR #29*
@@ -99,7 +99,7 @@ Comparado con [`DATA_MODEL.md`](./DATA_MODEL.md):
 - ✅ `POST /reservations` · ✅ `GET /reservations/{id}` — *PR #9* · ✅ `DELETE /reservations/{id}` (cancelar) — *PR #13* · ✅ `PATCH /reservations/{id}` (reprogramar) — *PR #14* · ✅ `POST /reservations/{id}/confirm` (confirmar, owner/staff) · ✅ `PUT /businesses/{id}/confirmation-mode` (auto/manual, owner) — *PR #26*
 - ✅ `GET /reservations/mine` ("mis reservas") · ✅ `GET /businesses/{id}/reservations` (agenda owner/staff, filtros fecha/staff) — *PR #15*
 - ✅ `GET /businesses/{id}/dashboard` (resumen owner: contadores + ingresos del mes + próximas) — *PR #19*
-- ✅ rate limiting (rama v2: login/register y endpoints públicos sensibles) · ⬜ manejo de errores estándar (middleware): los controllers usan try/catch por endpoint, consistente y testado — el middleware queda como refactor opcional
+- ✅ rate limiting (rama v2: login/register y endpoints públicos sensibles) · ✅ manejo de errores estándar (rama v2): `DomainExceptionHandler` (IExceptionHandler) mapea las excepciones de dominio a `{error, message}` + status; los controllers quedaron sin try/catch repetitivos (139 → 5 catch, solo los de slug contextual: `invalid_password`, webhook de Stripe, `cannot_invite/remove_owner`)
 
 ---
 

@@ -26,21 +26,10 @@ public class AuthController(
     [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Register(RegisterCustomerRequest request, CancellationToken ct)
     {
-        try
-        {
-            var result = await auth.RegisterCustomerAsync(request, ct);
-            // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
-            await emailVerification.TrySendAsync(result.UserId, ct);
-            return StatusCode(StatusCodes.Status201Created, result);
-        }
-        catch (WeakPasswordException ex)
-        {
-            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
-        }
-        catch (EmailAlreadyExistsException ex)
-        {
-            return Conflict(new { error = "email_exists", message = ex.Message });
-        }
+        var result = await auth.RegisterCustomerAsync(request, ct);
+        // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
+        await emailVerification.TrySendAsync(result.UserId, ct);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     /// <summary>Registra un propietario y crea su negocio (plan Free) + owner-staff.</summary>
@@ -48,21 +37,10 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<AuthResult>> RegisterOwner(RegisterOwnerRequest request, CancellationToken ct)
     {
-        try
-        {
-            var result = await auth.RegisterOwnerAsync(request, ct);
-            // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
-            await emailVerification.TrySendAsync(result.UserId, ct);
-            return StatusCode(StatusCodes.Status201Created, result);
-        }
-        catch (WeakPasswordException ex)
-        {
-            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
-        }
-        catch (EmailAlreadyExistsException ex)
-        {
-            return Conflict(new { error = "email_exists", message = ex.Message });
-        }
+        var result = await auth.RegisterOwnerAsync(request, ct);
+        // Verificación de email NO bloqueante: si el "envío" falla, el registro no falla.
+        await emailVerification.TrySendAsync(result.UserId, ct);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     /// <summary>Datos de una invitación de empleado pendiente (para la pantalla de aceptar). Público.</summary>
@@ -70,14 +48,7 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<StaffInviteInfoResponse>> GetStaffInvite(string token, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await auth.GetStaffInviteAsync(token, ct));
-        }
-        catch (StaffInviteNotFoundException ex)
-        {
-            return NotFound(new { error = "invite_not_found", message = ex.Message });
-        }
+        return Ok(await auth.GetStaffInviteAsync(token, ct));
     }
 
     /// <summary>El empleado fija su contraseña y crea su cuenta a partir del token de invitación. Público.</summary>
@@ -85,22 +56,7 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<AuthResult>> AcceptStaffInvite(string token, AcceptStaffInviteRequest request, CancellationToken ct)
     {
-        try
-        {
-            return StatusCode(StatusCodes.Status201Created, await auth.AcceptStaffInviteAsync(token, request.Password, ct));
-        }
-        catch (StaffInviteNotFoundException ex)
-        {
-            return NotFound(new { error = "invite_not_found", message = ex.Message });
-        }
-        catch (WeakPasswordException ex)
-        {
-            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
-        }
-        catch (EmailAlreadyExistsException ex)
-        {
-            return Conflict(new { error = "email_exists", message = ex.Message });
-        }
+        return StatusCode(StatusCodes.Status201Created, await auth.AcceptStaffInviteAsync(token, request.Password, ct));
     }
 
     /// <summary>Autentica con email + contraseña.</summary>
@@ -109,14 +65,7 @@ public class AuthController(
     [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Login(LoginRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await auth.LoginAsync(request, ct));
-        }
-        catch (InvalidCredentialsException ex)
-        {
-            return Unauthorized(new { error = "invalid_credentials", message = ex.Message });
-        }
+        return Ok(await auth.LoginAsync(request, ct));
     }
 
     /// <summary>
@@ -139,19 +88,8 @@ public class AuthController(
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
     {
-        try
-        {
-            await passwordReset.ResetPasswordAsync(request.Token, request.NewPassword, ct);
-            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
-        }
-        catch (InvalidPasswordResetTokenException ex)
-        {
-            return BadRequest(new { error = "invalid_reset_token", message = ex.Message });
-        }
-        catch (WeakPasswordException ex)
-        {
-            return BadRequest(new { error = "weak_password", message = ex.Message, details = ex.Errors });
-        }
+        await passwordReset.ResetPasswordAsync(request.Token, request.NewPassword, ct);
+        return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
     }
 
     /// <summary>Verifica el email con el token del enlace (24 h, un solo uso). Público.</summary>
@@ -160,15 +98,8 @@ public class AuthController(
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> VerifyEmail(VerifyEmailRequest request, CancellationToken ct)
     {
-        try
-        {
-            await emailVerification.VerifyAsync(request.Token, ct);
-            return Ok(new { message = "Email verificado. ¡Gracias!" });
-        }
-        catch (InvalidEmailVerificationTokenException ex)
-        {
-            return BadRequest(new { error = "invalid_verification_token", message = ex.Message });
-        }
+        await emailVerification.VerifyAsync(request.Token, ct);
+        return Ok(new { message = "Email verificado. ¡Gracias!" });
     }
 
     /// <summary>Reenvía el email de verificación al usuario autenticado (regenera el token).</summary>
@@ -181,15 +112,8 @@ public class AuthController(
         if (id is null)
             return Unauthorized();
 
-        try
-        {
-            await emailVerification.ResendAsync(Guid.Parse(id), ct);
-            return Ok(new { message = "Te hemos reenviado el enlace de verificación." });
-        }
-        catch (EmailAlreadyVerifiedException ex)
-        {
-            return BadRequest(new { error = "email_already_verified", message = ex.Message });
-        }
+        await emailVerification.ResendAsync(Guid.Parse(id), ct);
+        return Ok(new { message = "Te hemos reenviado el enlace de verificación." });
     }
 
     /// <summary>Renueva el access token a partir de un refresh token válido.</summary>
@@ -197,14 +121,7 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<AuthResult>> Refresh(RefreshRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await auth.RefreshAsync(request.RefreshToken, ct));
-        }
-        catch (InvalidRefreshTokenException ex)
-        {
-            return Unauthorized(new { error = "invalid_refresh_token", message = ex.Message });
-        }
+        return Ok(await auth.RefreshAsync(request.RefreshToken, ct));
     }
 
     /// <summary>
@@ -230,10 +147,6 @@ public class AuthController(
         catch (InvalidCredentialsException)
         {
             return BadRequest(new { error = "invalid_password", message = "La contraseña no es correcta." });
-        }
-        catch (BusinessHasFutureReservationsException ex)
-        {
-            return Conflict(new { error = "business_has_future_reservations", message = ex.Message });
         }
     }
 

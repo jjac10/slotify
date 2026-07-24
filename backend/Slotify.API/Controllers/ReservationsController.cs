@@ -40,45 +40,10 @@ public class ReservationsController(
         // Si la petición trae un JWT válido, el cliente es ese usuario; si no, es invitado.
         Guid? userId = User.FindFirstValue("sub") is { } sub ? Guid.Parse(sub) : null;
 
-        try
-        {
-            var result = await booking.CreateAsync(request, userId, ct);
-            await notifications.DispatchEventAsync(Ctx(result), "created", ct);
-            await BroadcastAsync(result, "created", ct);
-            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
-        }
-        catch (ServiceNotFoundException ex)
-        {
-            return NotFound(new { error = "service_not_found", message = ex.Message });
-        }
-        catch (StaffNotFoundException ex)
-        {
-            return NotFound(new { error = "staff_not_found", message = ex.Message });
-        }
-        catch (InvalidGuestContactException ex)
-        {
-            return BadRequest(new { error = "invalid_guest_contact", message = ex.Message });
-        }
-        catch (SelfBookingNotAllowedException ex)
-        {
-            return BadRequest(new { error = "self_booking_not_allowed", message = ex.Message });
-        }
-        catch (OnlineBookingDisabledException ex)
-        {
-            return Conflict(new { error = "online_booking_disabled", message = ex.Message });
-        }
-        catch (ContactBelongsToAccountException ex)
-        {
-            return Conflict(new { error = "contact_belongs_to_account", message = ex.Message });
-        }
-        catch (SlotUnavailableException ex)
-        {
-            return Conflict(new { error = "slot_unavailable", message = ex.Message });
-        }
-        catch (FreemiumLimitReachedException ex)
-        {
-            return Conflict(new { error = "limit_reached", message = ex.Message });
-        }
+        var result = await booking.CreateAsync(request, userId, ct);
+        await notifications.DispatchEventAsync(Ctx(result), "created", ct);
+        await BroadcastAsync(result, "created", ct);
+        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 
     /// <summary>Obtiene una reserva por id.</summary>
@@ -106,14 +71,7 @@ public class ReservationsController(
         if (!TryParseScope(scope, out var parsedScope))
             return BadRequest(new { error = "invalid_scope", message = "scope debe ser 'upcoming', 'past' o 'all'." });
 
-        try
-        {
-            return Ok(await management.ListMineAsync(CurrentUserId, parsedScope, page, pageSize, ct));
-        }
-        catch (InvalidPaginationException ex)
-        {
-            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
-        }
+        return Ok(await management.ListMineAsync(CurrentUserId, parsedScope, page, pageSize, ct));
     }
 
     /// <summary>Mapea <c>?scope=</c> (case-insensitive; vacío → All) a <see cref="ReservationScope"/>.</summary>
@@ -170,18 +128,7 @@ public class ReservationsController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = ReservationManagementService.DefaultPageSize,
         CancellationToken ct = default)
     {
-        try
-        {
-            return Ok(await management.ListForBusinessAsync(businessId, CurrentUserId, date, staffId, page, pageSize, ct));
-        }
-        catch (InvalidPaginationException ex)
-        {
-            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
-        }
-        catch (ReservationForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await management.ListForBusinessAsync(businessId, CurrentUserId, date, staffId, page, pageSize, ct));
     }
 
     /// <summary>
@@ -193,40 +140,17 @@ public class ReservationsController(
     [AllowAnonymous]
     public async Task<ActionResult<ReservationResponse>> Reschedule(Guid id, RescheduleReservationRequest request, CancellationToken ct)
     {
-        try
-        {
-            var userId = TryGetUserId();
-            // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
-            if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
-                return InvalidOtp();
+        var userId = TryGetUserId();
+        // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
+        if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
+            return InvalidOtp();
 
-            var result = userId is { } uid
-                ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
-                : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
-            await notifications.DispatchEventAsync(Ctx(result), "rescheduled", ct);
-            await BroadcastAsync(result, "rescheduled", ct);
-            return Ok(result);
-        }
-        catch (ReservationNotFoundException ex)
-        {
-            return NotFound(new { error = "reservation_not_found", message = ex.Message });
-        }
-        catch (ReservationForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (CancellationWindowClosedException ex)
-        {
-            return Conflict(new { error = "window_closed", message = ex.Message });
-        }
-        catch (SlotUnavailableException ex)
-        {
-            return Conflict(new { error = "slot_unavailable", message = ex.Message });
-        }
-        catch (ReservationConcurrencyException ex)
-        {
-            return Conflict(new { error = "concurrency_conflict", message = ex.Message });
-        }
+        var result = userId is { } uid
+            ? await management.RescheduleAsync(id, uid, request.StartTime, ct)
+            : await management.RescheduleAsGuestAsync(id, request.Contact, request.StartTime, ct);
+        await notifications.DispatchEventAsync(Ctx(result), "rescheduled", ct);
+        await BroadcastAsync(result, "rescheduled", ct);
+        return Ok(result);
     }
 
     /// <summary>Confirma una reserva pendiente (owner del negocio o su staff). Negocios con confirmación manual.</summary>
@@ -234,25 +158,10 @@ public class ReservationsController(
     [Authorize]
     public async Task<ActionResult<ReservationResponse>> Confirm(Guid id, CancellationToken ct)
     {
-        try
-        {
-            var result = await management.ConfirmAsync(id, CurrentUserId, ct);
-            await notifications.DispatchEventAsync(Ctx(result), "confirmed", ct);
-            await BroadcastAsync(result, "confirmed", ct);
-            return Ok(result);
-        }
-        catch (ReservationNotFoundException ex)
-        {
-            return NotFound(new { error = "reservation_not_found", message = ex.Message });
-        }
-        catch (ReservationForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (ReservationNotPendingException ex)
-        {
-            return Conflict(new { error = "not_pending", message = ex.Message });
-        }
+        var result = await management.ConfirmAsync(id, CurrentUserId, ct);
+        await notifications.DispatchEventAsync(Ctx(result), "confirmed", ct);
+        await BroadcastAsync(result, "confirmed", ct);
+        return Ok(result);
     }
 
     /// <summary>Marca una cita pasada como no asistida (owner del negocio o su staff). Alimenta la tasa de no-shows.</summary>
@@ -260,28 +169,9 @@ public class ReservationsController(
     [Authorize]
     public async Task<ActionResult<ReservationResponse>> MarkNoShow(Guid id, CancellationToken ct)
     {
-        try
-        {
-            var result = await management.MarkNoShowAsync(id, CurrentUserId, ct);
-            await BroadcastAsync(result, "no-show", ct);
-            return Ok(result);
-        }
-        catch (ReservationNotFoundException ex)
-        {
-            return NotFound(new { error = "reservation_not_found", message = ex.Message });
-        }
-        catch (ReservationForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (ReservationNotPastException ex)
-        {
-            return Conflict(new { error = "not_past", message = ex.Message });
-        }
-        catch (ReservationNotPendingException ex)
-        {
-            return Conflict(new { error = "not_pending", message = ex.Message });
-        }
+        var result = await management.MarkNoShowAsync(id, CurrentUserId, ct);
+        await BroadcastAsync(result, "no-show", ct);
+        return Ok(result);
     }
 
     /// <summary>
@@ -294,42 +184,27 @@ public class ReservationsController(
     [AllowAnonymous]
     public async Task<IActionResult> Cancel(Guid id, CancelReservationRequest request, CancellationToken ct)
     {
-        try
-        {
-            // Capturamos los datos antes de cancelar (la cancelación hace hard-delete).
-            var snapshot = await booking.GetAsync(id, ct);
+        // Capturamos los datos antes de cancelar (la cancelación hace hard-delete).
+        var snapshot = await booking.GetAsync(id, ct);
 
-            var userId = TryGetUserId();
-            // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
-            if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
-                return InvalidOtp();
+        var userId = TryGetUserId();
+        // Invitado (sin JWT): además del contacto, exige el código OTP vigente.
+        if (userId is null && !await guestOtp.VerifyAsync(request.Contact, request.OtpCode, ct))
+            return InvalidOtp();
 
-            if (userId is { } uid)
-                await management.CancelAsync(id, uid, request.Reason, ct);
-            else
-                await management.CancelAsGuestAsync(id, request.Contact, request.Reason, ct);
+        if (userId is { } uid)
+            await management.CancelAsync(id, uid, request.Reason, ct);
+        else
+            await management.CancelAsGuestAsync(id, request.Contact, request.Reason, ct);
 
-            if (snapshot is not null)
-            {
-                await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
-                await BroadcastAsync(snapshot, "cancelled", ct);
-                // El hueco liberado puede tener cola: avisar al primero (best-effort).
-                await waitlist.NotifySlotFreedAsync(
-                    snapshot.BusinessId, snapshot.ServiceId, snapshot.StartTime, snapshot.Id, ct);
-            }
-            return NoContent();
-        }
-        catch (ReservationNotFoundException ex)
+        if (snapshot is not null)
         {
-            return NotFound(new { error = "reservation_not_found", message = ex.Message });
+            await notifications.DispatchEventAsync(Ctx(snapshot), "cancelled", ct);
+            await BroadcastAsync(snapshot, "cancelled", ct);
+            // El hueco liberado puede tener cola: avisar al primero (best-effort).
+            await waitlist.NotifySlotFreedAsync(
+                snapshot.BusinessId, snapshot.ServiceId, snapshot.StartTime, snapshot.Id, ct);
         }
-        catch (ReservationForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (CancellationWindowClosedException ex)
-        {
-            return Conflict(new { error = "window_closed", message = ex.Message });
-        }
+        return NoContent();
     }
 }

@@ -24,23 +24,8 @@ public class BillingController(
     [Authorize]
     public async Task<ActionResult<object>> StartCheckout(Guid businessId, CancellationToken ct)
     {
-        try
-        {
-            var url = await subscriptions.StartCheckoutAsync(businessId, CurrentUserId, ct);
-            return Ok(new { url });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (AlreadyPremiumException ex)
-        {
-            return Conflict(new { error = "already_premium", message = ex.Message });
-        }
+        var url = await subscriptions.StartCheckoutAsync(businessId, CurrentUserId, ct);
+        return Ok(new { url });
     }
 
     /// <summary>
@@ -51,15 +36,8 @@ public class BillingController(
     [AllowAnonymous]
     public async Task<IActionResult> CompleteSimulated(string token, CancellationToken ct)
     {
-        try
-        {
-            await subscriptions.CompleteCheckoutAsync(token, ct);
-            return Redirect($"{frontend.BaseUrl.TrimEnd('/')}/configuracion?upgraded=1");
-        }
-        catch (CheckoutNotFoundException ex)
-        {
-            return NotFound(new { error = "checkout_not_found", message = ex.Message });
-        }
+        await subscriptions.CompleteCheckoutAsync(token, ct);
+        return Redirect($"{frontend.BaseUrl.TrimEnd('/')}/configuracion?upgraded=1");
     }
 
     /// <summary>

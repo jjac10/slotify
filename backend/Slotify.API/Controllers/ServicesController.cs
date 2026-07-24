@@ -21,23 +21,8 @@ public class ServicesController(ServiceService services) : ApiControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceResponse>> Create(Guid businessId, CreateServiceRequest request, CancellationToken ct)
     {
-        try
-        {
-            var created = await services.CreateAsync(businessId, CurrentUserId, request, ct);
-            return StatusCode(StatusCodes.Status201Created, created);
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (FreemiumLimitReachedException ex)
-        {
-            return Conflict(new { error = "limit_reached", message = ex.Message });
-        }
+        var created = await services.CreateAsync(businessId, CurrentUserId, request, ct);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     /// <summary>Edita un servicio (solo el owner).</summary>
@@ -45,22 +30,7 @@ public class ServicesController(ServiceService services) : ApiControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceResponse>> Update(Guid businessId, Guid serviceId, UpdateServiceRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await services.UpdateAsync(businessId, serviceId, CurrentUserId, request, ct));
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (ServiceNotFoundException ex)
-        {
-            return NotFound(new { error = "service_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await services.UpdateAsync(businessId, serviceId, CurrentUserId, request, ct));
     }
 
     /// <summary>Elimina un servicio (archivado lógico; solo el owner).</summary>
@@ -68,22 +38,7 @@ public class ServicesController(ServiceService services) : ApiControllerBase
     [Authorize]
     public async Task<IActionResult> Delete(Guid businessId, Guid serviceId, CancellationToken ct)
     {
-        try
-        {
-            await services.DeleteAsync(businessId, serviceId, CurrentUserId, ct);
-            return NoContent();
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (ServiceNotFoundException ex)
-        {
-            return NotFound(new { error = "service_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        await services.DeleteAsync(businessId, serviceId, CurrentUserId, ct);
+        return NoContent();
     }
 }

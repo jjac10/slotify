@@ -155,6 +155,9 @@ builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IDayAvailabilityChecker, DayAvailabilityChecker>();
 builder.Services.AddScoped<WaitlistService>();
 
+// --- Manejo de errores estándar: excepciones de dominio → {error, message} + status ---
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+
 // --- Foto del negocio: almacenamiento local servido como estáticos en /uploads ---
 // En producción la ruta vive en un volumen Docker; los tests la apuntan a un temporal.
 var uploadsRoot = builder.Configuration["Uploads:RootPath"]
@@ -298,6 +301,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();                                  // /openapi/v1.json
     app.MapScalarApiReference();                       // UI interactiva en /scalar
 }
+
+// Manejo de errores estándar (DomainExceptionHandler). La lambda vacía es a propósito:
+// lo que el handler no reconozca se relanza y acaba en el 500 genérico de siempre.
+app.UseExceptionHandler(_ => { });
 
 // Un evento INFO por petición HTTP (método, path, status, duración). La plantilla por
 // defecto usa RequestPath SIN query string ni body: no se filtran datos personales.

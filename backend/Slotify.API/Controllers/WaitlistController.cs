@@ -20,27 +20,8 @@ public class WaitlistController(WaitlistService waitlist) : ApiControllerBase
     public async Task<ActionResult<WaitlistEntryResponse>> Join(
         Guid businessId, JoinWaitlistRequest request, CancellationToken ct)
     {
-        try
-        {
-            var entry = await waitlist.JoinAsync(businessId, request.ServiceId, request.Date, CurrentUserId, ct);
-            return StatusCode(StatusCodes.Status201Created, entry);
-        }
-        catch (ServiceNotFoundException ex)
-        {
-            return NotFound(new { error = "service_not_found", message = ex.Message });
-        }
-        catch (InvalidWaitlistDateException ex)
-        {
-            return BadRequest(new { error = "invalid_date", message = ex.Message });
-        }
-        catch (AlreadyOnWaitlistException ex)
-        {
-            return Conflict(new { error = "already_waiting", message = ex.Message });
-        }
-        catch (WaitlistNotNeededException ex)
-        {
-            return Conflict(new { error = "slots_available", message = ex.Message });
-        }
+        var entry = await waitlist.JoinAsync(businessId, request.ServiceId, request.Date, CurrentUserId, ct);
+        return StatusCode(StatusCodes.Status201Created, entry);
     }
 
     /// <summary>Esperas del usuario autenticado (próximas primero).</summary>
@@ -52,14 +33,7 @@ public class WaitlistController(WaitlistService waitlist) : ApiControllerBase
     [HttpDelete("/waitlist/{entryId:guid}")]
     public async Task<IActionResult> Leave(Guid entryId, CancellationToken ct)
     {
-        try
-        {
-            await waitlist.LeaveAsync(entryId, CurrentUserId, ct);
-            return NoContent();
-        }
-        catch (WaitlistEntryNotFoundException ex)
-        {
-            return NotFound(new { error = "waitlist_entry_not_found", message = ex.Message });
-        }
+        await waitlist.LeaveAsync(entryId, CurrentUserId, ct);
+        return NoContent();
     }
 }

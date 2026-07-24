@@ -18,27 +18,8 @@ public class ReviewsController(ReviewService reviews) : ApiControllerBase
     [Authorize]
     public async Task<ActionResult<ReviewResponse>> Create(Guid reservationId, CreateReviewRequest request, CancellationToken ct)
     {
-        try
-        {
-            var result = await reviews.CreateAsync(reservationId, CurrentUserId, request.Rating, request.Comment, ct);
-            return CreatedAtAction(nameof(ListForBusiness), new { businessId = result.BusinessId }, result);
-        }
-        catch (ReservationNotFoundException ex)
-        {
-            return NotFound(new { error = "reservation_not_found", message = ex.Message });
-        }
-        catch (ReviewForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (InvalidReviewException ex)
-        {
-            return BadRequest(new { error = "invalid_review", message = ex.Message });
-        }
-        catch (ReviewNotAllowedException ex)
-        {
-            return Conflict(new { error = "review_not_allowed", message = ex.Message });
-        }
+        var result = await reviews.CreateAsync(reservationId, CurrentUserId, request.Rating, request.Comment, ct);
+        return CreatedAtAction(nameof(ListForBusiness), new { businessId = result.BusinessId }, result);
     }
 
     /// <summary>Edita una reseña propia (desde "Mis reseñas").</summary>
@@ -46,22 +27,7 @@ public class ReviewsController(ReviewService reviews) : ApiControllerBase
     [Authorize]
     public async Task<ActionResult<MyReviewResponse>> Update(Guid reviewId, UpdateReviewRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await reviews.UpdateAsync(reviewId, CurrentUserId, request.Rating, request.Comment, ct));
-        }
-        catch (ReviewNotFoundException ex)
-        {
-            return NotFound(new { error = "review_not_found", message = ex.Message });
-        }
-        catch (ReviewForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (InvalidReviewException ex)
-        {
-            return BadRequest(new { error = "invalid_review", message = ex.Message });
-        }
+        return Ok(await reviews.UpdateAsync(reviewId, CurrentUserId, request.Rating, request.Comment, ct));
     }
 
     /// <summary>Reseñas propias del cliente autenticado ("Mis reseñas").</summary>
@@ -82,13 +48,6 @@ public class ReviewsController(ReviewService reviews) : ApiControllerBase
         [FromQuery] int page = 1, [FromQuery] int pageSize = ReviewService.DefaultPageSize,
         CancellationToken ct = default)
     {
-        try
-        {
-            return Ok(await reviews.ListByBusinessAsync(businessId, page, pageSize, ct));
-        }
-        catch (InvalidPaginationException ex)
-        {
-            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
-        }
+        return Ok(await reviews.ListByBusinessAsync(businessId, page, pageSize, ct));
     }
 }

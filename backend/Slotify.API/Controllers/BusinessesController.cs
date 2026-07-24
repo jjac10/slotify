@@ -43,23 +43,8 @@ public class BusinessesController(
         if (photo is null || photo.Length == 0)
             return BadRequest(new { error = "invalid_photo", message = "Falta la imagen (campo 'photo')." });
 
-        try
-        {
-            await using var content = photo.OpenReadStream();
-            return Ok(await photos.UploadAsync(id, CurrentUserId, content, photo.ContentType, photo.Length, kind, ct));
-        }
-        catch (InvalidPhotoException ex)
-        {
-            return BadRequest(new { error = "invalid_photo", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        await using var content = photo.OpenReadStream();
+        return Ok(await photos.UploadAsync(id, CurrentUserId, content, photo.ContentType, photo.Length, kind, ct));
     }
 
     /// <summary>
@@ -76,25 +61,9 @@ public class BusinessesController(
             await businessDeletion.DeleteAsOwnerAsync(id, CurrentUserId, request.Name, request.Password, ct);
             return NoContent();
         }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
         catch (InvalidCredentialsException)
         {
             return BadRequest(new { error = "invalid_password", message = "La contraseña no es correcta." });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
-        catch (BusinessNameMismatchException ex)
-        {
-            return BadRequest(new { error = "name_mismatch", message = ex.Message });
-        }
-        catch (BusinessHasFutureReservationsException ex)
-        {
-            return Conflict(new { error = "business_has_future_reservations", message = ex.Message });
         }
     }
 
@@ -104,22 +73,7 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> SetConfirmationMode(
         Guid id, SetConfirmationModeRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await businesses.SetConfirmationModeAsync(id, CurrentUserId, request.Mode, ct));
-        }
-        catch (InvalidConfirmationModeException ex)
-        {
-            return BadRequest(new { error = "invalid_confirmation_mode", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await businesses.SetConfirmationModeAsync(id, CurrentUserId, request.Mode, ct));
     }
 
     /// <summary>Fija la antelación mínima (horas) para que el cliente cancele/reprograme. 0 = sin límite. Solo el owner.</summary>
@@ -128,22 +82,7 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> SetCancellationCutoff(
         Guid id, SetCancellationCutoffRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await businesses.SetCancellationCutoffAsync(id, CurrentUserId, request.Hours, ct));
-        }
-        catch (InvalidCancellationCutoffException ex)
-        {
-            return BadRequest(new { error = "invalid_cancellation_cutoff", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await businesses.SetCancellationCutoffAsync(id, CurrentUserId, request.Hours, ct));
     }
 
     /// <summary>Configura los avisos del negocio (canales email/WhatsApp + recordatorio). Solo el owner.</summary>
@@ -152,22 +91,7 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> SetNotificationSettings(
         Guid id, SetNotificationSettingsRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await businesses.SetNotificationSettingsAsync(id, CurrentUserId, request, ct));
-        }
-        catch (InvalidNotificationSettingsException ex)
-        {
-            return BadRequest(new { error = "invalid_notification_settings", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await businesses.SetNotificationSettingsAsync(id, CurrentUserId, request, ct));
     }
 
     /// <summary>Cambia el modo de reservas ('online'|'calendar_only'). Solo el owner.</summary>
@@ -176,22 +100,7 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> SetBookingMode(
         Guid id, SetBookingModeRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await businesses.SetBookingModeAsync(id, CurrentUserId, request.Mode, ct));
-        }
-        catch (InvalidBookingModeException ex)
-        {
-            return BadRequest(new { error = "invalid_booking_mode", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await businesses.SetBookingModeAsync(id, CurrentUserId, request.Mode, ct));
     }
 
     /// <summary>
@@ -203,28 +112,9 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> ChangePlan(
         Guid id, SetPlanRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(request.Code == "free"
-                ? await subscriptions.DowngradeAsync(id, CurrentUserId, ct)
-                : await businesses.ChangePlanAsync(id, CurrentUserId, request.Code, ct));
-        }
-        catch (InvalidPlanException ex)
-        {
-            return BadRequest(new { error = "invalid_plan", message = ex.Message });
-        }
-        catch (PaymentRequiredException ex)
-        {
-            return Conflict(new { error = "payment_required", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(request.Code == "free"
+            ? await subscriptions.DowngradeAsync(id, CurrentUserId, ct)
+            : await businesses.ChangePlanAsync(id, CurrentUserId, request.Code, ct));
     }
 
     /// <summary>Actualiza el perfil público del negocio (categoría/foto/ubicación). Solo el owner.</summary>
@@ -233,26 +123,7 @@ public class BusinessesController(
     public async Task<ActionResult<BusinessResponse>> UpdateProfile(
         Guid id, UpdateBusinessProfileRequest request, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await businesses.UpdateProfileAsync(id, CurrentUserId, request, ct));
-        }
-        catch (InvalidCategoryException ex)
-        {
-            return BadRequest(new { error = "invalid_category", message = ex.Message });
-        }
-        catch (InvalidBusinessProfileException ex)
-        {
-            return BadRequest(new { error = "invalid_profile", message = ex.Message });
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await businesses.UpdateProfileAsync(id, CurrentUserId, request, ct));
     }
 
     /// <summary>

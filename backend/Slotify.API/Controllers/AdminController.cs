@@ -32,14 +32,7 @@ public class AdminController(BusinessDeletionService deletion, AdminOptions admi
     {
         if (!IsAdmin()) return NotAdmin();
 
-        try
-        {
-            return Ok(await deletion.ListForAdminAsync(q, page, pageSize, ct));
-        }
-        catch (InvalidPaginationException ex)
-        {
-            return BadRequest(new { error = "invalid_pagination", message = ex.Message });
-        }
+        return Ok(await deletion.ListForAdminAsync(q, page, pageSize, ct));
     }
 
     /// <summary>Elimina un negocio (spam/prueba) con todos sus datos, en cascada.</summary>
@@ -48,14 +41,7 @@ public class AdminController(BusinessDeletionService deletion, AdminOptions admi
     {
         if (!IsAdmin()) return NotAdmin();
 
-        try
-        {
-            await deletion.DeleteAsAdminAsync(businessId, ct);
-            return NoContent();
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
+        await deletion.DeleteAsAdminAsync(businessId, ct);
+        return NoContent();
     }
 }

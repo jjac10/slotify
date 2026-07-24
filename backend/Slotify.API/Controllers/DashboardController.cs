@@ -15,17 +15,6 @@ public class DashboardController(DashboardService dashboard) : ApiControllerBase
     [Authorize]
     public async Task<ActionResult<DashboardResponse>> Get(Guid businessId, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await dashboard.GetAsync(businessId, CurrentUserId, DateTime.UtcNow, ct));
-        }
-        catch (BusinessNotFoundException ex)
-        {
-            return NotFound(new { error = "business_not_found", message = ex.Message });
-        }
-        catch (NotBusinessOwnerException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "forbidden", message = ex.Message });
-        }
+        return Ok(await dashboard.GetAsync(businessId, CurrentUserId, DateTime.UtcNow, ct));
     }
 }
